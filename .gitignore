@@ -10,3 +10,4 @@ __pycache__/
 
 # Çevresel değişkenler (Hassas bilgiler)
 .env
+.DS_Store
