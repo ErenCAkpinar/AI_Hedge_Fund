@@ -1,0 +1,12 @@
+# Sanal ortam
+venv/
+.venv/
+env/
+
+# Python geçici dosyaları
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Çevresel değişkenler (Hassas bilgiler)
+.env
