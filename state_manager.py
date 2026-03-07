@@ -398,6 +398,8 @@ def ozet_istatistik(kararlar: list[dict]) -> None:
         print(f"     ⚠️  ÇATIŞMA: {', '.join(k['symbol'] for k in catisma_)}")
 
 
+# Claude API kullanarak nihai kararı onaylar ve Alpaca için JSON üretir.
+
 def claude_otonom_onay(symbol, fiyat, sinyal, guven, toplam_skor, sl, tp):
     """Claude 3.5 Sonnet ile nihai kararı onaylar ve Alpaca için JSON üretir."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
