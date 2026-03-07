@@ -21,11 +21,12 @@ AĞIRLIKLAR:
 API GEREKTİRMEZ — JSON dosyalarını okuyarak çalışır.
 Pazartesi: Her karar için Claude API gerekçe ekler.
 """
-
+import os
+#import anthropic
 import json
 from datetime import datetime
 from pathlib import Path
-
+#load_dotenv()
 # ─────────────────────────────────────────────
 # CONFIG — Ağırlıklar
 # ─────────────────────────────────────────────
@@ -136,7 +137,32 @@ def catisma_var_mi(teknik_skor: float, efsane_skor: float, sentiment_skor: float
 
 
 # ─────────────────────────────────────────────
-# BÖLÜM 4: STOP-LOSS & TAKE-PROFIT HESAPLAMA
+# BÖLÜM 4: DİNAMİK POZİSYON BÜYÜKLÜĞÜ (Kelly Kriteri) 🆕
+# ─────────────────────────────────────────────
+def pozisyon_buyuklugu_hesapla(toplam_skor: float) -> float:
+    """
+    Kelly Kriteri ilhamıyla dinamik pozisyon büyüklüğü.
+    Sistem ne kadar eminse o kadar çok para basar.
+
+    Eşikler (abs(toplam_skor)):
+        ≥ 0.60  → Mükemmel sinyal  → Kasanın %35'i
+        ≥ 0.40  → Güçlü sinyal     → Kasanın %25'i
+        ≥ 0.30  → Orta sinyal      → Kasanın %15'i
+        < 0.30  → Zayıf sinyal     → Kasanın %10'u (minimum)
+    """
+    abs_skor = abs(toplam_skor)
+    if abs_skor >= 0.60:
+        return 0.35   # 💪 Mükemmel → %35 — ağır yumruk
+    elif abs_skor >= 0.40:
+        return 0.25   # 👍 Güçlü   → %25
+    elif abs_skor >= 0.30:
+        return 0.15   # 🤔 Orta    → %15
+    else:
+        return 0.10   # ⚠️  Zayıf   → %10 (minimum)
+
+
+# ─────────────────────────────────────────────
+# BÖLÜM 4b: STOP-LOSS & TAKE-PROFIT HESAPLAMA
 # ─────────────────────────────────────────────
 def sl_tp_hesapla(fiyat: float, sinyal: str, guven_skoru: float) -> dict:
     """
@@ -370,6 +396,53 @@ def ozet_istatistik(kararlar: list[dict]) -> None:
     print(f"     🟡 HOLD : {len(hold_)} varlık")
     if catisma_:
         print(f"     ⚠️  ÇATIŞMA: {', '.join(k['symbol'] for k in catisma_)}")
+
+
+def claude_otonom_onay(symbol, fiyat, sinyal, guven, toplam_skor, sl, tp):
+    """Claude 3.5 Sonnet ile nihai kararı onaylar ve Alpaca için JSON üretir."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("  ⚠️ CLAUDE API yok! İşlem Alpaca'ya GÖNDERİLMEYECEK.")
+        return {"action": "HOLD", "telegram_log": "API bekleniyor."}
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        
+        prompt = f"""
+        Sen, 1500$ sermayeli %100 Otonom Kantitatif Hedge Fonumuzun Baş Stratejisti ve 'Son Karar Merciisin'. 
+        Sistemin ürettiği matematiksel veriler şunlar:
+        - Varlık: {symbol} | Güncel Fiyat: {fiyat}
+        - Sistem Kararı: {sinyal} (Güven: {guven}, Skor: {toplam_skor})
+        - Risk Skoru: Stop-Loss: {sl}, Take-Profit: {tp}
+        
+        GÖREVİN:
+        1. Eğer {sinyal} kararı "HOLD" ise, işlemi geç.
+        2. Eğer "LONG" veya "SHORT" ise; son bir kez kontrol et. Saçma bir anomali seziyorsan "VETO" yap.
+        3. Kararın kesinleştiğinde; sistemin (Alpaca API) doğrudan okuyup işlem açacağı bir JSON formatı üret.
+
+        ÇIKTI FORMATI:
+        SADECE AŞAĞIDAKİ JSON FORMATINI DÖNDÜR. DIŞINDA HİÇBİR KELİME YAZMA:
+        {{
+            "action": "EXECUTE",
+            "symbol": "{symbol}",
+            "order_type": "{sinyal}",
+            "stop_loss": {sl},
+            "telegram_log": "🟢 {symbol} LONG emri Alpaca'ya iletildi. Fiyat: ${fiyat}."
+        }}
+        """
+
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=300,
+            temperature=0.0,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return json.loads(message.content[0].text)
+        
+    except Exception as e:
+        print(f"  ❌ Claude API Hatası: {e}")
+        return {"action": "HOLD", "telegram_log": "Hata oluştu."}
 
 
 # ─────────────────────────────────────────────

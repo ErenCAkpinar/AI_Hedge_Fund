@@ -18,7 +18,8 @@ MOD:
 Kurulum:
     pip install requests beautifulsoup4 yfinance python-dotenv
 """
-
+import os
+import google.generativeai as genai
 import json
 import time
 import warnings
@@ -252,21 +253,44 @@ def keyword_sentiment_hesapla(metinler: list[str]) -> float:
     normalize = toplam_puan / (len(metinler) * 2)
     return round(max(-1.0, min(1.0, normalize)), 3)
 
+#  Gemini API kullanarak sentiment hesapla
 
-# ── Pazartesi bu fonksiyon aktif edilecek ──────────────────────
-# def gemini_sentiment_hesapla(symbol: str, metinler: list[str]) -> float:
-#     import google.generativeai as genai
-#     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-#     model = genai.GenerativeModel("gemini-2.0-flash")
-#     prompt = f"""
-#     {symbol} hakkında aşağıdaki metinleri analiz et.
-#     Sadece bir sayı döndür: -1.0 (çok negatif) ile +1.0 (çok pozitif) arasında.
-#     Metinler: {json.dumps(metinler, ensure_ascii=False)}
-#     """
-#     response = model.generate_content(prompt)
-#     return float(response.text.strip())
-# ──────────────────────────────────────────────────────────────
+def gemini_sentiment_hesapla(symbol: str, metinler: list[str]) -> float:
+    """Gemini 2.0 Flash kullanarak Otonom Sentiment analizi yapar."""
+    if not metinler:
+        return 0.0
+        
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print(f"  ⚠️ GEMINI API yok! Şimdilik 0.0 (Nötr) dönülüyor.")
+        return 0.0
+        
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        
+        prompt = f"""
+        Sen Wall Street'in en zeki 'Otonom Piyasa Duyarlılık (Sentiment) Algoritması'sın.
+        Görevin, {symbol} varlığı hakkında internetten çekilen aşağıdaki ham metinleri okuyup, insan müdahalesi olmadan işlem yapan ticaret botumuza matematiksel bir yön (skor) vermektir.
+        
+        METİNLER:
+        {json.dumps(metinler, ensure_ascii=False)}
 
+        KURALLAR:
+        1. Reddit/StockTwits argosunu ("To the moon", "Diamond hands" = Pozitif | "Bagholder", "Rug pull" = Negatif) ve en önemlisi İRONİYİ anla.
+        2. Kurumsal clickbait tuzaklarını filtrele.
+        3. EĞER METİNLERDE CİDDİ BİR İFLAS, SAVAŞ VEYA FED FAİZ ŞOKU GÖRÜRSEN, robotu korumak için skoru acımasızca -1.0'a çek.
+        
+        ÇIKTI FORMATI:
+        Bana HİÇBİR açıklama veya uyarı yapma. Makinenin okuyabilmesi için SADECE -1.000 ile +1.000 arasında ondalıklı bir sayı ver. (Örnek: -0.850)
+        """
+        
+        response = model.generate_content(prompt)
+        return float(response.text.strip())
+        
+    except Exception as e:
+        print(f"  ❌ Gemini API Hatası: {e}")
+        return 0.0
 
 def stocktwits_orani_skora_cevir(bogа_orani) -> float:
     """StockTwits boğa/ayı oranını -1/+1 skalasına çevirir."""
@@ -344,12 +368,12 @@ def sentiment_hesapla(symbol: str) -> dict:
     """
     print(f"    📰 Haberler çekiliyor...", end=" ", flush=True)
     haberler = yfinance_haberleri_cek(symbol)
-    haber_skoru = keyword_sentiment_hesapla(haberler)
+    haber_skoru = gemini_sentiment_hesapla(symbol, haberler)
     print(f"✓ ({len(haberler)} haber, skor: {haber_skoru:+.2f})")
 
     print(f"    🤖 Reddit taranıyor...", end=" ", flush=True)
     reddit_gonderiler = reddit_gonderileri_cek(symbol)
-    reddit_skoru = keyword_sentiment_hesapla(reddit_gonderiler)
+    reddit_skoru = gemini_sentiment_hesapla(symbol, reddit_gonderiler)
     print(f"✓ ({len(reddit_gonderiler)} gönderi, skor: {reddit_skoru:+.2f})")
 
     print(f"    📊 StockTwits çekiliyor...", end=" ", flush=True)

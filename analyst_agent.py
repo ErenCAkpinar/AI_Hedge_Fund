@@ -118,17 +118,20 @@ def run_analyst_agent(market_data: dict) -> str:
     data_lines = "\n".join(f"  • {k}: {v}" for k, v in market_data.items())
 
     # --- AJAN ---
+# --- AJAN ---
     analyst = Agent(
-        role="Kıdemli Teknik Analist",
+        role="Otonom Sistemler Baş Kantitatif Analisti (Lead Quant)",
         goal=(
-            "Verilen teknik göstergelerden piyasanın kısa vadeli yönünü belirlemek "
-            "ve net bir alım/satım/bekleme sinyali üretmek."
+            "Verilen teknik indikatörlerdeki gürültüyü (noise) filtrelemek, "
+            "insan onayı olmaksızın otomatik işlem açacak bir algoritmaya "
+            "sadece asimetrik kâr potansiyeli olan kusursuz sinyaller üretmek."
         ),
         backstory=(
-            "10 yıllık kantitatif trading deneyimine sahipsin. RSI aşırı alım/satım "
-            "bölgelerini, MACD kesişim sinyallerini ve hareketli ortalama sıralamalarını "
-            "kullanarak piyasa kararları verirsin. Spekülasyon yapmazsın, "
-            "sadece veriden hareket edersin. Türkçe yanıt verirsin."
+            "Sen %100 otonom (insan müdahalesi olmayan) bir Hedge Fonun teknik beynisin. "
+            "Sıradan analistler gibi her MACD kesişiminde veya RSI aşırı satımında işlem onayı vermezsin. "
+            "Senin işin 'Boğa Tuzaklarını' (Bull Trap) ve 'Düşen Bıçakları' (Falling Knives) tespit etmektir. "
+            "Eğer verilerde mükemmel bir uyum (Confluence) yoksa, robotik sistemin parayı çöpe atmasını "
+            "engellemek için gözünü kırpmadan 'HOLD' (Bekle) sinyali verirsin. Yasal uyarı yapmazsın."
         ),
         verbose=True,
         allow_delegation=False,
@@ -138,25 +141,19 @@ def run_analyst_agent(market_data: dict) -> str:
     # --- GÖREV ---
     task = Task(
         description=(
-            f"Aşağıdaki teknik piyasa verilerini analiz et:\n\n"
-            f"{data_lines}\n\n"
-            f"Şu soruları yanıtla:\n"
-            f"  1. RSI: Aşırı alım (>70) / aşırı satım (<30) / nötr bölgede mi?\n"
-            f"  2. MACD Histogram pozitif mi negatif mi? Momentum artıyor mu azalıyor mu?\n"
-            f"  3. Fiyat SMA'ların üstünde mi altında mı? Bu ne anlama geliyor?\n"
-            f"  4. Tüm bu verileri birleştirerek tek bir karar üret.\n\n"
-            f"Yanıtını TAM OLARAK şu formatta ver (başka hiçbir şey ekleme):\n"
+            f"Aşağıdaki kurumsal seviye teknik verileri analiz et:\n{data_lines}\n\n"
+            f"GÖREVİN:\n"
+            f"1. Fiyat SMA50'nin altındayken RSI 30'un altına indiyse, bu bir alım fırsatı mıdır yoksa trendin çöktüğünün kanıtı mıdır? Robotun düşen bıçağı tutmasını engelle.\n"
+            f"2. MACD Histogram momentumu fiyatı destekliyor mu?\n"
+            f"3. BU KARAR DOĞRUDAN BORSAYA İLETİLECEKTİR. Sadece kazanma ihtimali kusursuza yakınsa LONG veya SHORT ver, aksi halde kesinlikle HOLD ver.\n\n"
+            f"YANIT FORMATI (YASAL UYARI KULLANMA. SADECE AŞAĞIDAKİ 3 SATIRI YAZ):\n"
             f"TREND: [Bullish / Bearish / Nötr]\n"
             f"SİNYAL: [LONG / SHORT / HOLD]\n"
-            f"GEREKÇE: [Maksimum 3 cümle, sadece verideki gözlemlere dayan]"
+            f"GEREKÇE: [Makro trendi açıklayan maksimum 2 cümlelik net bir finansal gerekçe.]"
         ),
-        expected_output=(
-            "TREND, SİNYAL ve GEREKÇE etiketlerini içeren, "
-            "3 satırlık yapılandırılmış analiz raporu."
-        ),
+        expected_output="TREND, SİNYAL ve GEREKÇE etiketlerini içeren 3 satırlık yapılandırılmış metin.",
         agent=analyst,
     )
-
     # --- CREW ---
     crew = Crew(
         agents=[analyst],

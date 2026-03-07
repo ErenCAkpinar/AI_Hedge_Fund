@@ -1,22 +1,30 @@
 """
-true_backtest_v4.py — KÖK NEDEN DÜZELTMELERİ
-==============================================
+true_backtest_v5.py — 4 KÂR ARTIRICI GELİŞTİRME
+=================================================
 
-v3 → v4 DEĞİŞİKLİKLER:
+v4 → v5 DEĞİŞİKLİKLER:
 
-  KÖK SORUN A FİX: SHORT STRATEJİSİ ÇOK SIKILAŞTIRILDI
-    - LONG_ONLY_LIST: NVDA, TSLA, JPM → bu hisseler için SHORT YOK
-    - Global SHORT koşulu: SMA200 ALTINDA + ADX>30 + short_oran≥60%
-    Kaynak: QuantifiedStrategies — "Profitable shorts are RARE,
-            you can't invert long rules and expect them to work"
+  🏃 GELİŞTİRME 1: İZLEYEN STOP (Trailing Stop)
+    - Sabit TP (Take Profit) kaldırıldı.
+    - Fiyat yükseldikçe Stop-Loss arkasından tırmanır.
+    - ATR_TRAIL_KATSAYI = 2.5  (giriş sonrası trail mesafesi)
+    - Rallinin tamamını kasaya koyar, erken çıkışı önler.
 
-  KÖK SORUN B FİX: ATR BAZLI DİNAMİK SL/TP
-    - Sabit %3/%9 yerine: SL = 1.8*ATR, TP = 4.5*ATR (LONG YÜKSEK)
-    - Volatil hisse (NVDA beta~1.7) → ATR büyük → SL geniş → gürültüye takılmaz
-    Kaynak: Wilder (1978) ATR, Van Tharp "Trade Your Way to Financial Freedom"
+  ⚖️  GELİŞTİRME 2: DİNAMİK POZİSYON BÜYÜKLÜĞÜ (Kelly Kriteri)
+    - Sabit %10 yerine state_manager toplam_skor baz alınır:
+        Skor ≥ 0.60 → %35  |  ≥ 0.40 → %25
+        Skor ≥ 0.30 → %15  |  < 0.30 → %10
+    - Makine en emin olduğunda ağır yumruk atar.
 
-  KÖK SORUN C FİX: YÜKSEK EŞİK AYARLANDI
-    - ESIK_YUKSEK: 0.50 → 0.40 (blow-off top anında giriş riski azalır)
+  🧱 GELİŞTİRME 3: PYRAMIDING (Kazanan Ata Ekleme)
+    - Trend devam ettiğinde her 1.5 ATR'de bir ek giriş (max 2 katman).
+    - Piramit boyutu = ana pozisyonun %50'si.
+    - Dennis Turtle Trading: "Kazanana ekle, kaybedeni kes."
+
+  ❄️  GELİŞTİRME 4: BİLEŞİK GETİRİ (Compounding)
+    - Tüm işlemler kronolojik sıralanır.
+    - Kâr ana sermayeye eklenir, bir sonraki işlem güncel equity'den açılır.
+    - Kartopu etkisiyle dik büyüme eğrisi.
 """
 
 import sys, json, warnings
@@ -37,11 +45,12 @@ from legends_agent import efsane_oylama
 from state_manager import (
     teknik_skora_cevir, efsane_skora_cevir,
     catisma_var_mi,
+    pozisyon_buyuklugu_hesapla,
     AGIRLIK_TEKNIK, AGIRLIK_EFSANE,
 )
 
 # ─────────────────────────────────────────────
-# CONFIG v4
+# CONFIG v5
 # ─────────────────────────────────────────────
 WATCHLIST = [
     "NVDA", "TSLA", "TSM", "ASTS",
@@ -49,30 +58,31 @@ WATCHLIST = [
     "MSTR", "PLTR", "FXY"
 ]
 
-# KÖK SORUN A: Yüksek beta hisseler → SADECE LONG
 LONG_ONLY_LIST = {"NVDA", "TSLA", "JPM"}
 
 BASLANGIC_SERMAYE = 1_500
-POZISYON_BUYUKLUK = 0.10
 PERIOD            = "2y"
 ISINMA_GUN        = 60
 MAX_POZISYON_GUN  = 15
 
-# KÖK SORUN C FİX
 ESIK_YUKSEK = 0.40
 ESIK_ORTA   = 0.30
 
-# SHORT için sıkı ADX
 ADX_MIN_LONG    = 20
 ADX_MIN_SHORT   = 30
-SHORT_ORAN_MIN  = 60   # Legends'ın en az %60'ı SHORT demeli
+SHORT_ORAN_MIN  = 60
 
-# KÖK SORUN B: ATR katsayıları
+# ATR stop katsayıları
 ATR_SL_YUKSEK = 1.8
-ATR_TP_YUKSEK = 4.5
 ATR_SL_ORTA   = 1.5
-ATR_TP_ORTA   = 3.5
 
+# 🆕 1. İZLEYEN STOP (Trailing Stop)
+ATR_TRAIL_KATSAYI = 2.5   # Trailing stop ATR mesafesi — TP'nin yerini aldı
+
+# 🆕 3. PYRAMIDING
+PYRAMID_TRIGGER_ATR = 1.5   # Her X ATR'de bir ek giriş
+PYRAMID_MAX         = 2     # Maksimum ek giriş katmanı
+PYRAMID_BOYUT       = 0.50  # Piramit boyutu = ana pozisyonun %50'si
 
 # ─────────────────────────────────────────────
 # BÖLÜM 1: VERİ
@@ -238,23 +248,51 @@ def v4_sinyal(symbol, df_slice):
     return ham, guven, abs(toplam), red_flags
 
 
+
 # ─────────────────────────────────────────────
-# BÖLÜM 5: İŞLEM SİMÜLATÖRÜ
+# BÖLÜM 5: İŞLEM SİMÜLATÖRÜ v5
+# 🆕 Trailing Stop + Pyramiding + Dinamik Pozisyon
 # ─────────────────────────────────────────────
-def islem_simule(df, giris_idx, sinyal, guven):
+def islem_simule(df, giris_idx, sinyal, guven, skor):
+    """
+    v5 Yenilikler:
+      - TP yok, TRAIL_STOP var (fiyat arkasından tırmanır)
+      - skor baz alınarak dinamik pozisyon büyüklüğü
+      - Her PYRAMID_TRIGGER_ATR'de ek giriş (max PYRAMID_MAX katman)
+    """
     giris_fiyat  = float(df.iloc[giris_idx]["Open"] or df.iloc[giris_idx]["Close"])
     giris_tarihi = str(df.index[giris_idx])[:10]
-    atr          = df.iloc[giris_idx].get("ATR", 0)
+    atr          = float(df.iloc[giris_idx].get("ATR") or 0)
 
-    sl_tp_res = atr_sl_tp(giris_fiyat, sinyal, guven, atr)
-    sl = sl_tp_res["stop_loss"]
-    tp = sl_tp_res["take_profit"]
+    # 🆕 2. Dinamik pozisyon büyüklüğü (Kelly)
+    pos_oran = pozisyon_buyuklugu_hesapla(skor)
 
-    if sl is None:
-        sl_pct = 0.03 if guven == "YÜKSEK" else 0.025
-        tp_pct = 0.09 if guven == "YÜKSEK" else 0.06
-        sl = round(giris_fiyat * (1 - sl_pct if sinyal == "LONG" else 1 + sl_pct), 4)
-        tp = round(giris_fiyat * (1 + tp_pct if sinyal == "LONG" else 1 - tp_pct), 4)
+    # ATR bazlı başlangıç stop-loss
+    sl_k = ATR_SL_YUKSEK if guven == "YÜKSEK" else ATR_SL_ORTA
+    if atr > 0:
+        if sinyal == "LONG":
+            trail_stop = giris_fiyat - atr * sl_k
+        else:
+            trail_stop = giris_fiyat + atr * sl_k
+    else:
+        fallback = 0.03 if guven == "YÜKSEK" else 0.025
+        trail_stop = (giris_fiyat * (1 - fallback) if sinyal == "LONG"
+                      else giris_fiyat * (1 + fallback))
+
+    # 🆕 1. Trailing stop watermark
+    watermark = giris_fiyat   # LONG: en yüksek fiyat  |  SHORT: en düşük fiyat
+
+    # 🆕 3. Pyramiding — tetikleme seviyeleri
+    pyramid_girisleri = []   # [(fiyat, oran), ...]
+    if atr > 0:
+        if sinyal == "LONG":
+            pyramid_levels = [giris_fiyat + atr * PYRAMID_TRIGGER_ATR * (n + 1)
+                              for n in range(PYRAMID_MAX)]
+        else:
+            pyramid_levels = [giris_fiyat - atr * PYRAMID_TRIGGER_ATR * (n + 1)
+                              for n in range(PYRAMID_MAX)]
+    else:
+        pyramid_levels = []   # ATR yoksa piramit yok
 
     max_i = min(giris_idx + MAX_POZISYON_GUN, len(df) - 1)
     cikis_fiyat  = float(df.iloc[max_i]["Close"])
@@ -265,36 +303,81 @@ def islem_simule(df, giris_idx, sinyal, guven):
         gun  = df.iloc[i]
         high = float(gun["High"])
         low  = float(gun["Low"])
+        close= float(gun["Close"])
 
         if sinyal == "LONG":
-            if low <= sl:
-                cikis_fiyat, cikis_neden, cikis_tarihi = sl, "SL", str(df.index[i])[:10]; break
-            elif high >= tp:
-                cikis_fiyat, cikis_neden, cikis_tarihi = tp, "TP", str(df.index[i])[:10]; break
-        else:
-            if high >= sl:
-                cikis_fiyat, cikis_neden, cikis_tarihi = sl, "SL", str(df.index[i])[:10]; break
-            elif low <= tp:
-                cikis_fiyat, cikis_neden, cikis_tarihi = tp, "TP", str(df.index[i])[:10]; break
+            # 🆕 3. Piramit kontrolü
+            for pi, ptrigger in enumerate(pyramid_levels):
+                if pi >= len(pyramid_girisleri) and close >= ptrigger:
+                    pyramid_girisleri.append((close, pos_oran * PYRAMID_BOYUT))
 
-    pnl_pct = ((cikis_fiyat - giris_fiyat) / giris_fiyat
-               if sinyal == "LONG"
-               else (giris_fiyat - cikis_fiyat) / giris_fiyat)
+            # 🆕 1. Watermark güncelle → trailing stop tırmandır
+            if high > watermark:
+                watermark = high
+                if atr > 0:
+                    new_trail = watermark - atr * ATR_TRAIL_KATSAYI
+                    if new_trail > trail_stop:
+                        trail_stop = new_trail
+
+            # Çıkış: trailing stop kırıldı mı?
+            if low <= trail_stop:
+                cikis_fiyat  = trail_stop
+                cikis_neden  = "TRAIL"
+                cikis_tarihi = str(df.index[i])[:10]
+                break
+
+        else:  # SHORT
+            # 🆕 3. Piramit kontrolü (SHORT: fiyat düşünce ekle)
+            for pi, ptrigger in enumerate(pyramid_levels):
+                if pi >= len(pyramid_girisleri) and close <= ptrigger:
+                    pyramid_girisleri.append((close, pos_oran * PYRAMID_BOYUT))
+
+            # 🆕 1. Watermark güncelle → trailing stop aşağı çek
+            if low < watermark:
+                watermark = low
+                if atr > 0:
+                    new_trail = watermark + atr * ATR_TRAIL_KATSAYI
+                    if new_trail < trail_stop:
+                        trail_stop = new_trail
+
+            if high >= trail_stop:
+                cikis_fiyat  = trail_stop
+                cikis_neden  = "TRAIL"
+                cikis_tarihi = str(df.index[i])[:10]
+                break
+
+    # 🆕 3. Piramit ağırlıklı ortalama giriş
+    tum_girişler    = [(giris_fiyat, pos_oran)] + pyramid_girisleri
+    toplam_pos_oran = sum(o for _, o in tum_girişler)
+    ort_giris       = sum(f * o for f, o in tum_girişler) / toplam_pos_oran
+
+    if sinyal == "LONG":
+        pnl_pct = (cikis_fiyat - ort_giris) / ort_giris
+    else:
+        pnl_pct = (ort_giris - cikis_fiyat) / ort_giris
+
+    # pnl_dolar = placeholder, 🆕 4. Bileşik hesap MAIN'de yapılır
+    pnl_dolar_basit = round(pnl_pct * BASLANGIC_SERMAYE * toplam_pos_oran, 2)
 
     return {
-        "giris_tarihi": giris_tarihi, "cikis_tarihi": cikis_tarihi,
-        "giris_fiyat": round(giris_fiyat, 2), "cikis_fiyat": round(cikis_fiyat, 2),
-        "sl": round(sl, 2), "tp": round(tp, 2),
-        "cikis_neden": cikis_neden,
-        "pnl_pct": round(pnl_pct * 100, 2),
-        "pnl_dolar": round(pnl_pct * BASLANGIC_SERMAYE * POZISYON_BUYUKLUK, 2),
-        "dogru_karar": pnl_pct > 0,
-        "atr": round(float(atr), 2) if atr and not pd.isna(atr) else 0,
+        "giris_tarihi"   : giris_tarihi,
+        "cikis_tarihi"   : cikis_tarihi,
+        "giris_fiyat"    : round(giris_fiyat, 2),
+        "cikis_fiyat"    : round(cikis_fiyat, 2),
+        "sl"             : round(trail_stop, 2),   # son trailing stop seviyesi
+        "tp"             : None,                   # artık TP yok
+        "cikis_neden"    : cikis_neden,
+        "pnl_pct"        : round(pnl_pct * 100, 2),
+        "pnl_dolar"      : pnl_dolar_basit,        # bileşiksiz (referans için)
+        "pos_oran"       : round(toplam_pos_oran, 3),
+        "pyramid_sayisi" : len(pyramid_girisleri),
+        "dogru_karar"    : pnl_pct > 0,
+        "atr"            : round(float(atr), 2) if atr else 0,
     }
 
 
 # ─────────────────────────────────────────────
-# BÖLÜM 6: SEMBOL BACKTEST
+# BÖLÜM 6: SEMBOL BACKTEST (skor pass-through eklendi)
 # ─────────────────────────────────────────────
 def sembol_backtest(symbol, df):
     islemler      = []
@@ -327,7 +410,8 @@ def sembol_backtest(symbol, df):
         if giris_idx >= len(df) - 1:
             break
 
-        sonuc = islem_simule(df, giris_idx, sinyal, guven)
+        # 🆕 skor artık islem_simule'ye geçiyor (dinamik pozisyon + pyramid için)
+        sonuc = islem_simule(df, giris_idx, sinyal, guven, skor)
         islemler.append({
             "symbol": symbol, "sinyal_tarihi": str(df.index[idx])[:10],
             "sinyal": sinyal, "guven": guven, "sistem_skoru": round(skor, 3),
@@ -344,6 +428,34 @@ def sembol_backtest(symbol, df):
 
 
 # ─────────────────────────────────────────────
+# BÖLÜM 6b: 🆕 BİLEŞİK GETİRİ HESAPLAMA
+# ─────────────────────────────────────────────
+def bilesik_pnl_hesapla(tum_islemler, baslangic_sermaye):
+    """
+    Tüm işlemleri tarihe göre sıralar, kârı ana sermayeye ekleyerek
+    bileşik getiriyi simüle eder.
+
+    Her işlem bir öncekinin güncellenmiş equity'si üzerinden
+    pozisyon büyüklüğü hesaplar → kartopu etkisi.
+    """
+    sirali = sorted(tum_islemler, key=lambda x: x["giris_tarihi"])
+    cari_sermaye = float(baslangic_sermaye)
+
+    for islem in sirali:
+        pnl_pct_decimal = islem["pnl_pct"] / 100.0
+        pos_oran        = islem["pos_oran"]
+
+        # 🆕 Bileşik: güncel equity üzerinden hesapla
+        pnl_bilesik = round(pnl_pct_decimal * cari_sermaye * pos_oran, 2)
+
+        islem["sermaye_once"]   = round(cari_sermaye, 2)
+        islem["pnl_dolar_bilesik"] = pnl_bilesik
+        cari_sermaye += pnl_bilesik
+        islem["sermaye_sonra"]  = round(cari_sermaye, 2)
+
+    return sirali, round(cari_sermaye, 2)
+
+# ─────────────────────────────────────────────
 # BÖLÜM 7: RAPOR
 # ─────────────────────────────────────────────
 def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
@@ -356,7 +468,8 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
     short_is = [x for x in tum_islemler if x["sinyal"] == "SHORT"]
     yuk_is   = [x for x in tum_islemler if x["guven"]  == "YÜKSEK"]
     orta_is  = [x for x in tum_islemler if x["guven"]  == "ORTA"]
-    tp_is    = [x for x in tum_islemler if x["cikis_neden"] == "TP"]
+    trail_is = [x for x in tum_islemler if x["cikis_neden"] == "TRAIL"]
+    tp_is    = trail_is  # v5: TP → TRAIL
     sl_is    = [x for x in tum_islemler if x["cikis_neden"] == "SL"]
     sure_is  = [x for x in tum_islemler if x["cikis_neden"] == "SÜRE"]
 
@@ -380,13 +493,13 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
 
     print(f"\n{'═'*72}")
     print(f"  🔬 TRUE BACKTEST v4 — KÖK NEDEN DÜZELTMELERİ")
-    print(f"  ATR-SL | LongOnly(NVDA/TSLA/JPM) | SHORT≥{SHORT_ORAN_MIN}% | ADX(L≥{ADX_MIN_LONG},S≥{ADX_MIN_SHORT})")
+    print(f"  TrailingStop | Kelly Sizing | Pyramiding | Compounding")
     print(f"{'═'*72}")
 
     # Karşılaştırma
     refs = [("v1 Buglu",768,32.6,31621,1.22,66.1),
             ("v3 RSI✓",368,36.4,19999,1.33,62.8),
-            ("v4 Bu  ",len(tum_islemler),round(genel_acc,1),round(toplam_pnl),pf_genel,round(sl_oran,1))]
+            ("v5 Bu  ",len(tum_islemler),round(genel_acc,1),round(toplam_pnl),pf_genel,round(sl_oran,1))]
     print(f"\n  {'Ver':<12} {'İşlem':>6} {'ACC%':>7} {'P&L':>10} {'PF':>6} {'SL%':>6}")
     print(f"  {'─'*50}")
     for (ad,is_,ac,pl,pf_,sl_) in refs:
@@ -399,7 +512,7 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
     print(f"  │  Profit Factor  : {pf_genel}x")
     print(f"  │  Max Drawdown   : ${max_dd:,.2f}")
     print(f"  │  Toplam İşlem   : {len(tum_islemler)}")
-    print(f"  │  TP/SL/Süre     : {len(tp_is)} / {len(sl_is)} / {len(sure_is)}")
+    print(f"  │  TRAIL/SL/Süre  : {len(tp_is)} / {len(sl_is)} / {len(sure_is)}")
     print(f"  │  SL Oranı       : %{sl_oran:.1f}")
     ai = lambda a: "🟢" if a>=55 else "🟡" if a>=45 else "🔴"
     print(f"  ├─ 🎯 ACCURACY {'─'*48}")
@@ -457,8 +570,8 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"\n{'═'*72}")
-    print(f"  Algoritmik Hedge Fon | TRUE BACKTEST v4")
-    print(f"  Kök Neden Düzeltmeleri: ATR-SL | LongOnly | SHORT≥{SHORT_ORAN_MIN}% | ADX ayrı")
+    print(f"  Algoritmik Hedge Fon | TRUE BACKTEST v5")
+    print(f"  v5: TrailingStop | Kelly Sizing | Pyramiding | Compounding")
     print(f"{'═'*72}\n")
 
     tum_islemler = []
@@ -503,7 +616,20 @@ if __name__ == "__main__":
             print("— sinyal yok")
 
     tum_islemler.sort(key=lambda x: x["giris_tarihi"])
+
+    # 🆕 4. BİLEŞİK GETİRİ HESAPLA
+    tum_islemler, son_sermaye = bilesik_pnl_hesapla(tum_islemler, BASLANGIC_SERMAYE)
+    bilesik_getiri = son_sermaye - BASLANGIC_SERMAYE
+    bilesik_getiri_pct = bilesik_getiri / BASLANGIC_SERMAYE * 100
+    pyramid_toplam = sum(x.get("pyramid_sayisi", 0) for x in tum_islemler)
+    print(f"\n  ❄️  BİLEŞİK GETİRİ: ${son_sermaye:,.2f}  ({bilesik_getiri_pct:+.2f}%)")
+    print(f"  🧱 TOPLAM PİRAMİT GİRİŞİ: {pyramid_toplam}")
+    print(f"  ⚖️  ORTALAMA POZİSYON: %{sum(x['pos_oran'] for x in tum_islemler)/max(len(tum_islemler),1)*100:.1f}")
+
     stats = rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet)
+    stats["bilesik_son_sermaye"] = son_sermaye
+    stats["bilesik_getiri"] = round(bilesik_getiri, 2)
+    stats["bilesik_getiri_pct"] = round(bilesik_getiri_pct, 2)
 
     if stats:
         acc   = stats.get("genel_acc", 0)
@@ -522,12 +648,12 @@ if __name__ == "__main__":
     Path("true_backtest_rapor.json").write_text(
         json.dumps({
             "tarih": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "versiyon": "v4",
-            "duzeltmeler": {
-                "A_long_only": list(LONG_ONLY_LIST),
+            "versiyon": "v5",
+            "gelistirmeler_v5": {
+                "1_trailing_stop": f"ATR_TRAIL_KATSAYI={ATR_TRAIL_KATSAYI}  (TP kaldırıldı)",
                 "A_short_adr": f"ADX≥{ADX_MIN_SHORT}, SMA200 altı, legends≥{SHORT_ORAN_MIN}%",
-                "B_atr_sl":    f"SL={ATR_SL_YUKSEK}ATR/{ATR_SL_ORTA}ATR",
-                "C_esik":      f"YÜKSEK={ESIK_YUKSEK}, ORTA={ESIK_ORTA}",
+                "3_pyramiding": f"trigger={PYRAMID_TRIGGER_ATR}ATR, max={PYRAMID_MAX} katman, boyut=%{PYRAMID_BOYUT*100:.0f}",
+                "4_compounding": f"başlangıç=${BASLANGIC_SERMAYE}, son=${stats.get('bilesik_son_sermaye',0):,.2f}",
             },
             "stats": stats, "sembol": sembol_ozet, "islemler": tum_islemler,
         }, ensure_ascii=False, indent=2, default=str)
