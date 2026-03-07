@@ -1,14 +1,15 @@
 """
-analyst_agent.py
-================
+analyst_agent.py  [V5 — ATR+SMA200 Eklendi]
+============================================
 Algoritmik Hedge Fon — DAG Aşama 1 + 3 Köprüsü
-Görev: yfinance ile veri çek → ta ile zenginleştir → CrewAI Analist Ajanına ilet.
 
-Gereksinimler (.env dosyasında):
-    OPENAI_API_KEY=sk-...
+V5 DEĞİŞİKLİKLERİ:
+    - fetch_and_enrich() → ATR_14 ve SMA_200 artık hesaplanıp döndürülüyor
+    - Bu sayede AI ajan kararları state_manager'a ATR ile birlikte gidiyor
+    - mock_agent.py ile tam senkron: aynı veri alanları, aynı format
 
-Kurulum (eğer henüz kurulmadıysa):
-    pip install crewai yfinance pandas python-dotenv ta
+.env: OPENAI_API_KEY=sk-...
+Kurulum: pip install crewai yfinance pandas python-dotenv ta
 """
 
 import os
@@ -18,62 +19,86 @@ from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from ta.trend import MACD, SMAIndicator
 from ta.momentum import RSIIndicator
+from ta.volatility import AverageTrueRange   # V5: ATR için eklendi
 
 warnings.filterwarnings("ignore")
-load_dotenv()  # .env dosyasını otomatik yükle
+load_dotenv()
+
+# ─────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────
+SYMBOL   = "NVDA"
+PERIOD   = "1y"     # V5: SMA_200 için 1 yıl (eski 3mo yetersizdi)
+INTERVAL = "1d"
+LLM      = "gpt-4o-mini"
 
 
 # ─────────────────────────────────────────────
-# CONFIG — Sadece buradan değiştir
-# ─────────────────────────────────────────────
-SYMBOL   = "NVDA"   # Test için tek varlık, watchlist'ten herhangi biri
-PERIOD   = "3mo"    # yfinance periyodu (swing trading için yeterli geçmiş)
-INTERVAL = "1d"     # Günlük mum (1D kararlar için)
-LLM      = "gpt-4o-mini"  # Ucuz ama yeterince akıllı — API faturasını düşük tutar
-
-
-# ─────────────────────────────────────────────
-# BÖLÜM 1: Veri Çekimi ve Teknik Zenginleştirme
+# BÖLÜM 1: Veri Çekimi
+# V5: ATR_14 ve SMA_200 eklendi — mock_agent ile tam senkron
 # ─────────────────────────────────────────────
 def fetch_and_enrich(symbol: str, period: str, interval: str) -> dict:
     """
-    yfinance'ten OHLCV verisi çeker, ta kütüphanesiyle
-    temel teknik indikatörleri hesaplar ve özet dict döndürür.
+    V5: ATR_14 ve SMA_200 artık döndürülen dict'e dahil.
+    mock_agent.py ile tam senkron — pipeline boyunca ATR veri akışı sağlanıyor.
     """
     try:
         ticker = yf.Ticker(symbol)
-        df = ticker.history(period=period, interval=interval)
+        df     = ticker.history(period=period, interval=interval)
 
         if df.empty:
-            raise ValueError(f"'{symbol}' için veri alınamadı. Sembolü kontrol et.")
+            raise ValueError(f"'{symbol}' için veri alınamadı.")
 
         if len(df) < 50:
-            raise ValueError(
-                f"Yeterli veri yok (mevcut: {len(df)} mum, gerekli: 50+). "
-                f"Period değerini artır."
-            )
+            raise ValueError(f"Yetersiz veri (mevcut: {len(df)}, gerekli: 50+).")
 
         close = df["Close"]
+        high  = df["High"]
+        low   = df["Low"]
 
-        # --- İndikatör Hesaplamaları ---
+        # ── İndikatörler ─────────────────────────────────────────────────
         df["RSI"]        = RSIIndicator(close=close, window=14).rsi()
         df["SMA_20"]     = SMAIndicator(close=close, window=20).sma_indicator()
         df["SMA_50"]     = SMAIndicator(close=close, window=50).sma_indicator()
 
+        # V5: SMA_200 — Paul Tudor Jones trend filtresi
+        df["SMA_200"]    = SMAIndicator(close=close, window=200).sma_indicator()
+
         _macd            = MACD(close=close)
         df["MACD"]       = _macd.macd()
         df["MACD_Signal"]= _macd.macd_signal()
-        df["MACD_Diff"]  = _macd.macd_diff()  # Histogram: pozitif = momentum artıyor
+        df["MACD_Diff"]  = _macd.macd_diff()
+
+        # V5: ATR — canlı pipeline'ın akıllı SL/TP ve Pyramiding için
+        df["ATR_14"]     = AverageTrueRange(
+            high=high, low=low, close=close, window=14
+        ).average_true_range()
 
         last = df.iloc[-1]
         prev = df.iloc[-2]
 
-        # Trend yardımcısı: SMA pozisyonları
         price_vs_sma20 = "ÜSTÜNDE" if last["Close"] > last["SMA_20"] else "ALTINDA"
         price_vs_sma50 = "ÜSTÜNDE" if last["Close"] > last["SMA_50"] else "ALTINDA"
         sma20_vs_sma50 = "ÜSTÜNDE" if last["SMA_20"] > last["SMA_50"] else "ALTINDA"
 
+        # SMA_200 trend tespiti
+        try:
+            sma200_val = float(last["SMA_200"])
+            ana_trend  = "BULLISH" if float(last["Close"]) > sma200_val else "BEARISH"
+            fiyat_sma200 = "ÜSTÜNDE" if float(last["Close"]) > sma200_val else "ALTINDA"
+        except Exception:
+            sma200_val   = None
+            ana_trend    = "NÖTR"
+            fiyat_sma200 = "VERİ_YOK"
+
+        # ATR değeri
+        try:
+            atr_val = round(float(last["ATR_14"]), 4)
+        except Exception:
+            atr_val = None
+
         summary = {
+            # ── Mevcut alanlar ──────────────────────────────────────────
             "symbol"          : symbol,
             "son_kapanış"     : round(float(last["Close"]), 2),
             "önceki_kapanış"  : round(float(prev["Close"]), 2),
@@ -90,6 +115,11 @@ def fetch_and_enrich(symbol: str, period: str, interval: str) -> dict:
             "fiyat_sma20_poz" : price_vs_sma20,
             "fiyat_sma50_poz" : price_vs_sma50,
             "sma20_sma50_poz" : f"SMA20, SMA50'nin {sma20_vs_sma50}",
+            # ── V5 Yeni Alanlar ─────────────────────────────────────────
+            "ATR_14"          : atr_val,
+            "SMA_200"         : round(sma200_val, 2) if sma200_val else None,
+            "fiyat_sma200_poz": fiyat_sma200,
+            "ana_trend"       : ana_trend,
         }
         return summary
 
@@ -100,68 +130,49 @@ def fetch_and_enrich(symbol: str, period: str, interval: str) -> dict:
 
 # ─────────────────────────────────────────────
 # BÖLÜM 2: CrewAI Analist Ajan
+# V5: ATR ve ana trend bilgisi prompt'a eklendi
 # ─────────────────────────────────────────────
 def run_analyst_agent(market_data: dict) -> str:
-    """
-    Teknik veriyi alır, CrewAI üzerinden AI Analist Ajanını çalıştırır,
-    yapılandırılmış TREND / SİNYAL / GEREKÇE formatında rapor döndürür.
-    """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise EnvironmentError(
-            "OPENAI_API_KEY bulunamadı. "
-            "Proje kökündeki .env dosyasına 'OPENAI_API_KEY=sk-...' satırını ekle."
-        )
-    os.environ["OPENAI_API_KEY"] = api_key  # CrewAI bu env variable'ı doğrudan okur
+        raise EnvironmentError("OPENAI_API_KEY bulunamadı. .env'e ekle.")
+    os.environ["OPENAI_API_KEY"] = api_key
 
-    # Veriyi ajana okunabilir metin olarak hazırla
     data_lines = "\n".join(f"  • {k}: {v}" for k, v in market_data.items())
 
-    # --- AJAN ---
-# --- AJAN ---
     analyst = Agent(
         role="Otonom Sistemler Baş Kantitatif Analisti (Lead Quant)",
         goal=(
-            "Verilen teknik indikatörlerdeki gürültüyü (noise) filtrelemek, "
-            "insan onayı olmaksızın otomatik işlem açacak bir algoritmaya "
-            "sadece asimetrik kâr potansiyeli olan kusursuz sinyaller üretmek."
+            "ATR bazlı stop ve Pyramiding içeren otonom sistemin sinyallerini üretmek. "
+            "SMA200 altında LONG, SMA200 üstünde SHORT vermemek."
         ),
         backstory=(
-            "Sen %100 otonom (insan müdahalesi olmayan) bir Hedge Fonun teknik beynisin. "
-            "Sıradan analistler gibi her MACD kesişiminde veya RSI aşırı satımında işlem onayı vermezsin. "
-            "Senin işin 'Boğa Tuzaklarını' (Bull Trap) ve 'Düşen Bıçakları' (Falling Knives) tespit etmektir. "
-            "Eğer verilerde mükemmel bir uyum (Confluence) yoksa, robotik sistemin parayı çöpe atmasını "
-            "engellemek için gözünü kırpmadan 'HOLD' (Bekle) sinyali verirsin. Yasal uyarı yapmazsın."
+            "Sen %100 otonom Hedge Fonun teknik beynisin. ATR değeri büyükse "
+            "volatiliteyi göz önünde bulundurursun. SMA200 trend filtresine kesinlikle uyarsın. "
+            "Yasal uyarı yapmazsın."
         ),
         verbose=True,
         allow_delegation=False,
         llm=LLM,
     )
 
-    # --- GÖREV ---
     task = Task(
         description=(
-            f"Aşağıdaki kurumsal seviye teknik verileri analiz et:\n{data_lines}\n\n"
-            f"GÖREVİN:\n"
-            f"1. Fiyat SMA50'nin altındayken RSI 30'un altına indiyse, bu bir alım fırsatı mıdır yoksa trendin çöktüğünün kanıtı mıdır? Robotun düşen bıçağı tutmasını engelle.\n"
-            f"2. MACD Histogram momentumu fiyatı destekliyor mu?\n"
-            f"3. BU KARAR DOĞRUDAN BORSAYA İLETİLECEKTİR. Sadece kazanma ihtimali kusursuza yakınsa LONG veya SHORT ver, aksi halde kesinlikle HOLD ver.\n\n"
-            f"YANIT FORMATI (YASAL UYARI KULLANMA. SADECE AŞAĞIDAKİ 3 SATIRI YAZ):\n"
+            f"Kurumsal seviye teknik verileri analiz et:\n{data_lines}\n\n"
+            f"V5 KURALLAR:\n"
+            f"1. Ana trend BEARISH (fiyat SMA200 altında) ise LONG verme.\n"
+            f"2. ATR yüksekse (fiyatın >%3'ü) bu volatil hisse, stop daha geniş tutulacak.\n"
+            f"3. Sadece güçlü konfirmasyon varsa LONG veya SHORT ver.\n\n"
+            f"YANIT FORMATI (sadece 3 satır):\n"
             f"TREND: [Bullish / Bearish / Nötr]\n"
             f"SİNYAL: [LONG / SHORT / HOLD]\n"
-            f"GEREKÇE: [Makro trendi açıklayan maksimum 2 cümlelik net bir finansal gerekçe.]"
+            f"GEREKÇE: [Maksimum 2 cümle, ATR ve SMA200 trendini belirt.]"
         ),
-        expected_output="TREND, SİNYAL ve GEREKÇE etiketlerini içeren 3 satırlık yapılandırılmış metin.",
+        expected_output="TREND, SİNYAL ve GEREKÇE etiketlerini içeren 3 satırlık metin.",
         agent=analyst,
     )
-    # --- CREW ---
-    crew = Crew(
-        agents=[analyst],
-        tasks=[task],
-        process=Process.sequential,
-        verbose=True,
-    )
 
+    crew   = Crew(agents=[analyst], tasks=[task], process=Process.sequential, verbose=True)
     result = crew.kickoff()
     return str(result)
 
@@ -171,38 +182,32 @@ def run_analyst_agent(market_data: dict) -> str:
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     SEPARATOR = "=" * 60
-
     print(f"\n{SEPARATOR}")
-    print(f"  Algoritmik Hedge Fon | Analist Ajan v0.1")
-    print(f"  Hedef: {SYMBOL} | Periyot: {PERIOD} | Aralık: {INTERVAL}")
+    print(f"  Algoritmik Hedge Fon | Analist Ajan V5")
+    print(f"  Hedef: {SYMBOL} | V5: ATR+SMA200 Entegrasyonu")
     print(SEPARATOR)
 
-    # Adım 1: Veri çek ve zenginleştir
     print(f"\n[1/2] Piyasa verisi hazırlanıyor → {SYMBOL}")
     market_data = fetch_and_enrich(SYMBOL, PERIOD, INTERVAL)
 
     if not market_data:
-        print("\n[KRITIK HATA] Veri alınamadı. Sistem durduruluyor.")
+        print("\n[KRİTİK HATA] Veri alınamadı.")
         exit(1)
 
     print("\n📊 Teknik Özet (AI'a gönderilecek veri):")
     for k, v in market_data.items():
         print(f"  {k}: {v}")
 
-    # Adım 2: AI ajanını çalıştır
-    print(f"\n[2/2] AI Analist Ajan başlatılıyor... (API çağrısı yapılacak)")
+    print(f"\n[2/2] AI Analist Ajan başlatılıyor...")
     try:
         report = run_analyst_agent(market_data)
     except EnvironmentError as e:
-        print(f"\n[KRITIK HATA] {e}")
-        exit(1)
+        print(f"\n[KRİTİK HATA] {e}"); exit(1)
     except Exception as e:
-        print(f"\n[HATA] Ajan çalıştırılırken beklenmeyen hata: {e}")
-        exit(1)
+        print(f"\n[HATA] {e}"); exit(1)
 
-    # Sonuç
     print(f"\n{SEPARATOR}")
-    print("  ANALİST AJAN RAPORU")
+    print("  ANALİST AJAN RAPORU V5")
     print(SEPARATOR)
     print(report)
     print(SEPARATOR)
