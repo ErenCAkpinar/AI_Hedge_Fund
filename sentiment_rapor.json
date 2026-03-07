@@ -1,0 +1,391 @@
+{
+  "tarih": "2026-03-06 23:02:36",
+  "mod": "MOCK-KEYWORD — Gemini bekleniyor",
+  "sonuclar": [
+    {
+      "symbol": "NVDA",
+      "sentiment_skoru": -0.02,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.0,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.167,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Earnings live: Marvell stock surges on data center strength, Gap and Costco assess tariff changes",
+          "Nvidia is shifting its China strategy. Here's why.",
+          "Why Nvidia CEO Jensen Huang might be done with OpenAI investments",
+          "Oracle stock falls on report of scrapped Texas data center plans",
+          "Sector Update: Tech Stocks Fall Late Afternoon"
+        ],
+        "reddit": [
+          "[Reddit/stocks] People are liking Nvidia for the wrong reasons and nobody is talking about it.",
+          "[Reddit/stocks] Retail volume in $XLE and tech is crazy right now. Is this a rotation or just chasing?",
+          "[Reddit/stocks] SMH has rebalanced"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "TSLA",
+      "sentiment_skoru": -0.075,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": -0.2,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.0,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "These Stocks Are Today’s Movers: Marvell, Gap, Trade Desk, United Airlines, Corning, BlackRock, Tesla, Presidio, and More",
+          "German Union IG Metall Suffers Setback With Tesla Giga Berlin Factory Loss — André Thierig Says 'Good News'",
+          "If Tesla Stock Doubled Again, How Much Richer Could the Average Investor Become?",
+          "Tesla Stock Falls -- Why Analysts See Big Value in Megapack Batteries",
+          "Tesla Put Option Premiums are High - Attractive to Short Shellers and Value Investors"
+        ],
+        "reddit": [
+          "[Reddit/stocks] Can someone tell me what's so special about RKLB??",
+          "[Reddit/stocks] The top holdings of the sp500 change every decade, what will it be in 2030?",
+          "[Reddit/stocks] (Humanoid) Robotic's companies suppliers and part producers, i.e. robotics \"goldshovels\""
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "TSM",
+      "sentiment_skoru": -0.057,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.0,
+        "haber_sayisi": 5,
+        "reddit_skoru": -0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Stocks to watch next week: Oracle, TSMC, Nio, Persimmon and Legal & General",
+          "Is Nvidia Giving Up on China? This Move Suggests It Is — For Now.",
+          "ASML Holding (ASML) Plans to Expand Beyond Their Core EUV Lithography",
+          "Besi Shares Plummet on Fears of Slowdown in Chip-Bonding Tech",
+          "Two Top Stocks to Double Up on Right Now"
+        ],
+        "reddit": [
+          "[Reddit/stocks] SMH has rebalanced",
+          "[Reddit/stocks] TSMC hits $2 Trillion market cap",
+          "[Reddit/stocks] Tim Apple Warned by CIA That China Could Move on Taiwan by 2027 (AAPL +2.25%, TSM +4.25%)"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "ASTS",
+      "sentiment_skoru": -0.03,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.1,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.0,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "AST SpaceMobile (ASTS) Reports 2025 Revenue of $70.9M with Transition to Commercial-Stage",
+          "AST Spacemobile Rises 181% in a Year: How to Play the Stock?",
+          "AST SpaceMobile’s Telus And Orange Deals Test Direct Satellite Growth Story",
+          "Better Space Stock: AST SpaceMobile (ASTS) vs. Rocket Lab (RKLB)",
+          "Why AST SpaceMobile Stock Sank 28.8% In February"
+        ],
+        "reddit": [
+          "[Reddit/stocks] People are liking Nvidia for the wrong reasons and nobody is talking about it.",
+          "[Reddit/stocks] 19M looking for portfolio modifications advice",
+          "[Reddit/stocks] Trump's Deadman switch"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "VST",
+      "sentiment_skoru": -0.003,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.2,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Vistra’s Big Bet On Acquisitions And Nuclear PPAs With Hyperscalers",
+          "This Highly-Underrated Investment Pro is Quietly Beating the Market By a Landslide",
+          "Vistra Corp. (VST) Is a Trending Stock: Facts to Know Before Betting on It",
+          "Intelligent Alpha CEO’s Top Mag-7 Picks: Google and Apple for Personal AI",
+          "Here’s What Hurt Vistra Corp. (VST) in Q4"
+        ],
+        "reddit": [
+          "[Reddit/stocks] GE Vernova (GEV): Stock Analysis",
+          "[Reddit/stocks] VST Vistra Corp (Energy/ Infrastructure) Data Breadcrumbing/Alpha info- only",
+          "[Reddit/stocks] My AI-Heavy Allocation Plan"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "LMT",
+      "sentiment_skoru": -0.015,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.2,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.0,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Retail investor buying holds strong: Why these names are winning",
+          "3 Dividend ETFs for Shelter in These Stormy Times",
+          "How The Iran War Impacts Ukraine.",
+          "Lockheed Martin, RTX Land F-35 Contracts, Hover Near Buy Points",
+          "3 Defense Stocks to Watch Amid Rising Middle East Tensions"
+        ],
+        "reddit": [
+          "[Reddit/stocks] Lockheed Martin up 15%!!! In extended hours. Insanity?",
+          "[Reddit/stocks] What are your stock picks for Monday (regarding Iran vs USA)?",
+          "[Reddit/stocks] What a great business looks like, please post yours that meet this definition"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "JPM",
+      "sentiment_skoru": -0.03,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.1,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.0,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Robinhood launches premium credit card to rival top rewards cards",
+          "JP Morgan Raises Target Price on Palomar (PLMR) to $160",
+          "New Mountain Ends Talks on Former Executive's $32 Billion Buyout Plan",
+          "SoftBank Seeks Up to $40 Billion Loan to Fund Expanding OpenAI Investment",
+          "How The TotalEnergies (ENXTPA:TTE) Investment Story Is Shifting With Conflicting Analyst Calls"
+        ],
+        "reddit": [
+          "[Reddit/stocks] i posted earlier asking what % of funds you put into stocks. Now I want to put more in the market...thinking of going big into msft.",
+          "[Reddit/stocks] My AI-Heavy Allocation Plan",
+          "[Reddit/stocks] Dassault Systèmes down ~20% on 1% growth… Is AI quietly eating legacy software?"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "LLY",
+      "sentiment_skoru": -0.057,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.0,
+        "haber_sayisi": 5,
+        "reddit_skoru": -0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "3 Stocks for Your Wish List",
+          "Lilly (LLY) Down 3.7% Since Last Earnings Report: Can It Rebound?",
+          "Roche Advances Obesity Pipeline as Petrelintide Meets Phase II Goal",
+          "Zealand Pharma CEO Says Most-Tolerable Drugs Will Be Next to Win in Obesity Market",
+          "Eli Lilly (LLY) Edged Higher as Multiple Tailwinds Aligned"
+        ],
+        "reddit": [
+          "[Reddit/stocks] The unimaginable 2026 top losers in my portfolio",
+          "[Reddit/stocks] My AI-Heavy Allocation Plan",
+          "[Reddit/stocks] mrk hits ath today. it’s such a natural negative correlation to tech"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "MSTR",
+      "sentiment_skoru": -0.057,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.0,
+        "haber_sayisi": 5,
+        "reddit_skoru": -0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Strategy Bitcoin Bet Deepens With Equity Funding And Undervaluation Debate",
+          "These 3 Stocks Just Bounced From Lows — What Wall Street Thinks Comes Next",
+          "Here Are Friday’s Top Wall Street Analyst Research Calls: BorgWarner, CoreWeave, Intuit, Marvell Technology, Netflix, Okta, Regeneron Pharmaceuticals, Trade Desk, and More",
+          "3 Things Every Strategy Investor Needs to Know",
+          "Roundhill’s 50% Yield Innovation-100 ETF Is Waiting To Step on A Landmine"
+        ],
+        "reddit": [
+          "[Reddit/stocks] Who’s the Enron and MCI Worldcom of this generation?",
+          "[Reddit/stocks] MSTR earning numbers---I seriously gagged when the they came out",
+          "[Reddit/stocks] Is MSTR Trading Like a Bargain RN... $60B BTC for $45-48B Market Cap?"
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "PLTR",
+      "sentiment_skoru": -0.033,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": 0.0,
+        "haber_sayisi": 5,
+        "reddit_skoru": 0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "Why Palantir Technologies Stock Popped on Friday",
+          "Palantir Stock Rallies 12% in a Month: Buy, Hold, or Sell?",
+          "BC-Most Active Stocks",
+          "Piper Sandler Remains a Buy on Palantir (PLTR)",
+          "The Zacks Analyst Blog Highlights Exxon Mobil, Palantir, AstraZeneca, Gencor Industries and Hour Loop"
+        ],
+        "reddit": [
+          "[Reddit/stocks] Retail volume in $XLE and tech is crazy right now. Is this a rotation or just chasing?",
+          "[Reddit/stocks] PLTR \"IF it does not make sense to buy the whole company, it does not make sense to buy a single share.\"",
+          "[Reddit/stocks] Stop the “Anthropic disrupt PLTR” non-sense. Different layers different economics. A monopoly in the making."
+        ],
+        "stocktwits": []
+      }
+    },
+    {
+      "symbol": "FXY",
+      "sentiment_skoru": -0.102,
+      "sentiment_yorum": "NÖTR 🟡",
+      "mod": "MOCK-KEYWORD",
+      "kaynaklar": {
+        "haber_skoru": -0.3,
+        "haber_sayisi": 5,
+        "reddit_skoru": -0.083,
+        "reddit_sayisi": 6,
+        "stocktwits_skoru": 0.0,
+        "bogа_orani": null,
+        "ayi_orani": null,
+        "analist_skoru": 0.0,
+        "analist_oneri": null,
+        "fiyat_hedefi": null,
+        "fear_greed_skor": 26.8,
+        "fear_greed_yorum": "Korku 📉"
+      },
+      "ham_metinler": {
+        "haberler": [
+          "BC-US-Foreign Exchange",
+          "Dollar Strength Offsets War Premium as Treasuries Fall",
+          "Long-Trusted Haven Trades Are Failing as Gold, Treasuries Fall",
+          "MUFG Says Bank of Japan Still on Track to Hike Rates",
+          "MUFG Says Yen Starts to Benefit as Risk-Off Intensifies With No End in Sight to Energy Supply Halt"
+        ],
+        "reddit": [
+          "[Reddit/stocks] Feb-Mar Active Liquidity Crunch Monitoring Checklist",
+          "[Reddit/stocks] The LDP’s landslide victory in Japan is positive for risk assets | ING THINK",
+          "[Reddit/stocks] $FXY $USDJPY The Great USD Weakening"
+        ],
+        "stocktwits": []
+      }
+    }
+  ]
+}

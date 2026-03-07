@@ -1,0 +1,24 @@
+# Algoritmik Hedge Fon — Sabitlenmiş Bağımlılıklar
+# Kurulum: pip install -r requirements.txt
+
+# Core
+python-dotenv==1.0.1
+pandas==2.2.3
+
+# Piyasa Verisi
+yfinance==0.2.54
+
+# Teknik Analiz
+ta==0.11.0
+
+# AI Ajan Çerçevesi
+crewai==0.80.0
+
+# Google Sheets Entegrasyonu
+gspread==6.2.1
+google-auth==2.48.0
+google-auth-oauthlib==1.3.0
+
+# Pazartesi eklenecekler:
+# google-generativeai   ← Gemini Flash (Aşama 2 + 4)
+# nautilus_trader       ← Paper Trading (Aşama 5)

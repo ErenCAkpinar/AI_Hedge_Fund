@@ -1,0 +1,271 @@
+{
+  "tarih": "2026-03-06 23:01:39",
+  "mod": "MOCK — API bağlantısı bekleniyor",
+  "varlık_sayısı": 11,
+  "varlıklar": [
+    {
+      "veri": {
+        "symbol": "NVDA",
+        "son_kapanış": 177.88,
+        "günlük_değişim_%": -2.98,
+        "RSI_14": 42.37,
+        "SMA_20": 186.16,
+        "SMA_50": 186.01,
+        "MACD": -1.2269,
+        "MACD_Sinyal": -0.2334,
+        "MACD_Histogram": -0.9935,
+        "hacim": 176435548,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ÜSTÜNDE"
+      },
+      "karar": {
+        "TREND": "Bearish",
+        "SİNYAL": "HOLD",
+        "PUAN": -2,
+        "GEREKÇE": "RSI 42.4 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "TSLA",
+        "son_kapanış": 396.73,
+        "günlük_değişim_%": -2.17,
+        "RSI_14": 40.86,
+        "SMA_20": 410.18,
+        "SMA_50": 428.01,
+        "MACD": -7.4559,
+        "MACD_Sinyal": -7.4477,
+        "MACD_Histogram": -0.0083,
+        "hacim": 62583695,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Bearish",
+        "SİNYAL": "SHORT",
+        "PUAN": -4,
+        "GEREKÇE": "RSI 40.9 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "TSM",
+        "son_kapanış": 338.86,
+        "günlük_değişim_%": -4.24,
+        "RSI_14": 40.8,
+        "SMA_20": 364.97,
+        "SMA_50": 340.77,
+        "MACD": 4.1476,
+        "MACD_Sinyal": 8.972,
+        "MACD_Histogram": -4.8244,
+        "hacim": 12466025,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ÜSTÜNDE"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": -1,
+        "GEREKÇE": "RSI 40.8 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "ASTS",
+        "son_kapanış": 89.47,
+        "günlük_değişim_%": -4.67,
+        "RSI_14": 48.58,
+        "SMA_20": 89.04,
+        "SMA_50": 94.36,
+        "MACD": -1.2099,
+        "MACD_Sinyal": -2.315,
+        "MACD_Histogram": 1.1051,
+        "hacim": 13296174,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": 1,
+        "GEREKÇE": "RSI 48.6 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "VST",
+        "son_kapanış": 158.65,
+        "günlük_değişim_%": -5.23,
+        "RSI_14": 43.8,
+        "SMA_20": 166.38,
+        "SMA_50": 163.35,
+        "MACD": 0.7829,
+        "MACD_Sinyal": 1.8661,
+        "MACD_Histogram": -1.0831,
+        "hacim": 5155619,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ÜSTÜNDE"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": -1,
+        "GEREKÇE": "RSI 43.8 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "LMT",
+        "son_kapanış": 671.73,
+        "günlük_değişim_%": 2.55,
+        "RSI_14": 63.89,
+        "SMA_20": 649.57,
+        "SMA_50": 592.02,
+        "MACD": 20.1884,
+        "MACD_Sinyal": 22.5185,
+        "MACD_Histogram": -2.3302,
+        "hacim": 1645984,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ÜSTÜNDE",
+        "sma20_sma50_poz": "ÜSTÜNDE"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": 1,
+        "GEREKÇE": "RSI 63.9 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın üstünde, trend yapısı güçlü.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "JPM",
+        "son_kapanış": 289.4,
+        "günlük_değişim_%": -1.41,
+        "RSI_14": 35.76,
+        "SMA_20": 304.92,
+        "SMA_50": 311.1,
+        "MACD": -4.4434,
+        "MACD_Sinyal": -3.2171,
+        "MACD_Histogram": -1.2263,
+        "hacim": 12802027,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Bearish",
+        "SİNYAL": "SHORT",
+        "PUAN": -4,
+        "GEREKÇE": "RSI 35.8 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "LLY",
+        "son_kapanış": 990.37,
+        "günlük_değişim_%": 0.72,
+        "RSI_14": 42.49,
+        "SMA_20": 1025.42,
+        "SMA_50": 1045.9,
+        "MACD": -11.6474,
+        "MACD_Sinyal": -7.2617,
+        "MACD_Histogram": -4.3857,
+        "hacim": 1859281,
+        "fiyat_sma20_poz": "ALTINDA",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Bearish",
+        "SİNYAL": "SHORT",
+        "PUAN": -4,
+        "GEREKÇE": "RSI 42.5 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "MSTR",
+        "son_kapanış": 133.53,
+        "günlük_değişim_%": -4.49,
+        "RSI_14": 47.59,
+        "SMA_20": 132.03,
+        "SMA_50": 146.7,
+        "MACD": -2.5147,
+        "MACD_Sinyal": -4.7971,
+        "MACD_Histogram": 2.2824,
+        "hacim": 18860275,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": 1,
+        "GEREKÇE": "RSI 47.6 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "PLTR",
+        "son_kapanış": 157.16,
+        "günlük_değişim_%": 2.94,
+        "RSI_14": 61.01,
+        "SMA_20": 138.76,
+        "SMA_50": 157.42,
+        "MACD": -1.0246,
+        "MACD_Sinyal": -5.0744,
+        "MACD_Histogram": 4.0498,
+        "hacim": 72014408,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ALTINDA",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Nötr",
+        "SİNYAL": "HOLD",
+        "PUAN": 0,
+        "GEREKÇE": "RSI 61.0 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
+        "MOD": "MOCK"
+      }
+    },
+    {
+      "veri": {
+        "symbol": "FXY",
+        "son_kapanış": 157.87,
+        "günlük_değişim_%": 0.57,
+        "RSI_14": 60.76,
+        "SMA_20": 155.34,
+        "SMA_50": 156.08,
+        "MACD": 0.4847,
+        "MACD_Sinyal": 0.0774,
+        "MACD_Histogram": 0.4073,
+        "hacim": 0,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ÜSTÜNDE",
+        "sma20_sma50_poz": "ALTINDA"
+      },
+      "karar": {
+        "TREND": "Bullish",
+        "SİNYAL": "HOLD",
+        "PUAN": 2,
+        "GEREKÇE": "RSI 60.8 ile nötr bölgede. MACD histogramı pozitif ve momentum artıyor. Fiyat her iki SMA'nın üstünde, trend yapısı güçlü.",
+        "MOD": "MOCK"
+      }
+    }
+  ]
+}

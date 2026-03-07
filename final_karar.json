@@ -1,0 +1,362 @@
+{
+  "tarih": "2026-03-06 23:07:36",
+  "agirliklar": {
+    "teknik": 0.4,
+    "efsane": 0.35,
+    "sentiment": 0.25
+  },
+  "kararlar": [
+    {
+      "symbol": "NVDA",
+      "fiyat": 177.88,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.066,
+      "toplam_skor": -0.066,
+      "catisma": true,
+      "aciklama": "⚠️ Ajanlar çelişiyor — güvenli bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": -2,
+          "skor": -0.25
+        },
+        "sentiment": {
+          "skor": -0.02,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 28,
+          "short_oran": 12,
+          "skor": 0.16
+        }
+      }
+    },
+    {
+      "symbol": "TSLA",
+      "fiyat": 396.73,
+      "final_sinyal": "SHORT",
+      "guven": "ORTA",
+      "guven_skoru": 0.298,
+      "toplam_skor": -0.298,
+      "catisma": false,
+      "aciklama": "👍 Zayıf düşüş eğilimi",
+      "stop_loss": 404.66,
+      "take_profit": 380.86,
+      "risk_odül": "1:2.0",
+      "sl_yuzde": "%2.0",
+      "tp_yuzde": "%4.0",
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "SHORT",
+          "puan": -4,
+          "skor": -0.5
+        },
+        "sentiment": {
+          "skor": -0.075,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 26,
+          "short_oran": 31,
+          "skor": -0.05
+        }
+      }
+    },
+    {
+      "symbol": "TSM",
+      "fiyat": 338.86,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.055,
+      "toplam_skor": -0.055,
+      "catisma": false,
+      "aciklama": "🟡 Net sinyal yok — bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": -1,
+          "skor": -0.125
+        },
+        "sentiment": {
+          "skor": -0.057,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 27,
+          "short_oran": 24,
+          "skor": 0.03
+        }
+      }
+    },
+    {
+      "symbol": "ASTS",
+      "fiyat": 89.47,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.109,
+      "toplam_skor": 0.109,
+      "catisma": false,
+      "aciklama": "🟡 Net sinyal yok — bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": 1,
+          "skor": 0.125
+        },
+        "sentiment": {
+          "skor": -0.03,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 23,
+          "short_oran": 14,
+          "skor": 0.09
+        }
+      }
+    },
+    {
+      "symbol": "VST",
+      "fiyat": 158.65,
+      "final_sinyal": "SHORT",
+      "guven": "ORTA",
+      "guven_skoru": 0.267,
+      "toplam_skor": -0.267,
+      "catisma": false,
+      "aciklama": "👍 Zayıf düşüş eğilimi",
+      "stop_loss": 161.82,
+      "take_profit": 152.3,
+      "risk_odül": "1:2.0",
+      "sl_yuzde": "%2.0",
+      "tp_yuzde": "%4.0",
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": -1,
+          "skor": -0.125
+        },
+        "sentiment": {
+          "skor": -0.003,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "SHORT",
+          "long_oran": 0,
+          "short_oran": 44,
+          "skor": -0.44
+        }
+      }
+    },
+    {
+      "symbol": "LMT",
+      "fiyat": 671.73,
+      "final_sinyal": "LONG",
+      "guven": "ORTA",
+      "guven_skoru": 0.177,
+      "toplam_skor": 0.177,
+      "catisma": false,
+      "aciklama": "👍 Zayıf yükseliş eğilimi",
+      "stop_loss": 658.3,
+      "take_profit": 698.6,
+      "risk_odül": "1:2.0",
+      "sl_yuzde": "%2.0",
+      "tp_yuzde": "%4.0",
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": 1,
+          "skor": 0.125
+        },
+        "sentiment": {
+          "skor": -0.015,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 24,
+          "short_oran": 0,
+          "skor": 0.24
+        }
+      }
+    },
+    {
+      "symbol": "JPM",
+      "fiyat": 289.4,
+      "final_sinyal": "SHORT",
+      "guven": "YÜKSEK",
+      "guven_skoru": 0.437,
+      "toplam_skor": -0.437,
+      "catisma": false,
+      "aciklama": "💪 Güçlü düşüş konsensüsü",
+      "stop_loss": 295.19,
+      "take_profit": 277.82,
+      "risk_odül": "1:2.0",
+      "sl_yuzde": "%2.0",
+      "tp_yuzde": "%4.0",
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "SHORT",
+          "puan": -4,
+          "skor": -0.5
+        },
+        "sentiment": {
+          "skor": -0.03,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 0,
+          "short_oran": 36,
+          "skor": -0.36
+        }
+      }
+    },
+    {
+      "symbol": "LLY",
+      "fiyat": 990.37,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.163,
+      "toplam_skor": -0.163,
+      "catisma": true,
+      "aciklama": "⚠️ Ajanlar çelişiyor — güvenli bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "SHORT",
+          "puan": -4,
+          "skor": -0.5
+        },
+        "sentiment": {
+          "skor": -0.057,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 37,
+          "short_oran": 12,
+          "skor": 0.25
+        }
+      }
+    },
+    {
+      "symbol": "MSTR",
+      "fiyat": 133.53,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.111,
+      "toplam_skor": -0.111,
+      "catisma": false,
+      "aciklama": "🟡 Net sinyal yok — bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": 1,
+          "skor": 0.125
+        },
+        "sentiment": {
+          "skor": -0.057,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "SHORT",
+          "long_oran": 0,
+          "short_oran": 40,
+          "skor": -0.4
+        }
+      }
+    },
+    {
+      "symbol": "PLTR",
+      "fiyat": 157.16,
+      "final_sinyal": "HOLD",
+      "guven": "DÜŞÜK",
+      "guven_skoru": 0.072,
+      "toplam_skor": -0.072,
+      "catisma": false,
+      "aciklama": "🟡 Net sinyal yok — bekleme",
+      "stop_loss": null,
+      "take_profit": null,
+      "risk_odül": null,
+      "sl_yuzde": null,
+      "tp_yuzde": null,
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": 0,
+          "skor": 0.0
+        },
+        "sentiment": {
+          "skor": -0.033,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "HOLD",
+          "long_oran": 12,
+          "short_oran": 28,
+          "skor": -0.16
+        }
+      }
+    },
+    {
+      "symbol": "FXY",
+      "fiyat": 157.87,
+      "final_sinyal": "LONG",
+      "guven": "ORTA",
+      "guven_skoru": 0.291,
+      "toplam_skor": 0.291,
+      "catisma": false,
+      "aciklama": "👍 Zayıf yükseliş eğilimi",
+      "stop_loss": 154.71,
+      "take_profit": 164.18,
+      "risk_odül": "1:2.0",
+      "sl_yuzde": "%2.0",
+      "tp_yuzde": "%4.0",
+      "katmanlar": {
+        "teknik": {
+          "sinyal": "HOLD",
+          "puan": 2,
+          "skor": 0.25
+        },
+        "sentiment": {
+          "skor": -0.102,
+          "yorum": "NÖTR 🟡"
+        },
+        "efsane": {
+          "konsensus": "LONG",
+          "long_oran": 62,
+          "short_oran": 0,
+          "skor": 0.62
+        }
+      }
+    }
+  ]
+}
