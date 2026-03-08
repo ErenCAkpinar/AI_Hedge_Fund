@@ -8,7 +8,8 @@
 [![Alpaca](https://img.shields.io/badge/Broker-Alpaca-FECD45?style=flat-square)](https://alpaca.markets)
 [![Strategy](https://img.shields.io/badge/Strategy-Swing%20Trading-00C851?style=flat-square)]()
 [![Status](https://img.shields.io/badge/Status-Paper%20Trading-orange?style=flat-square)]()
-[![CI](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml)[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![CI](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 ---
 
@@ -85,10 +86,6 @@ Stop-Loss Hits    : 0        Trail Exits      : 151 / 207 (72.9%)
 ```
 
 > **The core insight:** Win rate is only 40.6% — the system is wrong on 6 out of 10 trades. Yet **every single one of the 17 symbols is profitable** and the overall return is +148% over 2 years. This is the asymmetric R/R system working as designed: losers are cut by the trailing stop before they compound; winners are held until the trend reverses. Profit Factor 1.79x means winning trades are on average 79% larger than losing trades.
-
-### Terminal Output
-
-![V5 Backtest Terminal Output](docs/backtest_v5_output.png)
 
 ### Per-Symbol Performance
 
@@ -542,6 +539,9 @@ AI_Hedge_Fund/
 │   │   └── feature_request.md
 │   └── PULL_REQUEST_TEMPLATE.md
 │
+├── docs/
+│   └── backtest_v5_output.png   # V5 backtest terminal screenshot
+│
 ├── scanner.py               # Price data fetcher (yfinance health check)
 ├── mock_agent.py            # Technical signal engine — API-free [V5]
 ├── analyst_agent.py         # CrewAI + GPT-4o-mini analyst agent [V5]
@@ -557,6 +557,9 @@ AI_Hedge_Fund/
 ├── examples/
 │   ├── rapor.example.json         # Sample technical signal output
 │   └── final_karar.example.json   # Sample trade decision output
+│
+├── tests/
+│   └── test_contracts.py          # JSON schema + legends weight validation
 │
 ├── gcp_key.json             # [secret] Google Cloud service account ← .gitignore
 ├── .env                     # [secret] API keys and config ← .gitignore
