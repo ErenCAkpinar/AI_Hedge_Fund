@@ -1,0 +1,36 @@
+{
+  "tarih": "2026-03-08 16:32:11",
+  "mod": "MOCK-V5 — ATR+SMA200 entegre",
+  "varlık_sayısı": 1,
+  "v5_degisiklik": "ATR_14 ve SMA_200 tüm varlıklar için eklendi",
+  "varlıklar": [
+    {
+      "veri": {
+        "symbol": "NVDA",
+        "son_kapanış": 132.45,
+        "günlük_değişim_%": 1.23,
+        "RSI_14": 54.8,
+        "SMA_20": 128.32,
+        "SMA_50": 121.05,
+        "MACD": 2.341,
+        "MACD_Sinyal": 1.892,
+        "MACD_Histogram": 0.449,
+        "hacim": 42381920,
+        "fiyat_sma20_poz": "ÜSTÜNDE",
+        "fiyat_sma50_poz": "ÜSTÜNDE",
+        "sma20_sma50_poz": "ÜSTÜNDE",
+        "ATR_14": 5.82,
+        "SMA_200": 115.63,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
+      },
+      "karar": {
+        "TREND": "Bullish",
+        "SİNYAL": "HOLD",
+        "PUAN": 4,
+        "GEREKÇE": "RSI 54.8 ile nötr bölgede. MACD histogramı pozitif ve momentum artıyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
+      }
+    }
+  ]
+}

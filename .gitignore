@@ -11,3 +11,59 @@ __pycache__/
 # Çevresel değişkenler (Hassas bilgiler)
 .env
 .DS_Store
+
+# ── Python ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual Environments ──────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Secrets & Credentials (NEVER COMMIT) ─────────────────────────────
+.env
+gcp_key.json
+*.pem
+*.key
+secrets/
+
+# ── Generated JSON Outputs (use examples/ for samples) ───────────────
+rapor.json
+legends_rapor.json
+sentiment_rapor.json
+final_karar.json
+true_backtest_rapor.json
+true_backtest_v3_rapor.json
+order_log.json
+
+# ── Log Files ─────────────────────────────────────────────────────────
+*.log
+scheduler.log
+alpaca_trader.log
+telegram.log
+
+# ── IDE & OS ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Jupyter ───────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Test & Coverage ───────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/

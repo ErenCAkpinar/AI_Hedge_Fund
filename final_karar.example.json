@@ -1,0 +1,19 @@
+{
+  "tarih": "2026-03-08 16:35:44",
+  "kararlar": [
+    {
+      "symbol": "NVDA",
+      "final_sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "guven_skoru": 0.52,
+      "catisma": false,
+      "fiyat": 132.45,
+      "stop_loss": 121.87,
+      "take_profit": 158.64,
+      "sl_tipi": "ATR×1.8",
+      "atr_kullanildi": true,
+      "atr_degeri": 5.82,
+      "poz_buyukluk": 0.25
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "tarih": "2026-03-08 16:33:19",
+  "tarih": "2026-03-08 20:07:45",
   "versiyon": "v5",
   "gelistirmeler_v5": {
     "1_trailing_stop": "ATR_TRAIL_KATSAYI=2.5  (TP kaldırıldı)",
@@ -3373,7 +3373,7 @@
       "sistem_skoru": 0.378,
       "giris_tarihi": "2025-07-02",
       "cikis_tarihi": "2025-07-17",
-      "giris_fiyat": 714.27,
+      "giris_fiyat": 714.26,
       "cikis_fiyat": 697.33,
       "sl": 697.33,
       "tp": null,
