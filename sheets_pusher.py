@@ -71,10 +71,10 @@ def rapor_sayfasini_yaz(sheet, veri: dict) -> None:
     varlıklar = veri.get("varlıklar", [])
     simdi     = veri.get("tarih", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-    # --- Başlık Bloğu ---
-    ws.update("A1", [[f"🤖 Algoritmik Hedge Fon | Dashboard"]])
-    ws.update("A2", [[f"Son Güncelleme: {simdi}"]])
-    ws.update("A3", [[f"Mod: {veri.get('mod', 'MOCK')}"]])
+# --- Başlık Bloğu ---
+    ws.update(values=[[f"🤖 Algoritmik Hedge Fon | Dashboard"]], range_name="A1")
+    ws.update(values=[[f"Son Güncelleme: {simdi}"]], range_name="A2")
+    ws.update(values=[[f"Mod: {veri.get('mod', 'MOCK')}"]], range_name="A3")
 
     # --- Sütun Başlıkları ---
     basliklar = [
@@ -82,7 +82,7 @@ def rapor_sayfasini_yaz(sheet, veri: dict) -> None:
         "SMA20 POZ", "SMA50 POZ", "MACD HIST",
         "TREND", "SİNYAL", "PUAN", "GEREKÇE"
     ]
-    ws.update("A5", [basliklar])
+    ws.update(values=[basliklar], range_name="A5")
 
     # --- Veri Satırları ---
     satirlar = []
@@ -104,8 +104,7 @@ def rapor_sayfasini_yaz(sheet, veri: dict) -> None:
         ])
 
     if satirlar:
-        ws.update(f"A6", satirlar)
-
+        ws.update(values=satirlar, range_name="A6")
     # --- Renklendirme (SİNYAL sütunu = I kolonu) ---
     for i, r in enumerate(varlıklar):
         sinyal = r["karar"]["SİNYAL"]
@@ -146,14 +145,14 @@ def ozet_sayfasini_yaz(sheet, veri: dict) -> None:
         if s in sayac:
             sayac[s] += 1
 
-    ws.update("A1", [["📊 SİNYAL ÖZETİ"]])
-    ws.update("A3", [
+    ws.update(values=[["📊 SİNYAL ÖZETİ"]], range_name="A1")
+    ws.update(values=[
         ["SİNYAL", "SAYI", "ORAN"],
         ["LONG",  sayac["LONG"],  f"{sayac['LONG']/len(varlıklar)*100:.0f}%"],
         ["SHORT", sayac["SHORT"], f"{sayac['SHORT']/len(varlıklar)*100:.0f}%"],
         ["HOLD",  sayac["HOLD"],  f"{sayac['HOLD']/len(varlıklar)*100:.0f}%"],
         ["TOPLAM", len(varlıklar), "100%"],
-    ])
+    ], range_name="A3")
 
     # Renklendirme
     ws.format("A4", {"backgroundColor": RENK["LONG"],  "textFormat": {"bold": True}})

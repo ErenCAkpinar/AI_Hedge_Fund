@@ -1,30 +1,35 @@
 {
-  "tarih": "2026-03-06 23:01:39",
-  "mod": "MOCK — API bağlantısı bekleniyor",
+  "tarih": "2026-03-07 23:54:22",
+  "mod": "MOCK-V5 — ATR+SMA200 entegre, API bağlantısı bekleniyor",
   "varlık_sayısı": 11,
+  "v5_degisiklik": "ATR_14 ve SMA_200 tüm varlıklar için rapor.json'a eklendi",
   "varlıklar": [
     {
       "veri": {
         "symbol": "NVDA",
-        "son_kapanış": 177.88,
-        "günlük_değişim_%": -2.98,
-        "RSI_14": 42.37,
+        "son_kapanış": 177.82,
+        "günlük_değişim_%": -3.01,
+        "RSI_14": 42.42,
         "SMA_20": 186.16,
         "SMA_50": 186.01,
-        "MACD": -1.2269,
-        "MACD_Sinyal": -0.2334,
-        "MACD_Histogram": -0.9935,
-        "hacim": 176435548,
+        "MACD": -1.2223,
+        "MACD_Sinyal": -0.2203,
+        "MACD_Histogram": -1.0021,
+        "hacim": 188472400,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ÜSTÜNDE"
+        "sma20_sma50_poz": "ÜSTÜNDE",
+        "ATR_14": 6.3824,
+        "SMA_200": 176.12,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
-        "TREND": "Bearish",
+        "TREND": "Nötr",
         "SİNYAL": "HOLD",
-        "PUAN": -2,
-        "GEREKÇE": "RSI 42.4 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "PUAN": -1,
+        "GEREKÇE": "RSI 42.4 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
@@ -32,47 +37,55 @@
         "symbol": "TSLA",
         "son_kapanış": 396.73,
         "günlük_değişim_%": -2.17,
-        "RSI_14": 40.86,
+        "RSI_14": 41.05,
         "SMA_20": 410.18,
         "SMA_50": 428.01,
-        "MACD": -7.4559,
-        "MACD_Sinyal": -7.4477,
-        "MACD_Histogram": -0.0083,
-        "hacim": 62583695,
+        "MACD": -7.3696,
+        "MACD_Sinyal": -7.3201,
+        "MACD_Histogram": -0.0495,
+        "hacim": 63870200,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 14.108,
+        "SMA_200": 392.1,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
         "TREND": "Bearish",
-        "SİNYAL": "SHORT",
-        "PUAN": -4,
-        "GEREKÇE": "RSI 40.9 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "SİNYAL": "HOLD",
+        "PUAN": -3,
+        "GEREKÇE": "RSI 41.0 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
       "veri": {
         "symbol": "TSM",
-        "son_kapanış": 338.86,
-        "günlük_değişim_%": -4.24,
-        "RSI_14": 40.8,
+        "son_kapanış": 338.89,
+        "günlük_değişim_%": -4.23,
+        "RSI_14": 40.96,
         "SMA_20": 364.97,
         "SMA_50": 340.77,
-        "MACD": 4.1476,
-        "MACD_Sinyal": 8.972,
-        "MACD_Histogram": -4.8244,
-        "hacim": 12466025,
+        "MACD": 4.267,
+        "MACD_Sinyal": 9.1426,
+        "MACD_Histogram": -4.8756,
+        "hacim": 13758500,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ÜSTÜNDE"
+        "sma20_sma50_poz": "ÜSTÜNDE",
+        "ATR_14": 13.696,
+        "SMA_200": 276.52,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
         "TREND": "Nötr",
         "SİNYAL": "HOLD",
-        "PUAN": -1,
-        "GEREKÇE": "RSI 40.8 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "PUAN": 0,
+        "GEREKÇE": "RSI 41.0 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
@@ -80,23 +93,27 @@
         "symbol": "ASTS",
         "son_kapanış": 89.47,
         "günlük_değişim_%": -4.67,
-        "RSI_14": 48.58,
+        "RSI_14": 48.66,
         "SMA_20": 89.04,
         "SMA_50": 94.36,
-        "MACD": -1.2099,
-        "MACD_Sinyal": -2.315,
-        "MACD_Histogram": 1.1051,
-        "hacim": 13296174,
+        "MACD": -1.1105,
+        "MACD_Sinyal": -2.1705,
+        "MACD_Histogram": 1.0599,
+        "hacim": 13555000,
         "fiyat_sma20_poz": "ÜSTÜNDE",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 9.9909,
+        "SMA_200": 64.52,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
-        "TREND": "Nötr",
+        "TREND": "Bullish",
         "SİNYAL": "HOLD",
-        "PUAN": 1,
-        "GEREKÇE": "RSI 48.6 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
-        "MOD": "MOCK"
+        "PUAN": 2,
+        "GEREKÇE": "RSI 48.7 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
@@ -104,95 +121,111 @@
         "symbol": "VST",
         "son_kapanış": 158.65,
         "günlük_değişim_%": -5.23,
-        "RSI_14": 43.8,
+        "RSI_14": 43.74,
         "SMA_20": 166.38,
         "SMA_50": 163.35,
-        "MACD": 0.7829,
-        "MACD_Sinyal": 1.8661,
-        "MACD_Histogram": -1.0831,
-        "hacim": 5155619,
+        "MACD": 0.6663,
+        "MACD_Sinyal": 1.6947,
+        "MACD_Histogram": -1.0284,
+        "hacim": 5616400,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ÜSTÜNDE"
+        "sma20_sma50_poz": "ÜSTÜNDE",
+        "ATR_14": 8.0445,
+        "SMA_200": 181.56,
+        "fiyat_sma200_poz": "ALTINDA",
+        "ana_trend": "BEARISH"
       },
       "karar": {
-        "TREND": "Nötr",
+        "TREND": "Bearish",
         "SİNYAL": "HOLD",
-        "PUAN": -1,
-        "GEREKÇE": "RSI 43.8 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "PUAN": -2,
+        "GEREKÇE": "RSI 43.7 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Ana trend BEARISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
       "veri": {
         "symbol": "LMT",
-        "son_kapanış": 671.73,
-        "günlük_değişim_%": 2.55,
-        "RSI_14": 63.89,
+        "son_kapanış": 671.77,
+        "günlük_değişim_%": 2.56,
+        "RSI_14": 63.84,
         "SMA_20": 649.57,
         "SMA_50": 592.02,
-        "MACD": 20.1884,
-        "MACD_Sinyal": 22.5185,
-        "MACD_Histogram": -2.3302,
-        "hacim": 1645984,
+        "MACD": 20.2491,
+        "MACD_Sinyal": 22.5995,
+        "MACD_Histogram": -2.3505,
+        "hacim": 1882800,
         "fiyat_sma20_poz": "ÜSTÜNDE",
         "fiyat_sma50_poz": "ÜSTÜNDE",
-        "sma20_sma50_poz": "ÜSTÜNDE"
+        "sma20_sma50_poz": "ÜSTÜNDE",
+        "ATR_14": 19.5452,
+        "SMA_200": 492.39,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
-        "TREND": "Nötr",
+        "TREND": "Bullish",
         "SİNYAL": "HOLD",
-        "PUAN": 1,
-        "GEREKÇE": "RSI 63.9 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Fiyat her iki SMA'nın üstünde, trend yapısı güçlü.",
-        "MOD": "MOCK"
+        "PUAN": 2,
+        "GEREKÇE": "RSI 63.8 ile nötr bölgede. MACD histogramı negatife döndü, momentum zayıflıyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
       "veri": {
         "symbol": "JPM",
-        "son_kapanış": 289.4,
-        "günlük_değişim_%": -1.41,
-        "RSI_14": 35.76,
+        "son_kapanış": 289.48,
+        "günlük_değişim_%": -1.39,
+        "RSI_14": 36.01,
         "SMA_20": 304.92,
         "SMA_50": 311.1,
-        "MACD": -4.4434,
-        "MACD_Sinyal": -3.2171,
-        "MACD_Histogram": -1.2263,
-        "hacim": 12802027,
+        "MACD": -4.3703,
+        "MACD_Sinyal": -3.1172,
+        "MACD_Histogram": -1.253,
+        "hacim": 13491200,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 8.358,
+        "SMA_200": 298.22,
+        "fiyat_sma200_poz": "ALTINDA",
+        "ana_trend": "BEARISH"
       },
       "karar": {
         "TREND": "Bearish",
         "SİNYAL": "SHORT",
-        "PUAN": -4,
-        "GEREKÇE": "RSI 35.8 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "PUAN": -5,
+        "GEREKÇE": "RSI 36.0 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Ana trend BEARISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
       "veri": {
         "symbol": "LLY",
-        "son_kapanış": 990.37,
+        "son_kapanış": 990.33,
         "günlük_değişim_%": 0.72,
-        "RSI_14": 42.49,
+        "RSI_14": 42.56,
         "SMA_20": 1025.42,
         "SMA_50": 1045.9,
-        "MACD": -11.6474,
-        "MACD_Sinyal": -7.2617,
-        "MACD_Histogram": -4.3857,
-        "hacim": 1859281,
+        "MACD": -11.648,
+        "MACD_Sinyal": -7.2545,
+        "MACD_Histogram": -4.3935,
+        "hacim": 2625800,
         "fiyat_sma20_poz": "ALTINDA",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 34.0843,
+        "SMA_200": 878.37,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
         "TREND": "Bearish",
-        "SİNYAL": "SHORT",
-        "PUAN": -4,
-        "GEREKÇE": "RSI 42.5 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Fiyat her iki SMA'nın altında, trend baskısı devam ediyor.",
-        "MOD": "MOCK"
+        "SİNYAL": "HOLD",
+        "PUAN": -3,
+        "GEREKÇE": "RSI 42.6 ile nötr bölgede. MACD histogramı negatif, satış baskısı sürüyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
@@ -200,23 +233,27 @@
         "symbol": "MSTR",
         "son_kapanış": 133.53,
         "günlük_değişim_%": -4.49,
-        "RSI_14": 47.59,
+        "RSI_14": 47.46,
         "SMA_20": 132.03,
         "SMA_50": 146.7,
-        "MACD": -2.5147,
-        "MACD_Sinyal": -4.7971,
-        "MACD_Histogram": 2.2824,
-        "hacim": 18860275,
+        "MACD": -2.7457,
+        "MACD_Sinyal": -5.1376,
+        "MACD_Histogram": 2.392,
+        "hacim": 19472100,
         "fiyat_sma20_poz": "ÜSTÜNDE",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 10.4678,
+        "SMA_200": 277.79,
+        "fiyat_sma200_poz": "ALTINDA",
+        "ana_trend": "BEARISH"
       },
       "karar": {
         "TREND": "Nötr",
         "SİNYAL": "HOLD",
-        "PUAN": 1,
-        "GEREKÇE": "RSI 47.6 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
-        "MOD": "MOCK"
+        "PUAN": 0,
+        "GEREKÇE": "RSI 47.5 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Ana trend BEARISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
@@ -224,47 +261,55 @@
         "symbol": "PLTR",
         "son_kapanış": 157.16,
         "günlük_değişim_%": 2.94,
-        "RSI_14": 61.01,
+        "RSI_14": 60.96,
         "SMA_20": 138.76,
         "SMA_50": 157.42,
-        "MACD": -1.0246,
-        "MACD_Sinyal": -5.0744,
-        "MACD_Histogram": 4.0498,
-        "hacim": 72014408,
+        "MACD": -0.9589,
+        "MACD_Sinyal": -4.9784,
+        "MACD_Histogram": 4.0195,
+        "hacim": 74824200,
         "fiyat_sma20_poz": "ÜSTÜNDE",
         "fiyat_sma50_poz": "ALTINDA",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 7.7628,
+        "SMA_200": 162.07,
+        "fiyat_sma200_poz": "ALTINDA",
+        "ana_trend": "BEARISH"
       },
       "karar": {
         "TREND": "Nötr",
         "SİNYAL": "HOLD",
-        "PUAN": 0,
-        "GEREKÇE": "RSI 61.0 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Fiyat SMA20 ÜSTÜNDE, SMA50 ALTINDA, karışık sinyal.",
-        "MOD": "MOCK"
+        "PUAN": -1,
+        "GEREKÇE": "RSI 61.0 ile nötr bölgede. MACD histogramı pozitife dönüyor, toparlanma var. Ana trend BEARISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     },
     {
       "veri": {
-        "symbol": "FXY",
-        "son_kapanış": 157.87,
-        "günlük_değişim_%": 0.57,
-        "RSI_14": 60.76,
-        "SMA_20": 155.34,
-        "SMA_50": 156.08,
-        "MACD": 0.4847,
-        "MACD_Sinyal": 0.0774,
-        "MACD_Histogram": 0.4073,
+        "symbol": "JPY=X",
+        "son_kapanış": 157.53,
+        "günlük_değişim_%": 0.35,
+        "RSI_14": 59.35,
+        "SMA_20": 155.32,
+        "SMA_50": 156.07,
+        "MACD": 0.4611,
+        "MACD_Sinyal": 0.0769,
+        "MACD_Histogram": 0.3842,
         "hacim": 0,
         "fiyat_sma20_poz": "ÜSTÜNDE",
         "fiyat_sma50_poz": "ÜSTÜNDE",
-        "sma20_sma50_poz": "ALTINDA"
+        "sma20_sma50_poz": "ALTINDA",
+        "ATR_14": 1.4122,
+        "SMA_200": 151.21,
+        "fiyat_sma200_poz": "ÜSTÜNDE",
+        "ana_trend": "BULLISH"
       },
       "karar": {
         "TREND": "Bullish",
         "SİNYAL": "HOLD",
-        "PUAN": 2,
-        "GEREKÇE": "RSI 60.8 ile nötr bölgede. MACD histogramı pozitif ve momentum artıyor. Fiyat her iki SMA'nın üstünde, trend yapısı güçlü.",
-        "MOD": "MOCK"
+        "PUAN": 3,
+        "GEREKÇE": "RSI 59.4 ile nötr bölgede. MACD histogramı pozitif ve momentum artıyor. Ana trend BULLISH (SMA200 filtresi).",
+        "MOD": "MOCK-V5"
       }
     }
   ]

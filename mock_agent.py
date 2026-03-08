@@ -32,9 +32,16 @@ load_dotenv()
 # CONFIG
 # ─────────────────────────────────────────────
 WATCHLIST = [
-    "NVDA", "TSLA", "TSM", "ASTS",
-    "VST", "LMT", "JPM", "LLY",
-    "MSTR", "PLTR", "JPY=X"
+    # Yarı İletken & AI Liderleri
+    "NVDA", "AVGO", "SOXX",
+    # Veri, Yazılım & Kripto
+    "PLTR", "MSTR", "IBIT",
+    # Agresif Momentum Şampiyonları (Ana Kâr Motorları)
+    "ASTS", "VST", 
+    # Savunma, İlaç & Otomotiv
+    "LMT", "LLY", "TSLA",
+    # Makro Koruma & Değer
+    "GLD", "FXY"
 ]
 PERIOD      = "1y"     # V5: SMA_200 için 1 yıl (eski 3mo yetersizdi)
 INTERVAL    = "1d"

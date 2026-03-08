@@ -53,12 +53,19 @@ from state_manager import (
 # CONFIG v5
 # ─────────────────────────────────────────────
 WATCHLIST = [
-    "NVDA", "TSLA", "TSM", "ASTS",
-    "VST", "LMT", "JPM", "LLY",
-    "MSTR", "PLTR", "FXY"
+    # Yarı İletken & AI Liderleri
+    "NVDA", "AVGO", "SOXX",
+    # Veri, Yazılım & Kripto
+    "PLTR", "MSTR", "IBIT",
+    # Agresif Momentum Şampiyonları (Ana Kâr Motorları)
+    "ASTS", "VST", 
+    # Savunma, İlaç & Otomotiv
+    "LMT", "LLY", "TSLA",
+    # Makro Koruma & Değer
+    "GLD", "FXY"
 ]
 
-LONG_ONLY_LIST = {"NVDA", "TSLA", "JPM"}
+LONG_ONLY_LIST = {"NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", "ASTS", "VST", "LMT", "LLY",  "TSLA", "GLD", "FXY"}
 
 BASLANGIC_SERMAYE = 1_500
 PERIOD            = "2y"
@@ -381,11 +388,13 @@ def islem_simule(df, giris_idx, sinyal, guven, skor):
 # ─────────────────────────────────────────────
 def sembol_backtest(symbol, df):
     islemler      = []
-    sonraki_giris = ISINMA_GUN
     filtre_sayac  = {
         "adx_long": 0, "adx_short": 0, "long_only": 0,
         "tudor": 0, "legends_short": 0, "catisma": 0, "esik": 0
     }
+
+    # --- 1 AYLIK TEST AYARI (Son 22 İşlem Günü) ---
+    sonraki_giris = ISINMA_GUN
 
     for idx in range(ISINMA_GUN, len(df) - 2):
         if idx < sonraki_giris:
@@ -425,7 +434,6 @@ def sembol_backtest(symbol, df):
             sonraki_giris = giris_idx + MAX_POZISYON_GUN + 1
 
     return islemler, filtre_sayac
-
 
 # ─────────────────────────────────────────────
 # BÖLÜM 6b: 🆕 BİLEŞİK GETİRİ HESAPLAMA

@@ -38,9 +38,16 @@ load_dotenv()
 # CONFIG
 # ─────────────────────────────────────────────
 WATCHLIST = [
-    "NVDA", "TSLA", "TSM", "ASTS",
-    "VST", "LMT", "JPM", "LLY",
-    "MSTR", "PLTR", "FXY"
+    # Yarı İletken & AI Liderleri
+    "NVDA", "AVGO", "SOXX",
+    # Veri, Yazılım & Kripto
+    "PLTR", "MSTR", "IBIT",
+    # Agresif Momentum Şampiyonları (Ana Kâr Motorları)
+    "ASTS", "VST", 
+    # Savunma, İlaç & Otomotiv
+    "LMT", "LLY", "TSLA",
+    # Makro Koruma & Değer
+    "GLD", "FXY"
 ]
 
 HEADERS = {
