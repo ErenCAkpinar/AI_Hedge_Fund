@@ -3,8 +3,10 @@ import pandas as pd
 
 # CEO'nun Kusursuz Hedef Listesi (Şimdilik test için 4 tanesini ekledik)
 # Not: USD/JPY paritesi artık ETF üzerinden 'FXY' ile izleniyor (eski spot parite sembolü).
-hedef_listesi = ['NVDA', 'TSLA', 'ASTS', 'FXY'] 
-
+hedef_listesi = [
+    "NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", 
+    "ASTS", "VST", "LMT", "LLY", "TSLA", "GLD", "FXY"
+]
 print("🤖 Sistem Uyanıyor... Piyasa Verileri Çekiliyor...\n")
 
 for sembol in hedef_listesi:
