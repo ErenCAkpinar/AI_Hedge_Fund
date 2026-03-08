@@ -8,8 +8,7 @@
 [![Alpaca](https://img.shields.io/badge/Broker-Alpaca-FECD45?style=flat-square)](https://alpaca.markets)
 [![Strategy](https://img.shields.io/badge/Strategy-Swing%20Trading-00C851?style=flat-square)]()
 [![Status](https://img.shields.io/badge/Status-Paper%20Trading-orange?style=flat-square)]()
-[![CI](https://img.shields.io/github/actions/workflow/status/ErenCAkpinar/AI_Hedge_Fund/ci.yml?style=flat-square&label=CI)](../../actions)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![CI](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml/badge.svg)](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml)[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 ---
 
