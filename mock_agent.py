@@ -41,7 +41,10 @@ WATCHLIST = [
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY"
+    "GLD", "FXY" , "META",
+    "USO",  "WMT",  "QQQ"
+   
+
 ]
 PERIOD      = "1y"     # V5: SMA_200 için 1 yıl (eski 3mo yetersizdi)
 INTERVAL    = "1d"
@@ -193,7 +196,7 @@ def _mock_karar_motoru(veri: dict) -> dict:
     # Karar eşiği (V5: puan aralığı -10/+10'a genişledi, eşikler güncellendi)
     if puan >= 5:      trend, sinyal = "Bullish", "LONG"
     elif puan >= 2:    trend, sinyal = "Bullish", "HOLD"
-    elif puan <= -5:   trend, sinyal = "Bearish", "SHORT"
+    elif puan <= -5:   trend, sinyal = "Bearish", "HOLD"
     elif puan <= -2:   trend, sinyal = "Bearish", "HOLD"
     else:              trend, sinyal = "Nötr",    "HOLD"
 

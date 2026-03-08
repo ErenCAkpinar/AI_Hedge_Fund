@@ -47,9 +47,11 @@ WATCHLIST = [
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY"
-]
+    "GLD", "FXY" , "META",
+    "USO",  "WMT",  "QQQ"
+   
 
+]
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (AlgorithmicHedgeFund/1.0; research-bot)"
 }

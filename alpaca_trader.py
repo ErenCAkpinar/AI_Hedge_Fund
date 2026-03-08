@@ -461,6 +461,10 @@ def _pyramiding_gecmis_say(symbol: str) -> int:
 # BÖLÜM 8: ANA KARAR MOTORU (HAYATİ KURALLAR 1&2)
 # V5: DUPLICATE_SKIP → PYRAMİDİNG
 # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# BÖLÜM 8: ANA KARAR MOTORU (HAYATİ KURALLAR 1&2)
+# V5: DUPLICATE_SKIP → PYRAMİDİNG
+# ─────────────────────────────────────────────
 def emri_isle(
     api         : tradeapi.REST,
     symbol      : str,
@@ -503,6 +507,13 @@ def emri_isle(
         mevcut_adet = 0
         log.info(f"  📋 Pozisyon yok: {symbol}")
 
+    # ── 🛡️ GÜVENLİK DUVARI (FIREWALL): LONG ONLY KORUMASI ──────────────
+    if order_type == "SHORT" and mevcut_yan != "long":
+        log.warning(f"  🚫 FIREWALL: {symbol} için yeni SHORT emri imha edildi (LONG_ONLY Zırhı Aktif)!")
+        sonuc["eylem"] = "SHORT_BLOCKED"
+        sonuc["sonuc"] = {"durum": "REDDEDİLDİ", "hata": "Sistem %100 LONG_ONLY modundadır."}
+        return sonuc
+
     # ── SENARYO 1: LONG sinyal + mevcut SHORT → kapat, LONG aç ──────────
     if order_type == "LONG" and mevcut_yan == "short":
         log.info(f"  ↩️  SHORT kapatılıyor → LONG açılacak")
@@ -533,7 +544,7 @@ def emri_isle(
             log.info(f"  ✅ LONG kapatıldı: {symbol} | PnL≈${pnl:+.2f}" if pnl else f"  ✅ LONG kapatıldı")
             _telegram_gonder(
                 f"🟡 <b>{symbol} LONG kapatıldı (HAYATİ KURAL 1)</b>\n"
-                f"Sebep: SHORT sinyali.\n"
+                f"Sebep: SHORT sinyali (SATIŞ).\n"
                 f"{'💰 PnL≈$'+f'{pnl:+.2f}' if pnl else ''}\n"
                 f"⛔ Yeni SHORT açılmadı."
             )
@@ -596,7 +607,6 @@ def emri_isle(
     sonuc["eylem"] = "HATA"
     sonuc["sonuc"] = {"hata": "Bilinmeyen senaryo"}
     return sonuc
-
 
 # ─────────────────────────────────────────────
 # BÖLÜM 9: TELEGRAM YARDIMCISI

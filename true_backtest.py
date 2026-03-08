@@ -62,10 +62,14 @@ WATCHLIST = [
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY"
+    "GLD", "FXY" , "META",
+    "USO",  "WMT",  "QQQ"
+   
+
 ]
 
-LONG_ONLY_LIST = {"NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", "ASTS", "VST", "LMT", "LLY",  "TSLA", "GLD", "FXY"}
+LONG_ONLY_LIST = {"NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", "ASTS", "VST", "LMT", "LLY",  "TSLA", "GLD", "FXY", "META",
+    "USO",  "WMT",  "QQQ"}
 
 BASLANGIC_SERMAYE = 1_500
 PERIOD            = "2y"

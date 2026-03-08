@@ -38,7 +38,10 @@ WATCHLIST = [
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY"
+    "GLD", "FXY" , "META",
+    "USO",  "WMT",  "QQQ"
+   
+
 ]
 PERIOD   = "2y"
 INTERVAL = "1d"
@@ -297,11 +300,11 @@ def efsane_oylama(symbol: str, df: pd.DataFrame) -> dict:
     if long_puan > short_puan and long_oran >= 55:
         konsensus, konsensus_guven = "LONG", "YÜKSEK"
     elif short_puan > long_puan and short_oran >= 55:
-        konsensus, konsensus_guven = "SHORT", "YÜKSEK"
+        konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
     elif long_puan > short_puan and long_oran >= 40:
         konsensus, konsensus_guven = "LONG", "ORTA"
     elif short_puan > long_puan and short_oran >= 40:
-        konsensus, konsensus_guven = "SHORT", "ORTA"
+        konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
     else:
         konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
 

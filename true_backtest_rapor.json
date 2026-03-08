@@ -1,39 +1,39 @@
 {
-  "tarih": "2026-03-08 02:43:28",
+  "tarih": "2026-03-08 16:33:19",
   "versiyon": "v5",
   "gelistirmeler_v5": {
     "1_trailing_stop": "ATR_TRAIL_KATSAYI=2.5  (TP kaldırıldı)",
     "A_short_adr": "ADX≥30, SMA200 altı, legends≥60%",
     "3_pyramiding": "trigger=1.5ATR, max=2 katman, boyut=%50",
-    "4_compounding": "başlangıç=$1500, son=$3,135.33"
+    "4_compounding": "başlangıç=$1500, son=$3,720.62"
   },
   "stats": {
-    "toplam_islem": 159,
-    "toplam_pnl": 1209.85,
-    "getiri_pct": 80.66,
-    "genel_acc": 40.3,
-    "long_acc": 40.3,
+    "toplam_islem": 207,
+    "toplam_pnl": 1476.08,
+    "getiri_pct": 98.41,
+    "genel_acc": 40.6,
+    "long_acc": 40.6,
     "short_acc": 0.0,
-    "yuksek_acc": 43.3,
-    "orta_acc": 35.5,
-    "profit_factor": 1.75,
-    "max_drawdown": -225.55,
-    "tp": 121,
+    "yuksek_acc": 42.2,
+    "orta_acc": 38.0,
+    "profit_factor": 1.79,
+    "max_drawdown": -253.92,
+    "tp": 151,
     "sl": 0,
-    "sure": 38,
+    "sure": 56,
     "sl_oran": 0.0,
     "filtreler": {
-      "adx_long": 613,
-      "adx_short": 615,
-      "long_only": 182,
+      "adx_long": 829,
+      "adx_short": 776,
+      "long_only": 225,
       "tudor": 0,
       "legends_short": 0,
-      "catisma": 404,
-      "esik": 2250
+      "catisma": 515,
+      "esik": 2936
     },
-    "bilesik_son_sermaye": 3135.33,
-    "bilesik_getiri": 1635.33,
-    "bilesik_getiri_pct": 109.02
+    "bilesik_son_sermaye": 3720.62,
+    "bilesik_getiri": 2220.62,
+    "bilesik_getiri_pct": 148.04
   },
   "sembol": {
     "NVDA": {
@@ -152,6 +152,42 @@
       "pnl": 25.06,
       "pf": 2.1,
       "yorum": "✅ Kârlı"
+    },
+    "META": {
+      "islem": 13,
+      "acc": 38.46153846153847,
+      "long_acc": 38.46153846153847,
+      "short_acc": 0.0,
+      "pnl": 22.99,
+      "pf": 1.21,
+      "yorum": "✅ Kârlı"
+    },
+    "USO": {
+      "islem": 5,
+      "acc": 60.0,
+      "long_acc": 60.0,
+      "short_acc": 0.0,
+      "pnl": 75.68,
+      "pf": 5.03,
+      "yorum": "✅ Kârlı"
+    },
+    "WMT": {
+      "islem": 18,
+      "acc": 38.88888888888889,
+      "long_acc": 38.88888888888889,
+      "short_acc": 0.0,
+      "pnl": 160.15,
+      "pf": 3.27,
+      "yorum": "✅ Kârlı"
+    },
+    "QQQ": {
+      "islem": 12,
+      "acc": 41.66666666666667,
+      "long_acc": 41.66666666666667,
+      "short_acc": 0.0,
+      "pnl": 7.41,
+      "pf": 1.14,
+      "yorum": "✅ Kârlı"
     }
   },
   "islemler": [
@@ -248,6 +284,29 @@
       "sermaye_sonra": 1631.67
     },
     {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-06-03",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2024-06-04",
+      "cikis_tarihi": "2024-06-25",
+      "giris_fiyat": 65.03,
+      "cikis_fiyat": 65.67,
+      "sl": 65.67,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -0.73,
+      "pnl_dolar": -5.44,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": false,
+      "atr": 0.95,
+      "sermaye_once": 1631.67,
+      "pnl_dolar_bilesik": -5.96,
+      "sermaye_sonra": 1625.71
+    },
+    {
       "symbol": "LMT",
       "sinyal_tarihi": "2024-06-05",
       "sinyal": "LONG",
@@ -266,9 +325,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 5.57,
-      "sermaye_once": 1631.67,
+      "sermaye_once": 1625.71,
       "pnl_dolar_bilesik": -2.37,
-      "sermaye_sonra": 1629.3
+      "sermaye_sonra": 1623.34
     },
     {
       "symbol": "AVGO",
@@ -289,9 +348,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 4.02,
-      "sermaye_once": 1629.3,
-      "pnl_dolar_bilesik": 99.63,
-      "sermaye_sonra": 1728.93
+      "sermaye_once": 1623.34,
+      "pnl_dolar_bilesik": 99.27,
+      "sermaye_sonra": 1722.61
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-06-12",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2024-06-13",
+      "cikis_tarihi": "2024-07-08",
+      "giris_fiyat": 473.13,
+      "cikis_fiyat": 493.34,
+      "sl": 480.25,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 2.7,
+      "pnl_dolar": 20.25,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 5.46,
+      "sermaye_once": 1722.61,
+      "pnl_dolar_bilesik": 23.26,
+      "sermaye_sonra": 1745.87
     },
     {
       "symbol": "PLTR",
@@ -312,9 +394,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 0.85,
-      "sermaye_once": 1728.93,
-      "pnl_dolar_bilesik": 3.22,
-      "sermaye_sonra": 1732.15
+      "sermaye_once": 1745.87,
+      "pnl_dolar_bilesik": 3.25,
+      "sermaye_sonra": 1749.12
+    },
+    {
+      "symbol": "USO",
+      "sinyal_tarihi": "2024-06-17",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.334,
+      "giris_tarihi": "2024-06-18",
+      "cikis_tarihi": "2024-07-11",
+      "giris_fiyat": 77.88,
+      "cikis_fiyat": 80.94,
+      "sl": 79.0,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 2.33,
+      "pnl_dolar": 7.85,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 1.44,
+      "sermaye_once": 1749.12,
+      "pnl_dolar_bilesik": 9.17,
+      "sermaye_sonra": 1758.29
     },
     {
       "symbol": "ASTS",
@@ -335,9 +440,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.0,
-      "sermaye_once": 1732.15,
-      "pnl_dolar_bilesik": -34.56,
-      "sermaye_sonra": 1697.59
+      "sermaye_once": 1758.29,
+      "pnl_dolar_bilesik": -35.08,
+      "sermaye_sonra": 1723.21
     },
     {
       "symbol": "NVDA",
@@ -358,9 +463,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 5.52,
-      "sermaye_once": 1697.59,
-      "pnl_dolar_bilesik": -3.88,
-      "sermaye_sonra": 1693.71
+      "sermaye_once": 1723.21,
+      "pnl_dolar_bilesik": -3.94,
+      "sermaye_sonra": 1719.27
     },
     {
       "symbol": "AVGO",
@@ -381,9 +486,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 6.29,
-      "sermaye_once": 1693.71,
-      "pnl_dolar_bilesik": 6.48,
-      "sermaye_sonra": 1700.19
+      "sermaye_once": 1719.27,
+      "pnl_dolar_bilesik": 6.58,
+      "sermaye_sonra": 1725.85
     },
     {
       "symbol": "PLTR",
@@ -404,9 +509,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.05,
-      "sermaye_once": 1700.19,
-      "pnl_dolar_bilesik": 91.64,
-      "sermaye_sonra": 1791.83
+      "sermaye_once": 1725.85,
+      "pnl_dolar_bilesik": 93.02,
+      "sermaye_sonra": 1818.87
     },
     {
       "symbol": "LLY",
@@ -427,9 +532,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 16.45,
-      "sermaye_once": 1791.83,
-      "pnl_dolar_bilesik": -14.74,
-      "sermaye_sonra": 1777.09
+      "sermaye_once": 1818.87,
+      "pnl_dolar_bilesik": -14.96,
+      "sermaye_sonra": 1803.91
     },
     {
       "symbol": "TSLA",
@@ -450,9 +555,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.25,
-      "sermaye_once": 1777.09,
-      "pnl_dolar_bilesik": 154.61,
-      "sermaye_sonra": 1931.7
+      "sermaye_once": 1803.91,
+      "pnl_dolar_bilesik": 156.94,
+      "sermaye_sonra": 1960.85
     },
     {
       "symbol": "SOXX",
@@ -473,9 +578,55 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 5.33,
-      "sermaye_once": 1931.7,
-      "pnl_dolar_bilesik": -12.94,
-      "sermaye_sonra": 1918.76
+      "sermaye_once": 1960.85,
+      "pnl_dolar_bilesik": -13.14,
+      "sermaye_sonra": 1947.71
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-07-08",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2024-07-09",
+      "cikis_tarihi": "2024-07-30",
+      "giris_fiyat": 68.89,
+      "cikis_fiyat": 68.19,
+      "sl": 67.8,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": -1.02,
+      "pnl_dolar": -3.81,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.0,
+      "sermaye_once": 1947.71,
+      "pnl_dolar_bilesik": -4.97,
+      "sermaye_sonra": 1942.74
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-07-09",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2024-07-10",
+      "cikis_tarihi": "2024-07-17",
+      "giris_fiyat": 495.69,
+      "cikis_fiyat": 486.36,
+      "sl": 486.36,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -1.88,
+      "pnl_dolar": -7.06,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 5.19,
+      "sermaye_once": 1942.74,
+      "pnl_dolar_bilesik": -9.13,
+      "sermaye_sonra": 1933.61
     },
     {
       "symbol": "LLY",
@@ -496,9 +647,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 18.5,
-      "sermaye_once": 1918.76,
-      "pnl_dolar_bilesik": -4.55,
-      "sermaye_sonra": 1914.21
+      "sermaye_once": 1933.61,
+      "pnl_dolar_bilesik": -4.58,
+      "sermaye_sonra": 1929.03
     },
     {
       "symbol": "TSLA",
@@ -519,9 +670,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 12.56,
-      "sermaye_once": 1914.21,
-      "pnl_dolar_bilesik": -42.26,
-      "sermaye_sonra": 1871.95
+      "sermaye_once": 1929.03,
+      "pnl_dolar_bilesik": -42.58,
+      "sermaye_sonra": 1886.45
     },
     {
       "symbol": "MSTR",
@@ -542,9 +693,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 10.69,
-      "sermaye_once": 1871.95,
-      "pnl_dolar_bilesik": -31.8,
-      "sermaye_sonra": 1840.15
+      "sermaye_once": 1886.45,
+      "pnl_dolar_bilesik": -32.05,
+      "sermaye_sonra": 1854.4
     },
     {
       "symbol": "ASTS",
@@ -565,9 +716,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": false,
       "atr": 1.03,
-      "sermaye_once": 1840.15,
-      "pnl_dolar_bilesik": -30.91,
-      "sermaye_sonra": 1809.24
+      "sermaye_once": 1854.4,
+      "pnl_dolar_bilesik": -31.15,
+      "sermaye_sonra": 1823.25
     },
     {
       "symbol": "IBIT",
@@ -588,9 +739,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.38,
-      "sermaye_once": 1809.24,
-      "pnl_dolar_bilesik": -5.13,
-      "sermaye_sonra": 1804.11
+      "sermaye_once": 1823.25,
+      "pnl_dolar_bilesik": -5.17,
+      "sermaye_sonra": 1818.08
     },
     {
       "symbol": "FXY",
@@ -611,9 +762,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 0.39,
-      "sermaye_once": 1804.11,
-      "pnl_dolar_bilesik": 40.16,
-      "sermaye_sonra": 1844.27
+      "sermaye_once": 1818.08,
+      "pnl_dolar_bilesik": 40.47,
+      "sermaye_sonra": 1858.55
     },
     {
       "symbol": "PLTR",
@@ -634,9 +785,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.16,
-      "sermaye_once": 1844.27,
-      "pnl_dolar_bilesik": -32.74,
-      "sermaye_sonra": 1811.53
+      "sermaye_once": 1858.55,
+      "pnl_dolar_bilesik": -32.99,
+      "sermaye_sonra": 1825.56
     },
     {
       "symbol": "GLD",
@@ -657,9 +808,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 2.87,
-      "sermaye_once": 1811.53,
-      "pnl_dolar_bilesik": -4.67,
-      "sermaye_sonra": 1806.86
+      "sermaye_once": 1825.56,
+      "pnl_dolar_bilesik": -4.71,
+      "sermaye_sonra": 1820.85
     },
     {
       "symbol": "LMT",
@@ -680,9 +831,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.5,
-      "sermaye_once": 1806.86,
-      "pnl_dolar_bilesik": 42.28,
-      "sermaye_sonra": 1849.14
+      "sermaye_once": 1820.85,
+      "pnl_dolar_bilesik": 42.61,
+      "sermaye_sonra": 1863.46
     },
     {
       "symbol": "ASTS",
@@ -703,9 +854,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.37,
-      "sermaye_once": 1849.14,
-      "pnl_dolar_bilesik": -23.11,
-      "sermaye_sonra": 1826.03
+      "sermaye_once": 1863.46,
+      "pnl_dolar_bilesik": -23.29,
+      "sermaye_sonra": 1840.17
     },
     {
       "symbol": "ASTS",
@@ -726,9 +877,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.74,
-      "sermaye_once": 1826.03,
-      "pnl_dolar_bilesik": 131.2,
-      "sermaye_sonra": 1957.23
+      "sermaye_once": 1840.17,
+      "pnl_dolar_bilesik": 132.22,
+      "sermaye_sonra": 1972.39
     },
     {
       "symbol": "LMT",
@@ -749,9 +900,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 10.0,
-      "sermaye_once": 1957.23,
-      "pnl_dolar_bilesik": 11.52,
-      "sermaye_sonra": 1968.75
+      "sermaye_once": 1972.39,
+      "pnl_dolar_bilesik": 11.61,
+      "sermaye_sonra": 1984.0
     },
     {
       "symbol": "FXY",
@@ -772,9 +923,32 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 0.7,
-      "sermaye_once": 1968.75,
-      "pnl_dolar_bilesik": 6.94,
-      "sermaye_sonra": 1975.69
+      "sermaye_once": 1984.0,
+      "pnl_dolar_bilesik": 6.99,
+      "sermaye_sonra": 1990.99
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2024-08-06",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.34,
+      "giris_tarihi": "2024-08-07",
+      "cikis_tarihi": "2024-08-28",
+      "giris_fiyat": 500.67,
+      "cikis_fiyat": 514.25,
+      "sl": 490.4,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 0.44,
+      "pnl_dolar": 1.48,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 20.46,
+      "sermaye_once": 1990.99,
+      "pnl_dolar_bilesik": 1.97,
+      "sermaye_sonra": 1992.96
     },
     {
       "symbol": "PLTR",
@@ -795,9 +969,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": true,
       "atr": 1.74,
-      "sermaye_once": 1975.69,
-      "pnl_dolar_bilesik": 4.74,
-      "sermaye_sonra": 1980.43
+      "sermaye_once": 1992.96,
+      "pnl_dolar_bilesik": 4.78,
+      "sermaye_sonra": 1997.74
     },
     {
       "symbol": "LLY",
@@ -818,9 +992,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 36.16,
-      "sermaye_once": 1980.43,
-      "pnl_dolar_bilesik": 16.71,
-      "sermaye_sonra": 1997.14
+      "sermaye_once": 1997.74,
+      "pnl_dolar_bilesik": 16.86,
+      "sermaye_sonra": 2014.6
     },
     {
       "symbol": "AVGO",
@@ -841,9 +1015,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.92,
-      "sermaye_once": 1997.14,
-      "pnl_dolar_bilesik": -21.96,
-      "sermaye_sonra": 1975.18
+      "sermaye_once": 2014.6,
+      "pnl_dolar_bilesik": -22.15,
+      "sermaye_sonra": 1992.45
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-08-15",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.468,
+      "giris_tarihi": "2024-08-16",
+      "cikis_tarihi": "2024-09-09",
+      "giris_fiyat": 71.85,
+      "cikis_fiyat": 76.44,
+      "sl": 73.38,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 3.86,
+      "pnl_dolar": 28.93,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 1.41,
+      "sermaye_once": 1992.45,
+      "pnl_dolar_bilesik": 38.45,
+      "sermaye_sonra": 2030.9
     },
     {
       "symbol": "NVDA",
@@ -864,9 +1061,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.93,
-      "sermaye_once": 1975.18,
-      "pnl_dolar_bilesik": -24.65,
-      "sermaye_sonra": 1950.53
+      "sermaye_once": 2030.9,
+      "pnl_dolar_bilesik": -25.35,
+      "sermaye_sonra": 2005.55
     },
     {
       "symbol": "ASTS",
@@ -887,9 +1084,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.58,
-      "sermaye_once": 1950.53,
-      "pnl_dolar_bilesik": -11.29,
-      "sermaye_sonra": 1939.24
+      "sermaye_once": 2005.55,
+      "pnl_dolar_bilesik": -11.61,
+      "sermaye_sonra": 1993.94
     },
     {
       "symbol": "TSLA",
@@ -910,9 +1107,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 11.52,
-      "sermaye_once": 1939.24,
-      "pnl_dolar_bilesik": -44.7,
-      "sermaye_sonra": 1894.54
+      "sermaye_once": 1993.94,
+      "pnl_dolar_bilesik": -45.96,
+      "sermaye_sonra": 1947.98
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-08-20",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.322,
+      "giris_tarihi": "2024-08-21",
+      "cikis_tarihi": "2024-09-03",
+      "giris_fiyat": 477.18,
+      "cikis_fiyat": 463.33,
+      "sl": 463.33,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.9,
+      "pnl_dolar": -6.53,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 9.23,
+      "sermaye_once": 1947.98,
+      "pnl_dolar_bilesik": -8.47,
+      "sermaye_sonra": 1939.51
     },
     {
       "symbol": "GLD",
@@ -933,9 +1153,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 3.0,
-      "sermaye_once": 1894.54,
-      "pnl_dolar_bilesik": 19.4,
-      "sermaye_sonra": 1913.94
+      "sermaye_once": 1939.51,
+      "pnl_dolar_bilesik": 19.86,
+      "sermaye_sonra": 1959.37
     },
     {
       "symbol": "MSTR",
@@ -956,9 +1176,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 11.61,
-      "sermaye_once": 1913.94,
-      "pnl_dolar_bilesik": -33.73,
-      "sermaye_sonra": 1880.21
+      "sermaye_once": 1959.37,
+      "pnl_dolar_bilesik": -34.53,
+      "sermaye_sonra": 1924.84
     },
     {
       "symbol": "LLY",
@@ -979,9 +1199,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 26.1,
-      "sermaye_once": 1880.21,
-      "pnl_dolar_bilesik": -23.69,
-      "sermaye_sonra": 1856.52
+      "sermaye_once": 1924.84,
+      "pnl_dolar_bilesik": -24.25,
+      "sermaye_sonra": 1900.59
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-09-10",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2024-09-11",
+      "cikis_tarihi": "2024-09-19",
+      "giris_fiyat": 77.47,
+      "cikis_fiyat": 77.27,
+      "sl": 77.27,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -1.18,
+      "pnl_dolar": -6.66,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": false,
+      "atr": 1.12,
+      "sermaye_once": 1900.59,
+      "pnl_dolar_bilesik": -8.41,
+      "sermaye_sonra": 1892.18
     },
     {
       "symbol": "NVDA",
@@ -1002,9 +1245,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 6.2,
-      "sermaye_once": 1856.52,
-      "pnl_dolar_bilesik": 42.12,
-      "sermaye_sonra": 1898.64
+      "sermaye_once": 1892.18,
+      "pnl_dolar_bilesik": 42.93,
+      "sermaye_sonra": 1935.11
     },
     {
       "symbol": "FXY",
@@ -1025,9 +1268,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 0.55,
-      "sermaye_once": 1898.64,
-      "pnl_dolar_bilesik": -7.12,
-      "sermaye_sonra": 1891.52
+      "sermaye_once": 1935.11,
+      "pnl_dolar_bilesik": -7.26,
+      "sermaye_sonra": 1927.85
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-09-13",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.37,
+      "giris_tarihi": "2024-09-16",
+      "cikis_tarihi": "2024-10-07",
+      "giris_fiyat": 469.38,
+      "cikis_fiyat": 478.9,
+      "sl": 468.51,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 1.08,
+      "pnl_dolar": 3.64,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 8.76,
+      "sermaye_once": 1927.85,
+      "pnl_dolar_bilesik": 4.68,
+      "sermaye_sonra": 1932.53
     },
     {
       "symbol": "PLTR",
@@ -1048,9 +1314,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.4,
-      "sermaye_once": 1891.52,
-      "pnl_dolar_bilesik": 40.74,
-      "sermaye_sonra": 1932.26
+      "sermaye_once": 1932.53,
+      "pnl_dolar_bilesik": 41.63,
+      "sermaye_sonra": 1974.16
     },
     {
       "symbol": "GLD",
@@ -1071,9 +1337,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 2.46,
-      "sermaye_once": 1932.26,
-      "pnl_dolar_bilesik": 0.48,
-      "sermaye_sonra": 1932.74
+      "sermaye_once": 1974.16,
+      "pnl_dolar_bilesik": 0.49,
+      "sermaye_sonra": 1974.65
     },
     {
       "symbol": "VST",
@@ -1094,9 +1360,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 4.74,
-      "sermaye_once": 1932.74,
-      "pnl_dolar_bilesik": 219.27,
-      "sermaye_sonra": 2152.01
+      "sermaye_once": 1974.65,
+      "pnl_dolar_bilesik": 224.02,
+      "sermaye_sonra": 2198.67
     },
     {
       "symbol": "TSLA",
@@ -1117,9 +1383,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 10.1,
-      "sermaye_once": 2152.01,
-      "pnl_dolar_bilesik": -27.55,
-      "sermaye_sonra": 2124.46
+      "sermaye_once": 2198.67,
+      "pnl_dolar_bilesik": -28.14,
+      "sermaye_sonra": 2170.53
     },
     {
       "symbol": "SOXX",
@@ -1140,9 +1406,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.14,
-      "sermaye_once": 2124.46,
-      "pnl_dolar_bilesik": -14.47,
-      "sermaye_sonra": 2109.99
+      "sermaye_once": 2170.53,
+      "pnl_dolar_bilesik": -14.78,
+      "sermaye_sonra": 2155.75
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2024-09-25",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.376,
+      "giris_tarihi": "2024-09-26",
+      "cikis_tarihi": "2024-10-17",
+      "giris_fiyat": 573.46,
+      "cikis_fiyat": 574.65,
+      "sl": 565.34,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 0.21,
+      "pnl_dolar": 0.47,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": true,
+      "atr": 14.09,
+      "sermaye_once": 2155.75,
+      "pnl_dolar_bilesik": 0.68,
+      "sermaye_sonra": 2156.43
     },
     {
       "symbol": "MSTR",
@@ -1163,9 +1452,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 10.36,
-      "sermaye_once": 2109.99,
-      "pnl_dolar_bilesik": 55.96,
-      "sermaye_sonra": 2165.95
+      "sermaye_once": 2156.43,
+      "pnl_dolar_bilesik": 57.19,
+      "sermaye_sonra": 2213.62
     },
     {
       "symbol": "LMT",
@@ -1186,9 +1475,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 9.04,
-      "sermaye_once": 2165.95,
-      "pnl_dolar_bilesik": -5.1,
-      "sermaye_sonra": 2160.85
+      "sermaye_once": 2213.62,
+      "pnl_dolar_bilesik": -5.21,
+      "sermaye_sonra": 2208.41
     },
     {
       "symbol": "VST",
@@ -1209,9 +1498,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.53,
-      "sermaye_once": 2160.85,
-      "pnl_dolar_bilesik": -50.62,
-      "sermaye_sonra": 2110.23
+      "sermaye_once": 2208.41,
+      "pnl_dolar_bilesik": -51.73,
+      "sermaye_sonra": 2156.68
     },
     {
       "symbol": "PLTR",
@@ -1232,9 +1521,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.48,
-      "sermaye_once": 2110.23,
-      "pnl_dolar_bilesik": -27.54,
-      "sermaye_sonra": 2082.69
+      "sermaye_once": 2156.68,
+      "pnl_dolar_bilesik": -28.14,
+      "sermaye_sonra": 2128.54
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-10-11",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2024-10-14",
+      "cikis_tarihi": "2024-10-31",
+      "giris_fiyat": 492.47,
+      "cikis_fiyat": 481.2,
+      "sl": 481.2,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.29,
+      "pnl_dolar": -8.58,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 6.73,
+      "sermaye_once": 2128.54,
+      "pnl_dolar_bilesik": -12.19,
+      "sermaye_sonra": 2116.35
     },
     {
       "symbol": "NVDA",
@@ -1255,9 +1567,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": true,
       "atr": 5.17,
-      "sermaye_once": 2082.69,
-      "pnl_dolar_bilesik": 4.62,
-      "sermaye_sonra": 2087.31
+      "sermaye_once": 2116.35,
+      "pnl_dolar_bilesik": 4.7,
+      "sermaye_sonra": 2121.05
     },
     {
       "symbol": "MSTR",
@@ -1278,9 +1590,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 13.87,
-      "sermaye_once": 2087.31,
-      "pnl_dolar_bilesik": 118.98,
-      "sermaye_sonra": 2206.29
+      "sermaye_once": 2121.05,
+      "pnl_dolar_bilesik": 120.9,
+      "sermaye_sonra": 2241.95
     },
     {
       "symbol": "PLTR",
@@ -1301,9 +1613,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 1.52,
-      "sermaye_once": 2206.29,
-      "pnl_dolar_bilesik": -31.27,
-      "sermaye_sonra": 2175.02
+      "sermaye_once": 2241.95,
+      "pnl_dolar_bilesik": -31.78,
+      "sermaye_sonra": 2210.17
     },
     {
       "symbol": "GLD",
@@ -1324,9 +1636,32 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 2.42,
-      "sermaye_once": 2175.02,
-      "pnl_dolar_bilesik": -8.48,
-      "sermaye_sonra": 2166.54
+      "sermaye_once": 2210.17,
+      "pnl_dolar_bilesik": -8.62,
+      "sermaye_sonra": 2201.55
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-10-23",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2024-10-24",
+      "cikis_tarihi": "2024-11-06",
+      "giris_fiyat": 81.99,
+      "cikis_fiyat": 81.81,
+      "sl": 81.81,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -0.22,
+      "pnl_dolar": -0.84,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.09,
+      "sermaye_once": 2201.55,
+      "pnl_dolar_bilesik": -1.21,
+      "sermaye_sonra": 2200.34
     },
     {
       "symbol": "TSLA",
@@ -1347,9 +1682,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 11.5,
-      "sermaye_once": 2166.54,
-      "pnl_dolar_bilesik": -23.72,
-      "sermaye_sonra": 2142.82
+      "sermaye_once": 2200.34,
+      "pnl_dolar_bilesik": -24.09,
+      "sermaye_sonra": 2176.25
     },
     {
       "symbol": "PLTR",
@@ -1370,9 +1705,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 2.2,
-      "sermaye_once": 2142.82,
-      "pnl_dolar_bilesik": 78.21,
-      "sermaye_sonra": 2221.03
+      "sermaye_once": 2176.25,
+      "pnl_dolar_bilesik": 79.43,
+      "sermaye_sonra": 2255.68
     },
     {
       "symbol": "TSLA",
@@ -1393,9 +1728,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 12.79,
-      "sermaye_once": 2221.03,
-      "pnl_dolar_bilesik": 59.08,
-      "sermaye_sonra": 2280.11
+      "sermaye_once": 2255.68,
+      "pnl_dolar_bilesik": 60.0,
+      "sermaye_sonra": 2315.68
     },
     {
       "symbol": "MSTR",
@@ -1416,9 +1751,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": false,
       "atr": 18.76,
-      "sermaye_once": 2280.11,
-      "pnl_dolar_bilesik": -10.94,
-      "sermaye_sonra": 2269.17
+      "sermaye_once": 2315.68,
+      "pnl_dolar_bilesik": -11.12,
+      "sermaye_sonra": 2304.56
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-11-07",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.463,
+      "giris_tarihi": "2024-11-08",
+      "cikis_tarihi": "2024-12-02",
+      "giris_fiyat": 83.3,
+      "cikis_fiyat": 91.56,
+      "sl": 88.87,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 7.86,
+      "pnl_dolar": 58.97,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 1.22,
+      "sermaye_once": 2304.56,
+      "pnl_dolar_bilesik": 90.57,
+      "sermaye_sonra": 2395.13
     },
     {
       "symbol": "VST",
@@ -1439,9 +1797,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 7.27,
-      "sermaye_once": 2269.17,
-      "pnl_dolar_bilesik": 6.13,
-      "sermaye_sonra": 2275.3
+      "sermaye_once": 2395.13,
+      "pnl_dolar_bilesik": 6.47,
+      "sermaye_sonra": 2401.6
     },
     {
       "symbol": "IBIT",
@@ -1462,9 +1820,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.92,
-      "sermaye_once": 2275.3,
-      "pnl_dolar_bilesik": 12.06,
-      "sermaye_sonra": 2287.36
+      "sermaye_once": 2401.6,
+      "pnl_dolar_bilesik": 12.73,
+      "sermaye_sonra": 2414.33
     },
     {
       "symbol": "MSTR",
@@ -1485,9 +1843,55 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 26.78,
-      "sermaye_once": 2287.36,
-      "pnl_dolar_bilesik": -75.14,
-      "sermaye_sonra": 2212.22
+      "sermaye_once": 2414.33,
+      "pnl_dolar_bilesik": -79.31,
+      "sermaye_sonra": 2335.02
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2024-11-12",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.562,
+      "giris_tarihi": "2024-11-13",
+      "cikis_tarihi": "2024-11-15",
+      "giris_fiyat": 580.31,
+      "cikis_fiyat": 555.52,
+      "sl": 555.52,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -4.27,
+      "pnl_dolar": -16.02,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 13.77,
+      "sermaye_once": 2335.02,
+      "pnl_dolar_bilesik": -24.93,
+      "sermaye_sonra": 2310.09
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-11-12",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2024-11-13",
+      "cikis_tarihi": "2024-11-15",
+      "giris_fiyat": 508.99,
+      "cikis_fiyat": 497.26,
+      "sl": 497.26,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.31,
+      "pnl_dolar": -8.64,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 6.52,
+      "sermaye_once": 2310.09,
+      "pnl_dolar_bilesik": -13.34,
+      "sermaye_sonra": 2296.75
     },
     {
       "symbol": "TSLA",
@@ -1508,9 +1912,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 17.26,
-      "sermaye_once": 2212.22,
-      "pnl_dolar_bilesik": 122.45,
-      "sermaye_sonra": 2334.67
+      "sermaye_once": 2296.75,
+      "pnl_dolar_bilesik": 127.13,
+      "sermaye_sonra": 2423.88
     },
     {
       "symbol": "MSTR",
@@ -1531,9 +1935,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 28.47,
-      "sermaye_once": 2334.67,
-      "pnl_dolar_bilesik": 213.74,
-      "sermaye_sonra": 2548.41
+      "sermaye_once": 2423.88,
+      "pnl_dolar_bilesik": 221.91,
+      "sermaye_sonra": 2645.79
     },
     {
       "symbol": "PLTR",
@@ -1554,9 +1958,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 3.12,
-      "sermaye_once": 2548.41,
-      "pnl_dolar_bilesik": 93.4,
-      "sermaye_sonra": 2641.81
+      "sermaye_once": 2645.79,
+      "pnl_dolar_bilesik": 96.97,
+      "sermaye_sonra": 2742.76
     },
     {
       "symbol": "MSTR",
@@ -1577,9 +1981,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 46.1,
-      "sermaye_once": 2641.81,
-      "pnl_dolar_bilesik": -124.36,
-      "sermaye_sonra": 2517.45
+      "sermaye_once": 2742.76,
+      "pnl_dolar_bilesik": -129.12,
+      "sermaye_sonra": 2613.64
     },
     {
       "symbol": "GLD",
@@ -1600,9 +2004,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 3.36,
-      "sermaye_once": 2517.45,
-      "pnl_dolar_bilesik": -9.82,
-      "sermaye_sonra": 2507.63
+      "sermaye_once": 2613.64,
+      "pnl_dolar_bilesik": -10.19,
+      "sermaye_sonra": 2603.45
     },
     {
       "symbol": "IBIT",
@@ -1623,9 +2027,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 2.13,
-      "sermaye_once": 2507.63,
-      "pnl_dolar_bilesik": -18.68,
-      "sermaye_sonra": 2488.95
+      "sermaye_once": 2603.45,
+      "pnl_dolar_bilesik": -19.4,
+      "sermaye_sonra": 2584.05
     },
     {
       "symbol": "FXY",
@@ -1646,9 +2050,55 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 0.5,
-      "sermaye_once": 2488.95,
-      "pnl_dolar_bilesik": -4.41,
-      "sermaye_sonra": 2484.54
+      "sermaye_once": 2584.05,
+      "pnl_dolar_bilesik": -4.57,
+      "sermaye_sonra": 2579.48
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2024-12-03",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.453,
+      "giris_tarihi": "2024-12-04",
+      "cikis_tarihi": "2024-12-20",
+      "giris_fiyat": 92.36,
+      "cikis_fiyat": 91.45,
+      "sl": 91.45,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -1.77,
+      "pnl_dolar": -9.95,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": false,
+      "atr": 1.44,
+      "sermaye_once": 2579.48,
+      "pnl_dolar_bilesik": -17.12,
+      "sermaye_sonra": 2562.36
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2024-12-06",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2024-12-09",
+      "cikis_tarihi": "2024-12-18",
+      "giris_fiyat": 621.46,
+      "cikis_fiyat": 597.95,
+      "sl": 597.95,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -3.78,
+      "pnl_dolar": -14.19,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 15.17,
+      "sermaye_once": 2562.36,
+      "pnl_dolar_bilesik": -24.21,
+      "sermaye_sonra": 2538.15
     },
     {
       "symbol": "TSLA",
@@ -1669,9 +2119,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 17.16,
-      "sermaye_once": 2484.54,
-      "pnl_dolar_bilesik": 48.75,
-      "sermaye_sonra": 2533.29
+      "sermaye_once": 2538.15,
+      "pnl_dolar_bilesik": 49.8,
+      "sermaye_sonra": 2587.95
     },
     {
       "symbol": "PLTR",
@@ -1692,9 +2142,32 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 3.88,
-      "sermaye_once": 2533.29,
-      "pnl_dolar_bilesik": -5.13,
-      "sermaye_sonra": 2528.16
+      "sermaye_once": 2587.95,
+      "pnl_dolar_bilesik": -5.24,
+      "sermaye_sonra": 2582.71
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2024-12-11",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.512,
+      "giris_tarihi": "2024-12-12",
+      "cikis_tarihi": "2024-12-18",
+      "giris_fiyat": 524.17,
+      "cikis_fiyat": 520.39,
+      "sl": 520.39,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -1.37,
+      "pnl_dolar": -7.73,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": false,
+      "atr": 6.07,
+      "sermaye_once": 2582.71,
+      "pnl_dolar_bilesik": -13.27,
+      "sermaye_sonra": 2569.44
     },
     {
       "symbol": "AVGO",
@@ -1715,9 +2188,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 10.44,
-      "sermaye_once": 2528.16,
-      "pnl_dolar_bilesik": -3.03,
-      "sermaye_sonra": 2525.13
+      "sermaye_once": 2569.44,
+      "pnl_dolar_bilesik": -3.08,
+      "sermaye_sonra": 2566.36
     },
     {
       "symbol": "TSLA",
@@ -1738,9 +2211,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 23.43,
-      "sermaye_once": 2525.13,
-      "pnl_dolar_bilesik": -67.04,
-      "sermaye_sonra": 2458.09
+      "sermaye_once": 2566.36,
+      "pnl_dolar_bilesik": -68.14,
+      "sermaye_sonra": 2498.22
     },
     {
       "symbol": "VST",
@@ -1761,9 +2234,78 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.56,
-      "sermaye_once": 2458.09,
-      "pnl_dolar_bilesik": 27.53,
-      "sermaye_sonra": 2485.62
+      "sermaye_once": 2498.22,
+      "pnl_dolar_bilesik": 27.98,
+      "sermaye_sonra": 2526.2
+    },
+    {
+      "symbol": "USO",
+      "sinyal_tarihi": "2025-01-10",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.376,
+      "giris_tarihi": "2025-01-13",
+      "cikis_tarihi": "2025-01-23",
+      "giris_fiyat": 81.51,
+      "cikis_fiyat": 80.3,
+      "sl": 80.3,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.61,
+      "pnl_dolar": -8.8,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": false,
+      "atr": 1.71,
+      "sermaye_once": 2526.2,
+      "pnl_dolar_bilesik": -14.84,
+      "sermaye_sonra": 2511.36
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-01-21",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.581,
+      "giris_tarihi": "2025-01-22",
+      "cikis_tarihi": "2025-02-12",
+      "giris_fiyat": 621.34,
+      "cikis_fiyat": 723.1,
+      "sl": 681.31,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 12.33,
+      "pnl_dolar": 92.5,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 17.4,
+      "sermaye_once": 2511.36,
+      "pnl_dolar_bilesik": 154.83,
+      "sermaye_sonra": 2666.19
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-01-22",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.562,
+      "giris_tarihi": "2025-01-23",
+      "cikis_tarihi": "2025-02-13",
+      "giris_fiyat": 92.08,
+      "cikis_fiyat": 104.05,
+      "sl": 100.41,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 10.01,
+      "pnl_dolar": 75.06,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 1.53,
+      "sermaye_once": 2666.19,
+      "pnl_dolar_bilesik": 133.44,
+      "sermaye_sonra": 2799.63
     },
     {
       "symbol": "PLTR",
@@ -1784,9 +2326,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 3.91,
-      "sermaye_once": 2485.62,
-      "pnl_dolar_bilesik": 140.31,
-      "sermaye_sonra": 2625.93
+      "sermaye_once": 2799.63,
+      "pnl_dolar_bilesik": 158.04,
+      "sermaye_sonra": 2957.67
     },
     {
       "symbol": "GLD",
@@ -1807,9 +2349,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 2.62,
-      "sermaye_once": 2625.93,
-      "pnl_dolar_bilesik": -2.36,
-      "sermaye_sonra": 2623.57
+      "sermaye_once": 2957.67,
+      "pnl_dolar_bilesik": -2.66,
+      "sermaye_sonra": 2955.01
     },
     {
       "symbol": "LLY",
@@ -1830,9 +2372,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 23.09,
-      "sermaye_once": 2623.57,
-      "pnl_dolar_bilesik": 27.51,
-      "sermaye_sonra": 2651.08
+      "sermaye_once": 2955.01,
+      "pnl_dolar_bilesik": 30.98,
+      "sermaye_sonra": 2985.99
     },
     {
       "symbol": "PLTR",
@@ -1853,9 +2395,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 6.05,
-      "sermaye_once": 2651.08,
-      "pnl_dolar_bilesik": -50.7,
-      "sermaye_sonra": 2600.38
+      "sermaye_once": 2985.99,
+      "pnl_dolar_bilesik": -57.11,
+      "sermaye_sonra": 2928.88
     },
     {
       "symbol": "AVGO",
@@ -1876,9 +2418,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 10.74,
-      "sermaye_once": 2600.38,
-      "pnl_dolar_bilesik": -54.54,
-      "sermaye_sonra": 2545.84
+      "sermaye_once": 2928.88,
+      "pnl_dolar_bilesik": -61.43,
+      "sermaye_sonra": 2867.45
     },
     {
       "symbol": "FXY",
@@ -1899,9 +2441,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 0.42,
-      "sermaye_once": 2545.84,
-      "pnl_dolar_bilesik": -3.93,
-      "sermaye_sonra": 2541.91
+      "sermaye_once": 2867.45,
+      "pnl_dolar_bilesik": -4.43,
+      "sermaye_sonra": 2863.02
     },
     {
       "symbol": "ASTS",
@@ -1922,9 +2464,55 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 2.42,
-      "sermaye_once": 2541.91,
-      "pnl_dolar_bilesik": -13.0,
-      "sermaye_sonra": 2528.91
+      "sermaye_once": 2863.02,
+      "pnl_dolar_bilesik": -14.64,
+      "sermaye_sonra": 2848.38
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-02-13",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2025-02-14",
+      "cikis_tarihi": "2025-02-20",
+      "giris_fiyat": 723.86,
+      "cikis_fiyat": 692.61,
+      "sl": 692.61,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -4.32,
+      "pnl_dolar": -16.19,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 17.36,
+      "sermaye_once": 2848.38,
+      "pnl_dolar_bilesik": -30.76,
+      "sermaye_sonra": 2817.62
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-02-14",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.376,
+      "giris_tarihi": "2025-02-18",
+      "cikis_tarihi": "2025-02-20",
+      "giris_fiyat": 102.74,
+      "cikis_fiyat": 100.31,
+      "sl": 100.31,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.37,
+      "pnl_dolar": -5.32,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.62,
+      "sermaye_once": 2817.62,
+      "pnl_dolar_bilesik": -10.02,
+      "sermaye_sonra": 2807.6
     },
     {
       "symbol": "FXY",
@@ -1945,9 +2533,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 0.43,
-      "sermaye_once": 2528.91,
-      "pnl_dolar_bilesik": 15.3,
-      "sermaye_sonra": 2544.21
+      "sermaye_once": 2807.6,
+      "pnl_dolar_bilesik": 16.99,
+      "sermaye_sonra": 2824.59
     },
     {
       "symbol": "PLTR",
@@ -1968,9 +2556,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.47,
-      "sermaye_once": 2544.21,
-      "pnl_dolar_bilesik": -79.44,
-      "sermaye_sonra": 2464.77
+      "sermaye_once": 2824.59,
+      "pnl_dolar_bilesik": -88.2,
+      "sermaye_sonra": 2736.39
     },
     {
       "symbol": "LLY",
@@ -1991,9 +2579,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 23.81,
-      "sermaye_once": 2464.77,
-      "pnl_dolar_bilesik": -13.64,
-      "sermaye_sonra": 2451.13
+      "sermaye_once": 2736.39,
+      "pnl_dolar_bilesik": -15.15,
+      "sermaye_sonra": 2721.24
     },
     {
       "symbol": "ASTS",
@@ -2014,9 +2602,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.44,
-      "sermaye_once": 2451.13,
-      "pnl_dolar_bilesik": -116.43,
-      "sermaye_sonra": 2334.7
+      "sermaye_once": 2721.24,
+      "pnl_dolar_bilesik": -129.26,
+      "sermaye_sonra": 2591.98
     },
     {
       "symbol": "MSTR",
@@ -2037,9 +2625,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 29.02,
-      "sermaye_once": 2334.7,
-      "pnl_dolar_bilesik": -51.13,
-      "sermaye_sonra": 2283.57
+      "sermaye_once": 2591.98,
+      "pnl_dolar_bilesik": -56.76,
+      "sermaye_sonra": 2535.22
     },
     {
       "symbol": "FXY",
@@ -2060,9 +2648,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 0.48,
-      "sermaye_once": 2283.57,
-      "pnl_dolar_bilesik": -7.99,
-      "sermaye_sonra": 2275.58
+      "sermaye_once": 2535.22,
+      "pnl_dolar_bilesik": -8.87,
+      "sermaye_sonra": 2526.35
     },
     {
       "symbol": "GLD",
@@ -2083,9 +2671,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 2.88,
-      "sermaye_once": 2275.58,
-      "pnl_dolar_bilesik": 8.76,
-      "sermaye_sonra": 2284.34
+      "sermaye_once": 2526.35,
+      "pnl_dolar_bilesik": 9.73,
+      "sermaye_sonra": 2536.08
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-03-25",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.32,
+      "giris_tarihi": "2025-03-26",
+      "cikis_tarihi": "2025-03-28",
+      "giris_fiyat": 623.48,
+      "cikis_fiyat": 588.51,
+      "sl": 588.51,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -5.61,
+      "pnl_dolar": -12.62,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 23.31,
+      "sermaye_once": 2536.08,
+      "pnl_dolar_bilesik": -21.34,
+      "sermaye_sonra": 2514.74
     },
     {
       "symbol": "AVGO",
@@ -2106,9 +2717,32 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 12.9,
-      "sermaye_once": 2284.34,
-      "pnl_dolar_bilesik": 59.11,
-      "sermaye_sonra": 2343.45
+      "sermaye_once": 2514.74,
+      "pnl_dolar_bilesik": 65.07,
+      "sermaye_sonra": 2579.81
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-04-09",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.343,
+      "giris_tarihi": "2025-04-10",
+      "cikis_tarihi": "2025-05-02",
+      "giris_fiyat": 88.13,
+      "cikis_fiyat": 98.08,
+      "sl": 90.08,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 8.84,
+      "pnl_dolar": 29.83,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 3.39,
+      "sermaye_once": 2579.81,
+      "pnl_dolar_bilesik": 51.31,
+      "sermaye_sonra": 2631.12
     },
     {
       "symbol": "GLD",
@@ -2129,9 +2763,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 4.62,
-      "sermaye_once": 2343.45,
-      "pnl_dolar_bilesik": 9.73,
-      "sermaye_sonra": 2353.18
+      "sermaye_once": 2631.12,
+      "pnl_dolar_bilesik": 10.92,
+      "sermaye_sonra": 2642.04
     },
     {
       "symbol": "FXY",
@@ -2152,9 +2786,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 0.76,
-      "sermaye_once": 2353.18,
-      "pnl_dolar_bilesik": -10.77,
-      "sermaye_sonra": 2342.41
+      "sermaye_once": 2642.04,
+      "pnl_dolar_bilesik": -12.09,
+      "sermaye_sonra": 2629.95
     },
     {
       "symbol": "LLY",
@@ -2175,9 +2809,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 36.2,
-      "sermaye_once": 2342.41,
-      "pnl_dolar_bilesik": -19.75,
-      "sermaye_sonra": 2322.66
+      "sermaye_once": 2629.95,
+      "pnl_dolar_bilesik": -22.17,
+      "sermaye_sonra": 2607.78
     },
     {
       "symbol": "GLD",
@@ -2198,9 +2832,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 5.78,
-      "sermaye_once": 2322.66,
-      "pnl_dolar_bilesik": -14.72,
-      "sermaye_sonra": 2307.94
+      "sermaye_once": 2607.78,
+      "pnl_dolar_bilesik": -16.53,
+      "sermaye_sonra": 2591.25
     },
     {
       "symbol": "IBIT",
@@ -2221,9 +2855,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.78,
-      "sermaye_once": 2307.94,
-      "pnl_dolar_bilesik": 69.1,
-      "sermaye_sonra": 2377.04
+      "sermaye_once": 2591.25,
+      "pnl_dolar_bilesik": 77.58,
+      "sermaye_sonra": 2668.83
     },
     {
       "symbol": "MSTR",
@@ -2244,9 +2878,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 23.64,
-      "sermaye_once": 2377.04,
-      "pnl_dolar_bilesik": -34.17,
-      "sermaye_sonra": 2342.87
+      "sermaye_once": 2668.83,
+      "pnl_dolar_bilesik": -38.36,
+      "sermaye_sonra": 2630.47
     },
     {
       "symbol": "PLTR",
@@ -2267,9 +2901,32 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 7.63,
-      "sermaye_once": 2342.87,
-      "pnl_dolar_bilesik": 26.46,
-      "sermaye_sonra": 2369.33
+      "sermaye_once": 2630.47,
+      "pnl_dolar_bilesik": 29.71,
+      "sermaye_sonra": 2660.18
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-05-12",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.402,
+      "giris_tarihi": "2025-05-13",
+      "cikis_tarihi": "2025-06-04",
+      "giris_fiyat": 644.08,
+      "cikis_fiyat": 686.4,
+      "sl": 624.91,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 4.29,
+      "pnl_dolar": 24.11,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 25.02,
+      "sermaye_once": 2660.18,
+      "pnl_dolar_bilesik": 42.8,
+      "sermaye_sonra": 2702.98
     },
     {
       "symbol": "AVGO",
@@ -2290,9 +2947,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 8.78,
-      "sermaye_once": 2369.33,
-      "pnl_dolar_bilesik": 54.23,
-      "sermaye_sonra": 2423.56
+      "sermaye_once": 2702.98,
+      "pnl_dolar_bilesik": 61.87,
+      "sermaye_sonra": 2764.85
     },
     {
       "symbol": "TSLA",
@@ -2313,9 +2970,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 18.08,
-      "sermaye_once": 2423.56,
-      "pnl_dolar_bilesik": -21.23,
-      "sermaye_sonra": 2402.33
+      "sermaye_once": 2764.85,
+      "pnl_dolar_bilesik": -24.22,
+      "sermaye_sonra": 2740.63
     },
     {
       "symbol": "SOXX",
@@ -2336,9 +2993,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.75,
-      "sermaye_once": 2402.33,
-      "pnl_dolar_bilesik": -17.19,
-      "sermaye_sonra": 2385.14
+      "sermaye_once": 2740.63,
+      "pnl_dolar_bilesik": -19.61,
+      "sermaye_sonra": 2721.02
     },
     {
       "symbol": "ASTS",
@@ -2359,9 +3016,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 2.05,
-      "sermaye_once": 2385.14,
-      "pnl_dolar_bilesik": -40.75,
-      "sermaye_sonra": 2344.39
+      "sermaye_once": 2721.02,
+      "pnl_dolar_bilesik": -46.49,
+      "sermaye_sonra": 2674.53
     },
     {
       "symbol": "NVDA",
@@ -2382,9 +3039,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 5.12,
-      "sermaye_once": 2344.39,
-      "pnl_dolar_bilesik": 33.6,
-      "sermaye_sonra": 2377.99
+      "sermaye_once": 2674.53,
+      "pnl_dolar_bilesik": 38.33,
+      "sermaye_sonra": 2712.86
     },
     {
       "symbol": "VST",
@@ -2405,9 +3062,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.85,
-      "sermaye_once": 2377.99,
-      "pnl_dolar_bilesik": 33.41,
-      "sermaye_sonra": 2411.4
+      "sermaye_once": 2712.86,
+      "pnl_dolar_bilesik": 38.12,
+      "sermaye_sonra": 2750.98
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2025-05-16",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2025-05-19",
+      "cikis_tarihi": "2025-06-10",
+      "giris_fiyat": 512.41,
+      "cikis_fiyat": 532.31,
+      "sl": 505.99,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 2.79,
+      "pnl_dolar": 15.68,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 10.8,
+      "sermaye_once": 2750.98,
+      "pnl_dolar_bilesik": 28.78,
+      "sermaye_sonra": 2779.76
     },
     {
       "symbol": "IBIT",
@@ -2428,9 +3108,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.76,
-      "sermaye_once": 2411.4,
-      "pnl_dolar_bilesik": -15.45,
-      "sermaye_sonra": 2395.95
+      "sermaye_once": 2779.76,
+      "pnl_dolar_bilesik": -17.8,
+      "sermaye_sonra": 2761.96
     },
     {
       "symbol": "ASTS",
@@ -2451,9 +3131,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 1.98,
-      "sermaye_once": 2395.95,
-      "pnl_dolar_bilesik": 413.54,
-      "sermaye_sonra": 2809.49
+      "sermaye_once": 2761.96,
+      "pnl_dolar_bilesik": 476.71,
+      "sermaye_sonra": 3238.67
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-06-05",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.376,
+      "giris_tarihi": "2025-06-06",
+      "cikis_tarihi": "2025-06-30",
+      "giris_fiyat": 694.6,
+      "cikis_fiyat": 736.99,
+      "sl": 700.88,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 4.58,
+      "pnl_dolar": 15.45,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 18.36,
+      "sermaye_once": 3238.67,
+      "pnl_dolar_bilesik": 33.37,
+      "sermaye_sonra": 3272.04
     },
     {
       "symbol": "AVGO",
@@ -2474,9 +3177,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 8.18,
-      "sermaye_once": 2809.49,
-      "pnl_dolar_bilesik": 29.75,
-      "sermaye_sonra": 2839.24
+      "sermaye_once": 3272.04,
+      "pnl_dolar_bilesik": 34.65,
+      "sermaye_sonra": 3306.69
     },
     {
       "symbol": "SOXX",
@@ -2497,9 +3200,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 5.92,
-      "sermaye_once": 2839.24,
-      "pnl_dolar_bilesik": 63.17,
-      "sermaye_sonra": 2902.41
+      "sermaye_once": 3306.69,
+      "pnl_dolar_bilesik": 73.57,
+      "sermaye_sonra": 3380.26
+    },
+    {
+      "symbol": "USO",
+      "sinyal_tarihi": "2025-06-13",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.376,
+      "giris_tarihi": "2025-06-16",
+      "cikis_tarihi": "2025-06-23",
+      "giris_fiyat": 79.01,
+      "cikis_fiyat": 78.0,
+      "sl": 78.0,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.96,
+      "pnl_dolar": -9.99,
+      "pos_oran": 0.225,
+      "pyramid_sayisi": 1,
+      "dogru_karar": false,
+      "atr": 2.23,
+      "sermaye_once": 3380.26,
+      "pnl_dolar_bilesik": -22.51,
+      "sermaye_sonra": 3357.75
     },
     {
       "symbol": "PLTR",
@@ -2520,9 +3246,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.25,
-      "sermaye_once": 2902.41,
-      "pnl_dolar_bilesik": -19.77,
-      "sermaye_sonra": 2882.64
+      "sermaye_once": 3357.75,
+      "pnl_dolar_bilesik": -22.87,
+      "sermaye_sonra": 3334.88
     },
     {
       "symbol": "VST",
@@ -2543,9 +3269,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 6.65,
-      "sermaye_once": 2882.64,
-      "pnl_dolar_bilesik": -36.32,
-      "sermaye_sonra": 2846.32
+      "sermaye_once": 3334.88,
+      "pnl_dolar_bilesik": -42.02,
+      "sermaye_sonra": 3292.86
     },
     {
       "symbol": "ASTS",
@@ -2566,9 +3292,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.36,
-      "sermaye_once": 2846.32,
-      "pnl_dolar_bilesik": -77.92,
-      "sermaye_sonra": 2768.4
+      "sermaye_once": 3292.86,
+      "pnl_dolar_bilesik": -90.14,
+      "sermaye_sonra": 3202.72
     },
     {
       "symbol": "TSLA",
@@ -2589,9 +3315,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 18.76,
-      "sermaye_once": 2768.4,
-      "pnl_dolar_bilesik": -34.09,
-      "sermaye_sonra": 2734.31
+      "sermaye_once": 3202.72,
+      "pnl_dolar_bilesik": -39.44,
+      "sermaye_sonra": 3163.28
     },
     {
       "symbol": "NVDA",
@@ -2612,9 +3338,55 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 3.92,
-      "sermaye_once": 2734.31,
-      "pnl_dolar_bilesik": 93.38,
-      "sermaye_sonra": 2827.69
+      "sermaye_once": 3163.28,
+      "pnl_dolar_bilesik": 108.03,
+      "sermaye_sonra": 3271.31
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2025-06-27",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.462,
+      "giris_tarihi": "2025-06-30",
+      "cikis_tarihi": "2025-07-22",
+      "giris_fiyat": 549.91,
+      "cikis_fiyat": 559.88,
+      "sl": 546.98,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 1.02,
+      "pnl_dolar": 5.76,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 7.08,
+      "sermaye_once": 3271.31,
+      "pnl_dolar_bilesik": 12.51,
+      "sermaye_sonra": 3283.82
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-07-01",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.378,
+      "giris_tarihi": "2025-07-02",
+      "cikis_tarihi": "2025-07-17",
+      "giris_fiyat": 714.27,
+      "cikis_fiyat": 697.33,
+      "sl": 697.33,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.37,
+      "pnl_dolar": -5.33,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 15.64,
+      "sermaye_once": 3283.82,
+      "pnl_dolar_bilesik": -11.67,
+      "sermaye_sonra": 3272.15
     },
     {
       "symbol": "AVGO",
@@ -2635,9 +3407,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": true,
       "atr": 8.09,
-      "sermaye_once": 2827.69,
-      "pnl_dolar_bilesik": 54.61,
-      "sermaye_sonra": 2882.3
+      "sermaye_once": 3272.15,
+      "pnl_dolar_bilesik": 63.19,
+      "sermaye_sonra": 3335.34
     },
     {
       "symbol": "SOXX",
@@ -2658,9 +3430,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 5.07,
-      "sermaye_once": 2882.3,
-      "pnl_dolar_bilesik": -4.76,
-      "sermaye_sonra": 2877.54
+      "sermaye_once": 3335.34,
+      "pnl_dolar_bilesik": -5.5,
+      "sermaye_sonra": 3329.84
     },
     {
       "symbol": "MSTR",
@@ -2681,9 +3453,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 16.53,
-      "sermaye_once": 2877.54,
-      "pnl_dolar_bilesik": -47.77,
-      "sermaye_sonra": 2829.77
+      "sermaye_once": 3329.84,
+      "pnl_dolar_bilesik": -55.28,
+      "sermaye_sonra": 3274.56
     },
     {
       "symbol": "ASTS",
@@ -2704,9 +3476,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.5,
-      "sermaye_once": 2829.77,
-      "pnl_dolar_bilesik": -29.29,
-      "sermaye_sonra": 2800.48
+      "sermaye_once": 3274.56,
+      "pnl_dolar_bilesik": -33.89,
+      "sermaye_sonra": 3240.67
     },
     {
       "symbol": "PLTR",
@@ -2727,9 +3499,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 5.4,
-      "sermaye_once": 2800.48,
-      "pnl_dolar_bilesik": 163.55,
-      "sermaye_sonra": 2964.03
+      "sermaye_once": 3240.67,
+      "pnl_dolar_bilesik": 189.26,
+      "sermaye_sonra": 3429.93
     },
     {
       "symbol": "NVDA",
@@ -2750,9 +3522,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 3.99,
-      "sermaye_once": 2964.03,
-      "pnl_dolar_bilesik": -2.53,
-      "sermaye_sonra": 2961.5
+      "sermaye_once": 3429.93,
+      "pnl_dolar_bilesik": -2.93,
+      "sermaye_sonra": 3427.0
     },
     {
       "symbol": "IBIT",
@@ -2773,9 +3545,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 1.64,
-      "sermaye_once": 2961.5,
-      "pnl_dolar_bilesik": -16.17,
-      "sermaye_sonra": 2945.33
+      "sermaye_once": 3427.0,
+      "pnl_dolar_bilesik": -18.71,
+      "sermaye_sonra": 3408.29
     },
     {
       "symbol": "ASTS",
@@ -2796,9 +3568,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.72,
-      "sermaye_once": 2945.33,
-      "pnl_dolar_bilesik": -41.88,
-      "sermaye_sonra": 2903.45
+      "sermaye_once": 3408.29,
+      "pnl_dolar_bilesik": -48.47,
+      "sermaye_sonra": 3359.82
     },
     {
       "symbol": "AVGO",
@@ -2819,9 +3591,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.59,
-      "sermaye_once": 2903.45,
-      "pnl_dolar_bilesik": -13.54,
-      "sermaye_sonra": 2889.91
+      "sermaye_once": 3359.82,
+      "pnl_dolar_bilesik": -15.67,
+      "sermaye_sonra": 3344.15
     },
     {
       "symbol": "VST",
@@ -2842,9 +3614,55 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 8.34,
-      "sermaye_once": 2889.91,
-      "pnl_dolar_bilesik": -46.82,
-      "sermaye_sonra": 2843.09
+      "sermaye_once": 3344.15,
+      "pnl_dolar_bilesik": -54.18,
+      "sermaye_sonra": 3289.97
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2025-08-04",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.468,
+      "giris_tarihi": "2025-08-05",
+      "cikis_tarihi": "2025-08-20",
+      "giris_fiyat": 775.29,
+      "cikis_fiyat": 743.28,
+      "sl": 743.28,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -4.13,
+      "pnl_dolar": -15.48,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 20.71,
+      "sermaye_once": 3289.97,
+      "pnl_dolar_bilesik": -33.97,
+      "sermaye_sonra": 3256.0
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-08-06",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.347,
+      "giris_tarihi": "2025-08-07",
+      "cikis_tarihi": "2025-08-13",
+      "giris_fiyat": 103.01,
+      "cikis_fiyat": 100.56,
+      "sl": 100.56,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.38,
+      "pnl_dolar": -5.35,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.63,
+      "sermaye_once": 3256.0,
+      "pnl_dolar_bilesik": -11.62,
+      "sermaye_sonra": 3244.38
     },
     {
       "symbol": "AVGO",
@@ -2865,9 +3683,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 8.57,
-      "sermaye_once": 2843.09,
-      "pnl_dolar_bilesik": -21.47,
-      "sermaye_sonra": 2821.62
+      "sermaye_once": 3244.38,
+      "pnl_dolar_bilesik": -24.5,
+      "sermaye_sonra": 3219.88
     },
     {
       "symbol": "PLTR",
@@ -2888,9 +3706,55 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.41,
-      "sermaye_once": 2821.62,
-      "pnl_dolar_bilesik": -21.54,
-      "sermaye_sonra": 2800.08
+      "sermaye_once": 3219.88,
+      "pnl_dolar_bilesik": -24.58,
+      "sermaye_sonra": 3195.3
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2025-08-12",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2025-08-13",
+      "cikis_tarihi": "2025-08-19",
+      "giris_fiyat": 581.34,
+      "cikis_fiyat": 569.71,
+      "sl": 569.71,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.0,
+      "pnl_dolar": -7.5,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 6.46,
+      "sermaye_once": 3195.3,
+      "pnl_dolar_bilesik": -15.98,
+      "sermaye_sonra": 3179.32
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-08-14",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2025-08-15",
+      "cikis_tarihi": "2025-08-21",
+      "giris_fiyat": 100.43,
+      "cikis_fiyat": 98.57,
+      "sl": 98.57,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -1.85,
+      "pnl_dolar": -6.93,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.55,
+      "sermaye_once": 3179.32,
+      "pnl_dolar_bilesik": -14.7,
+      "sermaye_sonra": 3164.62
     },
     {
       "symbol": "PLTR",
@@ -2911,9 +3775,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.49,
-      "sermaye_once": 2800.08,
-      "pnl_dolar_bilesik": -46.62,
-      "sermaye_sonra": 2753.46
+      "sermaye_once": 3164.62,
+      "pnl_dolar_bilesik": -52.69,
+      "sermaye_sonra": 3111.93
     },
     {
       "symbol": "LMT",
@@ -2934,9 +3798,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.46,
-      "sermaye_once": 2753.46,
-      "pnl_dolar_bilesik": 35.52,
-      "sermaye_sonra": 2788.98
+      "sermaye_once": 3111.93,
+      "pnl_dolar_bilesik": 40.14,
+      "sermaye_sonra": 3152.07
     },
     {
       "symbol": "GLD",
@@ -2957,9 +3821,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 3.38,
-      "sermaye_once": 2788.98,
-      "pnl_dolar_bilesik": -7.95,
-      "sermaye_sonra": 2781.03
+      "sermaye_once": 3152.07,
+      "pnl_dolar_bilesik": -8.98,
+      "sermaye_sonra": 3143.09
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-09-05",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.463,
+      "giris_tarihi": "2025-09-08",
+      "cikis_tarihi": "2025-09-23",
+      "giris_fiyat": 100.64,
+      "cikis_fiyat": 101.7,
+      "sl": 101.7,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": 0.17,
+      "pnl_dolar": 0.96,
+      "pos_oran": 0.375,
+      "pyramid_sayisi": 1,
+      "dogru_karar": true,
+      "atr": 1.68,
+      "sermaye_once": 3143.09,
+      "pnl_dolar_bilesik": 2.0,
+      "sermaye_sonra": 3145.09
     },
     {
       "symbol": "AVGO",
@@ -2980,9 +3867,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 12.85,
-      "sermaye_once": 2781.03,
-      "pnl_dolar_bilesik": -41.61,
-      "sermaye_sonra": 2739.42
+      "sermaye_once": 3145.09,
+      "pnl_dolar_bilesik": -47.06,
+      "sermaye_sonra": 3098.03
     },
     {
       "symbol": "VST",
@@ -3003,9 +3890,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 8.54,
-      "sermaye_once": 2739.42,
-      "pnl_dolar_bilesik": -19.93,
-      "sermaye_sonra": 2719.49
+      "sermaye_once": 3098.03,
+      "pnl_dolar_bilesik": -22.54,
+      "sermaye_sonra": 3075.49
     },
     {
       "symbol": "PLTR",
@@ -3026,9 +3913,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": false,
       "atr": 7.13,
-      "sermaye_once": 2719.49,
-      "pnl_dolar_bilesik": -2.86,
-      "sermaye_sonra": 2716.63
+      "sermaye_once": 3075.49,
+      "pnl_dolar_bilesik": -3.23,
+      "sermaye_sonra": 3072.26
     },
     {
       "symbol": "GLD",
@@ -3049,9 +3936,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 3.67,
-      "sermaye_once": 2716.63,
-      "pnl_dolar_bilesik": 60.85,
-      "sermaye_sonra": 2777.48
+      "sermaye_once": 3072.26,
+      "pnl_dolar_bilesik": 68.82,
+      "sermaye_sonra": 3141.08
     },
     {
       "symbol": "NVDA",
@@ -3072,9 +3959,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 4.7,
-      "sermaye_once": 2777.48,
-      "pnl_dolar_bilesik": -33.19,
-      "sermaye_sonra": 2744.29
+      "sermaye_once": 3141.08,
+      "pnl_dolar_bilesik": -37.54,
+      "sermaye_sonra": 3103.54
     },
     {
       "symbol": "TSLA",
@@ -3095,9 +3982,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 14.77,
-      "sermaye_once": 2744.29,
-      "pnl_dolar_bilesik": 1.89,
-      "sermaye_sonra": 2746.18
+      "sermaye_once": 3103.54,
+      "pnl_dolar_bilesik": 2.14,
+      "sermaye_sonra": 3105.68
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2025-09-16",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2025-09-17",
+      "cikis_tarihi": "2025-10-08",
+      "giris_fiyat": 589.66,
+      "cikis_fiyat": 610.65,
+      "sl": 596.43,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 2.14,
+      "pnl_dolar": 16.06,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 5.81,
+      "sermaye_once": 3105.68,
+      "pnl_dolar_bilesik": 33.23,
+      "sermaye_sonra": 3138.91
     },
     {
       "symbol": "AVGO",
@@ -3118,9 +4028,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 12.97,
-      "sermaye_once": 2746.18,
-      "pnl_dolar_bilesik": -38.79,
-      "sermaye_sonra": 2707.39
+      "sermaye_once": 3138.91,
+      "pnl_dolar_bilesik": -44.34,
+      "sermaye_sonra": 3094.57
     },
     {
       "symbol": "NVDA",
@@ -3141,9 +4051,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 5.18,
-      "sermaye_once": 2707.39,
-      "pnl_dolar_bilesik": 1.06,
-      "sermaye_sonra": 2708.45
+      "sermaye_once": 3094.57,
+      "pnl_dolar_bilesik": 1.21,
+      "sermaye_sonra": 3095.78
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-09-24",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2025-09-25",
+      "cikis_tarihi": "2025-10-02",
+      "giris_fiyat": 103.01,
+      "cikis_fiyat": 100.15,
+      "sl": 100.15,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.77,
+      "pnl_dolar": -10.4,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 1.59,
+      "sermaye_once": 3095.78,
+      "pnl_dolar_bilesik": -21.44,
+      "sermaye_sonra": 3074.34
     },
     {
       "symbol": "SOXX",
@@ -3164,9 +4097,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 4.64,
-      "sermaye_once": 2708.45,
-      "pnl_dolar_bilesik": 15.6,
-      "sermaye_sonra": 2724.05
+      "sermaye_once": 3074.34,
+      "pnl_dolar_bilesik": 17.71,
+      "sermaye_sonra": 3092.05
     },
     {
       "symbol": "LMT",
@@ -3187,9 +4120,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 7.64,
-      "sermaye_once": 2724.05,
-      "pnl_dolar_bilesik": -11.24,
-      "sermaye_sonra": 2712.81
+      "sermaye_once": 3092.05,
+      "pnl_dolar_bilesik": -12.75,
+      "sermaye_sonra": 3079.3
     },
     {
       "symbol": "ASTS",
@@ -3210,9 +4143,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 4.36,
-      "sermaye_once": 2712.81,
-      "pnl_dolar_bilesik": 338.83,
-      "sermaye_sonra": 3051.64
+      "sermaye_once": 3079.3,
+      "pnl_dolar_bilesik": 384.6,
+      "sermaye_sonra": 3463.9
     },
     {
       "symbol": "LLY",
@@ -3233,9 +4166,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 22.11,
-      "sermaye_once": 3051.64,
-      "pnl_dolar_bilesik": -18.04,
-      "sermaye_sonra": 3033.6
+      "sermaye_once": 3463.9,
+      "pnl_dolar_bilesik": -20.47,
+      "sermaye_sonra": 3443.43
     },
     {
       "symbol": "GLD",
@@ -3256,9 +4189,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 4.24,
-      "sermaye_once": 3033.6,
-      "pnl_dolar_bilesik": -7.36,
-      "sermaye_sonra": 3026.24
+      "sermaye_once": 3443.43,
+      "pnl_dolar_bilesik": -8.35,
+      "sermaye_sonra": 3435.08
     },
     {
       "symbol": "ASTS",
@@ -3279,9 +4212,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.08,
-      "sermaye_once": 3026.24,
-      "pnl_dolar_bilesik": -18.61,
-      "sermaye_sonra": 3007.63
+      "sermaye_once": 3435.08,
+      "pnl_dolar_bilesik": -21.13,
+      "sermaye_sonra": 3413.95
+    },
+    {
+      "symbol": "QQQ",
+      "sinyal_tarihi": "2025-10-09",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2025-10-10",
+      "cikis_tarihi": "2025-10-13",
+      "giris_fiyat": 610.61,
+      "cikis_fiyat": 597.68,
+      "sl": 597.68,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.12,
+      "pnl_dolar": -7.94,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 7.19,
+      "sermaye_once": 3413.95,
+      "pnl_dolar_bilesik": -18.09,
+      "sermaye_sonra": 3395.86
     },
     {
       "symbol": "GLD",
@@ -3302,9 +4258,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 5.23,
-      "sermaye_once": 3007.63,
-      "pnl_dolar_bilesik": 23.46,
-      "sermaye_sonra": 3031.09
+      "sermaye_once": 3395.86,
+      "pnl_dolar_bilesik": 26.49,
+      "sermaye_sonra": 3422.35
     },
     {
       "symbol": "SOXX",
@@ -3325,9 +4281,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.54,
-      "sermaye_once": 3031.09,
-      "pnl_dolar_bilesik": 40.77,
-      "sermaye_sonra": 3071.86
+      "sermaye_once": 3422.35,
+      "pnl_dolar_bilesik": 46.03,
+      "sermaye_sonra": 3468.38
     },
     {
       "symbol": "LLY",
@@ -3348,9 +4304,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 21.07,
-      "sermaye_once": 3071.86,
-      "pnl_dolar_bilesik": -35.4,
-      "sermaye_sonra": 3036.46
+      "sermaye_once": 3468.38,
+      "pnl_dolar_bilesik": -39.97,
+      "sermaye_sonra": 3428.41
     },
     {
       "symbol": "ASTS",
@@ -3371,9 +4327,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.43,
-      "sermaye_once": 3036.46,
-      "pnl_dolar_bilesik": -124.57,
-      "sermaye_sonra": 2911.89
+      "sermaye_once": 3428.41,
+      "pnl_dolar_bilesik": -140.65,
+      "sermaye_sonra": 3287.76
     },
     {
       "symbol": "NVDA",
@@ -3394,9 +4350,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.38,
-      "sermaye_once": 2911.89,
-      "pnl_dolar_bilesik": -40.18,
-      "sermaye_sonra": 2871.71
+      "sermaye_once": 3287.76,
+      "pnl_dolar_bilesik": -45.37,
+      "sermaye_sonra": 3242.39
     },
     {
       "symbol": "LLY",
@@ -3417,9 +4373,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 24.19,
-      "sermaye_once": 2871.71,
-      "pnl_dolar_bilesik": 177.47,
-      "sermaye_sonra": 3049.18
+      "sermaye_once": 3242.39,
+      "pnl_dolar_bilesik": 200.38,
+      "sermaye_sonra": 3442.77
     },
     {
       "symbol": "GLD",
@@ -3440,9 +4396,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 6.89,
-      "sermaye_once": 3049.18,
-      "pnl_dolar_bilesik": -24.39,
-      "sermaye_sonra": 3024.79
+      "sermaye_once": 3442.77,
+      "pnl_dolar_bilesik": -27.54,
+      "sermaye_sonra": 3415.23
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-11-21",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.393,
+      "giris_tarihi": "2025-11-24",
+      "cikis_tarihi": "2025-12-16",
+      "giris_fiyat": 105.15,
+      "cikis_fiyat": 115.42,
+      "sl": 111.69,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 7.03,
+      "pnl_dolar": 31.64,
+      "pos_oran": 0.3,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 2.31,
+      "sermaye_once": 3415.23,
+      "pnl_dolar_bilesik": 72.03,
+      "sermaye_sonra": 3487.26
     },
     {
       "symbol": "LLY",
@@ -3463,9 +4442,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 28.8,
-      "sermaye_once": 3024.79,
-      "pnl_dolar_bilesik": -17.92,
-      "sermaye_sonra": 3006.87
+      "sermaye_once": 3487.26,
+      "pnl_dolar_bilesik": -20.66,
+      "sermaye_sonra": 3466.6
     },
     {
       "symbol": "ASTS",
@@ -3486,9 +4465,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 5.83,
-      "sermaye_once": 3006.87,
-      "pnl_dolar_bilesik": 1.08,
-      "sermaye_sonra": 3007.95
+      "sermaye_once": 3466.6,
+      "pnl_dolar_bilesik": 1.25,
+      "sermaye_sonra": 3467.85
     },
     {
       "symbol": "VST",
@@ -3509,9 +4488,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 8.56,
-      "sermaye_once": 3007.95,
-      "pnl_dolar_bilesik": -33.12,
-      "sermaye_sonra": 2974.83
+      "sermaye_once": 3467.85,
+      "pnl_dolar_bilesik": -38.18,
+      "sermaye_sonra": 3429.67
     },
     {
       "symbol": "GLD",
@@ -3532,9 +4511,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": false,
       "atr": 5.43,
-      "sermaye_once": 2974.83,
-      "pnl_dolar_bilesik": -0.54,
-      "sermaye_sonra": 2974.29
+      "sermaye_once": 3429.67,
+      "pnl_dolar_bilesik": -0.62,
+      "sermaye_sonra": 3429.05
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2025-12-17",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.378,
+      "giris_tarihi": "2025-12-18",
+      "cikis_tarihi": "2025-12-23",
+      "giris_fiyat": 115.01,
+      "cikis_fiyat": 111.72,
+      "sl": 111.72,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.86,
+      "pnl_dolar": -6.43,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 2.19,
+      "sermaye_once": 3429.05,
+      "pnl_dolar_bilesik": -14.71,
+      "sermaye_sonra": 3414.34
     },
     {
       "symbol": "ASTS",
@@ -3555,9 +4557,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 7.2,
-      "sermaye_once": 2974.29,
-      "pnl_dolar_bilesik": -43.95,
-      "sermaye_sonra": 2930.34
+      "sermaye_once": 3414.34,
+      "pnl_dolar_bilesik": -50.45,
+      "sermaye_sonra": 3363.89
     },
     {
       "symbol": "TSLA",
@@ -3578,9 +4580,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 18.81,
-      "sermaye_once": 2930.34,
-      "pnl_dolar_bilesik": -50.62,
-      "sermaye_sonra": 2879.72
+      "sermaye_once": 3363.89,
+      "pnl_dolar_bilesik": -58.11,
+      "sermaye_sonra": 3305.78
     },
     {
       "symbol": "ASTS",
@@ -3601,9 +4603,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 7.97,
-      "sermaye_once": 2879.72,
-      "pnl_dolar_bilesik": 101.94,
-      "sermaye_sonra": 2981.66
+      "sermaye_once": 3305.78,
+      "pnl_dolar_bilesik": 117.02,
+      "sermaye_sonra": 3422.8
     },
     {
       "symbol": "GLD",
@@ -3624,9 +4626,9 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 6.7,
-      "sermaye_once": 2981.66,
-      "pnl_dolar_bilesik": 214.38,
-      "sermaye_sonra": 3196.04
+      "sermaye_once": 3422.8,
+      "pnl_dolar_bilesik": 246.1,
+      "sermaye_sonra": 3668.9
     },
     {
       "symbol": "LMT",
@@ -3647,9 +4649,32 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 15.7,
-      "sermaye_once": 3196.04,
-      "pnl_dolar_bilesik": 68.4,
-      "sermaye_sonra": 3264.44
+      "sermaye_once": 3668.9,
+      "pnl_dolar_bilesik": 78.51,
+      "sermaye_sonra": 3747.41
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2026-01-15",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.431,
+      "giris_tarihi": "2026-01-16",
+      "cikis_tarihi": "2026-01-27",
+      "giris_fiyat": 118.67,
+      "cikis_fiyat": 115.68,
+      "sl": 115.68,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -2.52,
+      "pnl_dolar": -9.46,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 2.38,
+      "sermaye_once": 3747.41,
+      "pnl_dolar_bilesik": -23.61,
+      "sermaye_sonra": 3723.8
     },
     {
       "symbol": "SOXX",
@@ -3670,9 +4695,9 @@
       "pyramid_sayisi": 1,
       "dogru_karar": false,
       "atr": 8.42,
-      "sermaye_once": 3264.44,
-      "pnl_dolar_bilesik": -18.73,
-      "sermaye_sonra": 3245.71
+      "sermaye_once": 3723.8,
+      "pnl_dolar_bilesik": -21.37,
+      "sermaye_sonra": 3702.43
     },
     {
       "symbol": "ASTS",
@@ -3693,9 +4718,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 10.61,
-      "sermaye_once": 3245.71,
-      "pnl_dolar_bilesik": -85.44,
-      "sermaye_sonra": 3160.27
+      "sermaye_once": 3702.43,
+      "pnl_dolar_bilesik": -97.47,
+      "sermaye_sonra": 3604.96
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2026-01-28",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.315,
+      "giris_tarihi": "2026-01-29",
+      "cikis_tarihi": "2026-02-02",
+      "giris_fiyat": 737.43,
+      "cikis_fiyat": 705.8,
+      "sl": 705.8,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -4.29,
+      "pnl_dolar": -9.65,
+      "pos_oran": 0.15,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 21.09,
+      "sermaye_once": 3604.96,
+      "pnl_dolar_bilesik": -23.2,
+      "sermaye_sonra": 3581.76
     },
     {
       "symbol": "GLD",
@@ -3716,9 +4764,78 @@
       "pyramid_sayisi": 2,
       "dogru_karar": true,
       "atr": 15.63,
-      "sermaye_once": 3160.27,
-      "pnl_dolar_bilesik": 71.42,
-      "sermaye_sonra": 3231.69
+      "sermaye_once": 3581.76,
+      "pnl_dolar_bilesik": 80.95,
+      "sermaye_sonra": 3662.71
+    },
+    {
+      "symbol": "WMT",
+      "sinyal_tarihi": "2026-02-02",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.444,
+      "giris_tarihi": "2026-02-03",
+      "cikis_tarihi": "2026-02-18",
+      "giris_fiyat": 123.65,
+      "cikis_fiyat": 128.14,
+      "sl": 128.14,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": 0.71,
+      "pnl_dolar": 5.35,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 2.62,
+      "sermaye_once": 3662.71,
+      "pnl_dolar_bilesik": 13.0,
+      "sermaye_sonra": 3675.71
+    },
+    {
+      "symbol": "META",
+      "sinyal_tarihi": "2026-02-03",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2026-02-04",
+      "cikis_tarihi": "2026-02-06",
+      "giris_fiyat": 687.73,
+      "cikis_fiyat": 648.22,
+      "sl": 648.22,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": -5.74,
+      "pnl_dolar": -21.54,
+      "pos_oran": 0.25,
+      "pyramid_sayisi": 0,
+      "dogru_karar": false,
+      "atr": 21.95,
+      "sermaye_once": 3675.71,
+      "pnl_dolar_bilesik": -52.75,
+      "sermaye_sonra": 3622.96
+    },
+    {
+      "symbol": "USO",
+      "sinyal_tarihi": "2026-02-05",
+      "sinyal": "LONG",
+      "guven": "YÜKSEK",
+      "sistem_skoru": 0.499,
+      "giris_tarihi": "2026-02-06",
+      "cikis_tarihi": "2026-03-02",
+      "giris_fiyat": 76.24,
+      "cikis_fiyat": 83.29,
+      "sl": 83.29,
+      "tp": null,
+      "cikis_neden": "TRAIL",
+      "pnl_pct": 3.84,
+      "pnl_dolar": 28.77,
+      "pos_oran": 0.5,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 2.14,
+      "sermaye_once": 3622.96,
+      "pnl_dolar_bilesik": 69.56,
+      "sermaye_sonra": 3692.52
     },
     {
       "symbol": "TSLA",
@@ -3739,9 +4856,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 16.29,
-      "sermaye_once": 3231.69,
-      "pnl_dolar_bilesik": -27.53,
-      "sermaye_sonra": 3204.16
+      "sermaye_once": 3692.52,
+      "pnl_dolar_bilesik": -31.46,
+      "sermaye_sonra": 3661.06
     },
     {
       "symbol": "SOXX",
@@ -3762,9 +4879,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 10.56,
-      "sermaye_once": 3204.16,
-      "pnl_dolar_bilesik": -41.57,
-      "sermaye_sonra": 3162.59
+      "sermaye_once": 3661.06,
+      "pnl_dolar_bilesik": -47.5,
+      "sermaye_sonra": 3613.56
     },
     {
       "symbol": "TSLA",
@@ -3785,9 +4902,9 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 14.51,
-      "sermaye_once": 3162.59,
-      "pnl_dolar_bilesik": -24.91,
-      "sermaye_sonra": 3137.68
+      "sermaye_once": 3613.56,
+      "pnl_dolar_bilesik": -28.46,
+      "sermaye_sonra": 3585.1
     },
     {
       "symbol": "GLD",
@@ -3808,9 +4925,32 @@
       "pyramid_sayisi": 0,
       "dogru_karar": false,
       "atr": 14.87,
-      "sermaye_once": 3137.68,
-      "pnl_dolar_bilesik": -2.35,
-      "sermaye_sonra": 3135.33
+      "sermaye_once": 3585.1,
+      "pnl_dolar_bilesik": -2.69,
+      "sermaye_sonra": 3582.41
+    },
+    {
+      "symbol": "USO",
+      "sinyal_tarihi": "2026-03-03",
+      "sinyal": "LONG",
+      "guven": "ORTA",
+      "sistem_skoru": 0.367,
+      "giris_tarihi": "2026-03-04",
+      "cikis_tarihi": "2026-03-06",
+      "giris_fiyat": 90.22,
+      "cikis_fiyat": 108.77,
+      "sl": 103.26,
+      "tp": null,
+      "cikis_neden": "SÜRE",
+      "pnl_pct": 12.86,
+      "pnl_dolar": 57.85,
+      "pos_oran": 0.3,
+      "pyramid_sayisi": 2,
+      "dogru_karar": true,
+      "atr": 2.69,
+      "sermaye_once": 3582.41,
+      "pnl_dolar_bilesik": 138.21,
+      "sermaye_sonra": 3720.62
     }
   ]
 }
