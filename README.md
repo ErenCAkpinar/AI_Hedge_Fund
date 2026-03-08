@@ -87,6 +87,10 @@ Stop-Loss Hits    : 0        Trail Exits      : 151 / 207 (72.9%)
 
 > **The core insight:** Win rate is only 40.6% — the system is wrong on 6 out of 10 trades. Yet **every single one of the 17 symbols is profitable** and the overall return is +148% over 2 years. This is the asymmetric R/R system working as designed: losers are cut by the trailing stop before they compound; winners are held until the trend reverses. Profit Factor 1.79x means winning trades are on average 79% larger than losing trades.
 
+### Terminal Output
+
+![V5 Backtest Terminal Output](docs/backtest_v5_output.png)
+
 ### Per-Symbol Performance
 
 | Symbol | Trades | Win Rate | P&L | PF | Notes |
