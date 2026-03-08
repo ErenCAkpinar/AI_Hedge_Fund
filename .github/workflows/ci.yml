@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  lint-and-syntax:
+  checks:
     name: Syntax Check & Lint
     runs-on: ubuntu-latest
 
@@ -24,54 +24,60 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          restore-keys: ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Syntax check — all modules
+      - name: Syntax check
         run: |
-          python -m py_compile mock_agent.py
-          python -m py_compile analyst_agent.py
-          python -m py_compile legends_agent.py
-          python -m py_compile sentiment_agent.py
-          python -m py_compile state_manager.py
-          python -m py_compile alpaca_trader.py
-          python -m py_compile scheduler.py
-          python -m py_compile sheets_pusher.py
-          python -m py_compile telegram_bot.py
-          python -m py_compile scanner.py
-          python -m py_compile true_backtest.py
-          echo "✅ All modules pass syntax check"
+          python -m py_compile mock_agent.py analyst_agent.py legends_agent.py \
+            sentiment_agent.py state_manager.py alpaca_trader.py scheduler.py \
+            sheets_pusher.py telegram_bot.py scanner.py true_backtest.py
+          echo "✅ Syntax OK"
 
-      - name: Secret scan — ensure no credentials committed
+      - name: Secret scan
         run: |
-          if [ -f "gcp_key.json" ]; then
-            echo "❌ SECURITY: gcp_key.json must not be committed!" && exit 1
-          fi
-          if [ -f ".env" ]; then
-            echo "❌ SECURITY: .env must not be committed!" && exit 1
-          fi
-          echo "✅ No secrets found in repository"
+          [ -f gcp_key.json ] && echo "❌ gcp_key.json committed!" && exit 1
+          [ -f .env ]         && echo "❌ .env committed!"         && exit 1
+          echo "✅ No secrets"
 
-      - name: JSON contract validation (mock pipeline)
+      - name: JSON schema contract (static fixtures only — no network)
         run: |
-          python mock_agent.py
-          python legends_agent.py
-          python -c "
-          import json
-          r = json.load(open('rapor.json'))
-          assert r.get('varlıklar'), 'rapor.json: no assets'
-          assert 'ATR_14' in r['varlıklar'][0]['veri'], 'rapor.json: ATR_14 missing'
-          assert 'SMA_200' in r['varlıklar'][0]['veri'], 'rapor.json: SMA_200 missing'
-          assert 'ana_trend' in r['varlıklar'][0]['veri'], 'rapor.json: ana_trend missing'
-          print('✅ rapor.json contract valid')
-          lr = json.load(open('legends_rapor.json'))
-          assert lr.get('sonuclar'), 'legends_rapor.json: no results'
-          assert 'atr' in lr['sonuclar'][0], 'legends_rapor.json: atr missing'
-          print('✅ legends_rapor.json contract valid')
-          print('✅ All JSON contracts valid')
-          "
+          python - << 'PYEOF'
+          import json, sys
+
+          r = json.load(open("examples/rapor.example.json"))
+          assert r.get("varlıklar"),                         "rapor: no assets"
+          v = r["varlıklar"][0]["veri"]
+          assert "ATR_14"    in v,                           "rapor: ATR_14 missing"
+          assert "SMA_200"   in v,                           "rapor: SMA_200 missing"
+          assert "ana_trend" in v,                           "rapor: ana_trend missing"
+          print("✅ rapor.example.json OK")
+
+          f = json.load(open("examples/final_karar.example.json"))
+          assert f.get("kararlar"),                          "final_karar: no kararlar"
+          k = f["kararlar"][0]
+          assert "atr_degeri"     in k,                     "final_karar: atr_degeri missing"
+          assert "atr_kullanildi" in k,                     "final_karar: atr_kullanildi missing"
+          assert "sl_tipi"        in k,                     "final_karar: sl_tipi missing"
+          assert "poz_buyukluk"   in k,                     "final_karar: poz_buyukluk missing"
+          assert "stop_loss"      in k,                     "final_karar: stop_loss missing"
+          assert "take_profit"    in k,                     "final_karar: take_profit missing"
+          print("✅ final_karar.example.json OK")
+
+          print("✅ All JSON contracts valid")
+          PYEOF
+
+      - name: Generated file leak check
+        run: |
+          FAIL=0
+          for f in rapor.json legends_rapor.json sentiment_rapor.json \
+                   final_karar.json order_log.json true_backtest_rapor.json; do
+            [ -f "$f" ] && echo "❌ Committed generated file: $f" && FAIL=1
+          done
+          for f in *.log; do
+            [ -f "$f" ] && echo "❌ Committed log file: $f" && FAIL=1
+          done
+          [ $FAIL -eq 1 ] && exit 1
+          echo "✅ No generated files or logs"
