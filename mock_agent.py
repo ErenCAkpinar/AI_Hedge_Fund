@@ -194,12 +194,12 @@ def _mock_karar_motoru(veri: dict) -> dict:
         puan -= 1
 
     # Karar eşiği (V5: puan aralığı -10/+10'a genişledi, eşikler güncellendi)
+# Karar eşiği
     if puan >= 5:      trend, sinyal = "Bullish", "LONG"
     elif puan >= 2:    trend, sinyal = "Bullish", "HOLD"
-    elif puan <= -5:   trend, sinyal = "Bearish", "HOLD"
+    elif puan <= -5:   trend, sinyal = "Bearish", "SHORT"   # <-- DÜZELTİLDİ
     elif puan <= -2:   trend, sinyal = "Bearish", "HOLD"
     else:              trend, sinyal = "Nötr",    "HOLD"
-
     # Gerekçe
     rsi_yorum = (
         f"RSI {rsi:.1f} ile aşırı satım bölgesinde"  if rsi < 30 else

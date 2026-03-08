@@ -300,14 +300,13 @@ def efsane_oylama(symbol: str, df: pd.DataFrame) -> dict:
     if long_puan > short_puan and long_oran >= 55:
         konsensus, konsensus_guven = "LONG", "YÜKSEK"
     elif short_puan > long_puan and short_oran >= 55:
-        konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
+        konsensus, konsensus_guven = "SHORT", "YÜKSEK"  # <-- DÜZELTİLDİ
     elif long_puan > short_puan and long_oran >= 40:
         konsensus, konsensus_guven = "LONG", "ORTA"
     elif short_puan > long_puan and short_oran >= 40:
-        konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
+        konsensus, konsensus_guven = "SHORT", "ORTA"    # <-- DÜZELTİLDİ
     else:
         konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
-
     # V5: ATR son değerini dışa aktar (state_manager için)
     try:
         atr_son = round(float(df.iloc[-1]["ATR"]), 4)
