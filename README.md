@@ -8,7 +8,7 @@
 [![Alpaca](https://img.shields.io/badge/Broker-Alpaca-FECD45?style=flat-square)](https://alpaca.markets)
 [![Strategy](https://img.shields.io/badge/Strategy-Swing%20Trading-00C851?style=flat-square)]()
 [![Status](https://img.shields.io/badge/Status-Paper%20Trading-orange?style=flat-square)]()
-[![CI](https://img.shields.io/github/actions/workflow/status/ErenCAkpinar/AI_Hedge_Fund/ci.yml?style=flat-square&label=CI)](../../actions)
+[![CI](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml/badge.svg?style=flat-square)](https://github.com/ErenCAkpinar/AI_Hedge_Fund/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 ---
@@ -179,7 +179,8 @@ This 5,281-signal filter is the system working as designed: **quality over quant
 ## System Components
 
 ### `scanner.py`
-Lightweight price data fetcher using `yfinance`. Pulls latest close prices for all 17 watchlist assets. Acts as the system health check — if `yfinance` is unavailable, all subsequent steps are skipped.
+Lightweight price data fetcher using `yfinance`. Pulls latest close prices for all 17 watchlist assets. Acts as the system health check — if `yfinance` is unavailable or times out (10s threshold), 
+all subsequent steps are skipped and a Telegram alert is sent.
 
 ### `mock_agent.py`
 The **primary technical signal engine** for development and live trading without a paid AI API. Implements a deterministic, multi-indicator scoring system:
@@ -394,6 +395,11 @@ All trades processed in chronological order. Each P&L updates the running equity
 | Defense, Healthcare & Auto | `LMT` `LLY` `TSLA` |
 | Macro Hedge & Value | `GLD` `FXY` `META` `USO` `WMT` `QQQ` |
 
+**Category selection rationale:** Semiconductors & AI for beta exposure to the AI cycle; 
+Data/Crypto for high-momentum asymmetric plays; Momentum Champions for low-trade-count 
+efficiency; Defense/Healthcare for low-correlation diversification; 
+Macro Hedge & Value for regime protection (GLD, FXY) and broad market exposure (QQQ, WMT).
+
 All 17 assets are in `LONG_ONLY_LIST` by default. SHORT positions require: price below SMA200 + ADX ≥ 30 + 60%+ legends SHORT consensus. In the V5 backtest, 0 SHORT trades were executed — all 207 trades were LONG.
 
 > **V6 watchlist candidates for removal:** `QQQ` (PF 1.1x) and `MSTR` (PF 1.0x, 27% win rate). Candidates for increased weight: `GLD` (PF 4.5x) and `LMT` (PF 8.0x).
@@ -555,9 +561,15 @@ AI_Hedge_Fund/
 ├── telegram_bot.py          # Operator notification system
 ├── true_backtest.py         # Historical simulation engine [V5]
 │
+├── docs/
+│   └── backtest_v5_output.png     # V5 backtest terminal screenshot
+│
 ├── examples/
 │   ├── rapor.example.json         # Sample technical signal output
 │   └── final_karar.example.json   # Sample trade decision output
+│
+├── tests/
+│   └── test_contracts.py          # JSON schema + legends weight validation
 │
 ├── gcp_key.json             # [secret] Google Cloud service account ← .gitignore
 ├── .env                     # [secret] API keys and config ← .gitignore

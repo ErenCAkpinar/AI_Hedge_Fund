@@ -468,6 +468,50 @@ def bilesik_pnl_hesapla(tum_islemler, baslangic_sermaye):
     return sirali, round(cari_sermaye, 2)
 
 # ─────────────────────────────────────────────
+# BÖLÜM 6c: SHARPE & CALMAR HESAPLAMA
+# ─────────────────────────────────────────────
+def sharpe_calmar_hesapla(tum_islemler, baslangic_sermaye, yillik_getiri_pct):
+    """
+    Sharpe Ratio  = (Ortalama işlem getirisi - risksiz faiz) / Std  * sqrt(252)
+    Calmar Ratio  = Yıllık getiri % / Max Drawdown %
+    """
+    if not tum_islemler:
+        return None, None
+
+    # Bileşik PnL varsa onu kullan, yoksa basit PnL
+    getiriler = []
+    for x in tum_islemler:
+        sermaye_once = x.get("sermaye_once", baslangic_sermaye)
+        pnl          = x.get("pnl_dolar_bilesik", x.get("pnl_dolar", 0))
+        if sermaye_once and sermaye_once > 0:
+            getiriler.append(pnl / sermaye_once)
+
+    if not getiriler:
+        return None, None
+
+    getiriler = np.array(getiriler)
+    ort       = np.mean(getiriler)
+    std       = np.std(getiriler)
+
+    if std == 0:
+        return None, None
+
+    # Yıllık ölçekleme: 252 işlem günü
+    risk_free_gunluk = 0.05 / 252
+    sharpe = round((ort - risk_free_gunluk) / std * np.sqrt(252), 2)
+
+    # Calmar = Yıllık getiri / |Max Drawdown %|
+    pnl_listesi = [x.get("pnl_dolar_bilesik", x.get("pnl_dolar", 0)) for x in tum_islemler]
+    cum         = np.cumsum(pnl_listesi)
+    max_dd_dolar = float(np.min(cum - np.maximum.accumulate(cum)))
+    max_dd_pct   = abs(max_dd_dolar) / baslangic_sermaye * 100
+
+    calmar = round(yillik_getiri_pct / max_dd_pct, 2) if max_dd_pct > 0 else None
+
+    return sharpe, calmar
+
+
+# ─────────────────────────────────────────────
 # BÖLÜM 7: RAPOR
 # ─────────────────────────────────────────────
 def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
@@ -503,6 +547,10 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
     sl_oran   = len(sl_is) / max(len(tum_islemler), 1) * 100
     p_ikon    = "🟢" if toplam_pnl >= 0 else "🔴"
 
+    # Sharpe & Calmar
+    yillik_getiri_pct = getiri_pct / 2.0  # 2 yıllık backtest → yıllık
+    sharpe, calmar = sharpe_calmar_hesapla(tum_islemler, BASLANGIC_SERMAYE, yillik_getiri_pct)
+
     print(f"\n{'═'*72}")
     print(f"  🔬 TRUE BACKTEST v4 — KÖK NEDEN DÜZELTMELERİ")
     print(f"  TrailingStop | Kelly Sizing | Pyramiding | Compounding")
@@ -526,6 +574,10 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
     print(f"  │  Toplam İşlem   : {len(tum_islemler)}")
     print(f"  │  TRAIL/SL/Süre  : {len(tp_is)} / {len(sl_is)} / {len(sure_is)}")
     print(f"  │  SL Oranı       : %{sl_oran:.1f}")
+    sharpe_str = f"{sharpe}" if sharpe is not None else "N/A"
+    calmar_str = f"{calmar}" if calmar is not None else "N/A"
+    print(f"  │  Sharpe Ratio   : {sharpe_str}  (>1 = iyi, >2 = mükemmel)")
+    print(f"  │  Calmar Ratio   : {calmar_str}  (>1 = iyi, >3 = mükemmel)")
     ai = lambda a: "🟢" if a>=55 else "🟡" if a>=45 else "🔴"
     print(f"  ├─ 🎯 ACCURACY {'─'*48}")
     print(f"  │  GENEL    : {ai(genel_acc)} %{genel_acc:.1f}  ({sum(dogru_l)}/{len(dogru_l)})")
@@ -574,6 +626,7 @@ def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
         "profit_factor": pf_genel, "max_drawdown": round(max_dd, 2),
         "tp": len(tp_is), "sl": len(sl_is), "sure": len(sure_is),
         "sl_oran": round(sl_oran, 1), "filtreler": filtre_ozet,
+        "sharpe_ratio": sharpe, "calmar_ratio": calmar,
     }
 
 
