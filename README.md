@@ -58,40 +58,40 @@ This project is a **Hybrid AI Swing Trading System** designed around a Directed 
 │                   SCHEDULER (16:30 TR / 23:00 TR)                   │
 └────────────────────────────┬────────────────────────────────────────┘
                              │  triggers
-         ┌───────────────────▼───────────────────┐
+         ┌───────────────────▼────────────────────┐
          │             DAG PIPELINE               │
          │                                        │
          │  ┌──────────────────────────────────┐  │
          │  │  1. mock_agent / analyst_agent   │  │  RSI, MACD, SMA20/50/200
          │  │     Technical Signal Engine      │  │  ATR_14 → rapor.json
          │  └──────────────┬───────────────────┘  │
-         │                 │ ATR_14, SMA_200       │
+         │                 │ ATR_14, SMA_200      │
          │  ┌──────────────▼───────────────────┐  │
          │  │  2. legends_agent.py             │  │  8 legendary strategies
          │  │     Weighted Voting System       │  │  ATR → legends_rapor.json
          │  └──────────────┬───────────────────┘  │
-         │                 │ consensus + ATR       │
+         │                 │ consensus + ATR      │
          │  ┌──────────────▼───────────────────┐  │
          │  │  3. sentiment_agent.py           │  │  Gemini Flash AI
          │  │     Multi-Source Sentiment       │  │  → sentiment_rapor.json
          │  └──────────────┬───────────────────┘  │
-         │                 │ sentiment_skoru       │
+         │                 │ sentiment_skoru      │
          │  ┌──────────────▼───────────────────┐  │
          │  │  4. state_manager.py             │  │  40% Technical
          │  │     Final Decision Engine        │  │  35% Legends
-         │  │     ATR x 1.8/4.5 SL/TP         │  │  25% Sentiment
+         │  │     ATR x 1.8/4.5 SL/TP          │  │  25% Sentiment
          │  └──────────────┬───────────────────┘  │
-         │                 │ final_karar.json      │
+         │                 │ final_karar.json     │
          │  ┌──────────────▼───────────────────┐  │
          │  │  5. alpaca_trader.py             │  │  State Awareness rules
          │  │     Trade Execution + Pyramiding │  │  ATR Trailing Stop
          │  └──────────────┬───────────────────┘  │
-         │                 │                       │
+         │                 │                      │
          │  ┌──────────────▼───────────────────┐  │
          │  │  sheets_pusher + telegram_bot    │  │  Google Sheets Dashboard
          │  │     Reporting & Notifications    │  │  CEO Telegram Alerts
          │  └──────────────────────────────────┘  │
-         └───────────────────────────────────────┘
+         └────────────────────────────────────────┘
 ```
 
 ---
