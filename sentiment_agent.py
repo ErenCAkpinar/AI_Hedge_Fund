@@ -29,6 +29,7 @@ from pathlib import Path
 import requests
 import yfinance as yf
 from bs4 import BeautifulSoup
+from quant_math import iv_radar_hesapla  # V6: Black-Scholes IV Radar
 from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
@@ -165,19 +166,19 @@ def stocktwits_cek(symbol: str) -> dict:
             sentiment = entities.get("sentiment", {})
             if sentiment:
                 if sentiment.get("basic") == "Bullish":
-                    bogа = bogа + 1
+                    boga = boga + 1
                 elif sentiment.get("basic") == "Bearish":
                     ayi += 1
 
-        toplam = bogа + ayi
+        toplam = boga + ayi
         return {
             "basliklar"  : basliklar[:5],
-            "bogа_orani" : round(bogа / toplam * 100) if toplam > 0 else None,
+            "boga_orani" : round(boga / toplam * 100) if toplam > 0 else None,
             "ayi_orani"  : round(ayi / toplam * 100)  if toplam > 0 else None,
             "toplam_oy"  : toplam,
         }
     except Exception:
-        return {"basliklar": [], "bogа_orani": None, "ayi_orani": None}
+        return {"basliklar": [], "boga_orani": None, "ayi_orani": None}
 
 
 def finviz_analist_cek(symbol: str) -> dict:
@@ -276,7 +277,7 @@ def gemini_sentiment_hesapla(symbol: str, metinler: list[str]) -> float:
         
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         
         prompt = f"""
         Sen Wall Street'in en zeki 'Otonom Piyasa Duyarlılık (Sentiment) Algoritması'sın.
@@ -301,12 +302,12 @@ def gemini_sentiment_hesapla(symbol: str, metinler: list[str]) -> float:
         print(f"  ❌ Gemini API Hatası: {e}")
         return 0.0
 
-def stocktwits_orani_skora_cevir(bogа_orani) -> float:
+def stocktwits_orani_skora_cevir(boga_orani) -> float:
     """StockTwits boğa/ayı oranını -1/+1 skalasına çevirir."""
-    if bogа_orani is None:
+    if boga_orani is None:
         return 0.0
     # 50% = nötr (0.0), 100% = tam pozitif (1.0), 0% = tam negatif (-1.0)
-    return round((bogа_orani - 50) / 50, 3)
+    return round((boga_orani - 50) / 50, 3)
 
 
 def fear_greed_cek() -> dict:
@@ -387,9 +388,9 @@ def sentiment_hesapla(symbol: str) -> dict:
 
     print(f"    📊 StockTwits çekiliyor...", end=" ", flush=True)
     st_data = stocktwits_cek(symbol)
-    st_skoru = stocktwits_orani_skora_cevir(st_data.get("bogа_orani"))
-    bogа_str = f"{st_data.get('bogа_orani', '?')}% 🐂" if st_data.get("bogа_orani") else "veri yok"
-    print(f"✓ ({bogа_str}, skor: {st_skoru:+.2f})")
+    st_skoru = stocktwits_orani_skora_cevir(st_data.get("boga_orani"))
+    boga_str = f"{st_data.get('boga_orani', '?')}% 🐂" if st_data.get("boga_orani") else "veri yok"
+    print(f"✓ ({boga_str}, skor: {st_skoru:+.2f})")
 
     print(f"    🎯 Finviz analisti çekiliyor...", end=" ", flush=True)
     finviz_data = finviz_analist_cek(symbol)
@@ -402,21 +403,36 @@ def sentiment_hesapla(symbol: str) -> dict:
     print(f"✓ (skor: {fg_data.get('skor', '?')} | {fg_data.get('yorum', '?')}, "
           f"sinyal: {fg_data['sinyal_skoru']:+.2f})")
 
+    # V6: IV Radar (Black-Scholes Zımni Volatilite)
+    print(f"    📐 IV Radar hesaplanıyor...", end=" ", flush=True)
+    try:
+        import pandas as pd_iv
+        close_seri = yf.Ticker(symbol).history(period="3mo", interval="1d")["Close"]
+        iv_data = iv_radar_hesapla(symbol, close_seri)
+        iv_skoru = iv_data.get("sinyal_skoru", 0.0)
+    except Exception:
+        iv_data  = {"sinyal": "VERİ_YOK", "sinyal_skoru": 0.0, "yorum": "Hesaplanamadı"}
+        iv_skoru = 0.0
+    print(f"✓ ({iv_data.get('sinyal', '?')}, IV/HV={iv_data.get('iv_hv_orani', 'N/A')}, skor: {iv_skoru:+.2f})")
+
+    # IV dahil ağırlıklar (toplam = 1.0)
     # Analist görüşü en güvenilir → en yüksek ağırlık
     # Fear & Greed makro filtre → düşük ağırlık ama tüm kararları etkiler
     agirliklar = {
-        "haber"      : 0.15,
-        "reddit"     : 0.15,
-        "stocktwits" : 0.20,
-        "analist"    : 0.35,
-        "fear_greed" : 0.15,
+        "haber"      : 0.13,
+        "reddit"     : 0.13,
+        "stocktwits" : 0.18,
+        "analist"    : 0.33,
+        "fear_greed" : 0.13,
+        "iv_radar"   : 0.10,   # V6: IV/HV sinyali
     }
     toplam_skor = (
         haber_skoru          * agirliklar["haber"]      +
         reddit_skoru         * agirliklar["reddit"]     +
         st_skoru             * agirliklar["stocktwits"] +
         finviz_skoru         * agirliklar["analist"]    +
-        fg_data["sinyal_skoru"] * agirliklar["fear_greed"]
+        fg_data["sinyal_skoru"] * agirliklar["fear_greed"] +
+        iv_skoru             * agirliklar["iv_radar"]
     )
     toplam_skor = round(toplam_skor, 3)
 
@@ -439,13 +455,17 @@ def sentiment_hesapla(symbol: str) -> dict:
             "reddit_skoru"     : reddit_skoru,
             "reddit_sayisi"    : len(reddit_gonderiler),
             "stocktwits_skoru" : st_skoru,
-            "bogа_orani"       : st_data.get("bogа_orani"),
+            "boga_orani"       : st_data.get("boga_orani"),
             "ayi_orani"        : st_data.get("ayi_orani"),
             "analist_skoru"    : finviz_skoru,
             "analist_oneri"    : finviz_data.get("analist_ozet"),
             "fiyat_hedefi"     : finviz_data.get("fiyat_hedefi"),
             "fear_greed_skor"  : fg_data.get("skor"),
             "fear_greed_yorum" : fg_data.get("yorum"),
+            "iv_skoru"         : iv_skoru,
+            "iv_sinyal"        : iv_data.get("sinyal"),
+            "iv_hv_orani"      : iv_data.get("iv_hv_orani"),
+            "iv_yorum"         : iv_data.get("yorum"),
         },
         "ham_metinler": {
             "haberler"  : haberler,

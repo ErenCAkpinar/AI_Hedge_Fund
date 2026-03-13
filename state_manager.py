@@ -28,6 +28,13 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
+from quant_math import (
+    kurtosis_hesapla,          # V6: Dinamik ATR çarpanı
+    hmm_rejim_tespit,          # V6: Piyasa rejim tespiti
+    kelly_dinamik_hesapla,     # V6: Rolling Kelly
+    copula_korelasyon_kalkan,  # V6: Portföy korelasyon kalkanı
+    black_litterman_agirliklar, # V6: AI görüşlü portföy optimizasyonu
+)
 
 # ─────────────────────────────────────────────
 # CONFIG — Ağırlıklar
@@ -43,12 +50,19 @@ DOSYA_TEKNIK    = "rapor.json"
 DOSYA_SENTIMENT = "sentiment_rapor.json"
 DOSYA_EFSANE    = "legends_rapor.json"
 DOSYA_CIKTI     = "final_karar.json"
+DOSYA_HMM_REJIM = "hmm_rejim.json"    # V6: HMM rejim önbelleği (her gün 1 kez hesaplanır)
+DOSYA_KELLY_GEC = "kelly_gecmis.json" # V6: Sembol bazında geçmiş işlemler (Kelly için)
+DOSYA_COPULA    = "copula_durum.json" # V6: Portföy korelasyon durumu
 
-# V5: ATR katsayıları (true_backtest_v4.py ile senkron)
+# V5: ATR katsayıları (true_backtest ile senkron)
 ATR_SL_YUKSEK = 1.8   # YÜKSEK güven: 1.8 × ATR stop
 ATR_TP_YUKSEK = 4.5   # YÜKSEK güven: 4.5 × ATR hedef (~1:2.5)
 ATR_SL_ORTA   = 1.5   # ORTA güven: 1.5 × ATR stop
 ATR_TP_ORTA   = 3.5   # ORTA güven: 3.5 × ATR hedef (~1:2.3)
+
+# V6: Kurtosis bazlı dinamik ATR trail çarpanı
+# kurtosis_hesapla() → atr_carpan: NORMAL=2.5, DİKKATLİ=3.0, YÜKSEK_RİSK=4.0, KRİZ_MODU=5.0
+ATR_TRAIL_VARSAYILAN = 2.5  # Kurtosis verisi yoksa kullanılan varsayılan
 
 
 # ─────────────────────────────────────────────
@@ -121,6 +135,7 @@ def catisma_var_mi(teknik_skor: float, efsane_skor: float, sentiment_skor: float
 # BÖLÜM 4: KELLY KRİTERİ POZİSYON BÜYÜKLÜĞÜ
 # ─────────────────────────────────────────────
 def pozisyon_buyuklugu_hesapla(toplam_skor: float) -> float:
+    """Skor bazlı sabit pozisyon büyüklüğü (fallback / kelly yoksa)."""
     abs_skor = abs(toplam_skor)
     if abs_skor >= 0.60: return 0.35
     elif abs_skor >= 0.40: return 0.25
@@ -128,9 +143,138 @@ def pozisyon_buyuklugu_hesapla(toplam_skor: float) -> float:
     else: return 0.10
 
 
+def kelly_pozisyon_al(sembol: str, toplam_skor: float) -> float:
+    """
+    V6: Dinamik Kelly Kriteri — sembol başına rolling işlem geçmişinden.
+
+    kelly_gecmis.json'daki son 50 işlemi okur.
+    Yeterli geçmiş yoksa sabit skor-bazlı fallback kullanılır.
+
+    Returns:
+        float: Fractional Kelly pozisyon fraksiyonu (0.05 - 0.40)
+    """
+    try:
+        gecmis_path = Path(DOSYA_KELLY_GEC)
+        if gecmis_path.exists():
+            gecmis_tum = json.loads(gecmis_path.read_text())
+            islemler = gecmis_tum.get(sembol, [])
+            if len(islemler) >= 10:
+                son50 = islemler[-50:]
+                kelly_veri = kelly_dinamik_hesapla(son50)
+                f_kelly = kelly_veri.get("f_kelly", None)
+                if f_kelly and f_kelly > 0:
+                    return float(f_kelly)
+    except Exception:
+        pass
+    # Fallback: skor bazlı sabit
+    return pozisyon_buyuklugu_hesapla(toplam_skor)
+
+
+def hmm_esik_carpani() -> float:
+    """
+    V6: HMM rejim durumuna göre eşik çarpanı döndürür.
+
+    hmm_rejim.json'dan günlük rejimi okur.
+    BULL → 1.0, SIDE → 1.2, BEAR → 1.5 (eşikler bu kadar yükselir)
+
+    Returns:
+        float: Eşik çarpanı
+    """
+    try:
+        rejim_path = Path(DOSYA_HMM_REJIM)
+        if rejim_path.exists():
+            rejim = json.loads(rejim_path.read_text())
+            return float(rejim.get("esik_carpani", 1.0))
+    except Exception:
+        pass
+    return 1.0
+
+
+def copula_guvenli_liman_carpani(sembol: str) -> float:
+    """
+    V6: Copula portföy korelasyon durumuna göre güvenli liman ağırlık çarpanı.
+
+    GLD ve USO için: yüksek korelasyon → ESIK'i düşür (daha kolay gir).
+    Diğer semboller için her zaman 1.0.
+
+    Returns:
+        float: ESIK bölme çarpanı (>1.0 → ESIK düşer → daha kolay LONG)
+    """
+    GUVENLI_LIMANLAR = {"GLD", "USO", "FXY"}
+    if sembol not in GUVENLI_LIMANLAR:
+        return 1.0
+    try:
+        copula_path = Path(DOSYA_COPULA)
+        if copula_path.exists():
+            copula = json.loads(copula_path.read_text())
+            return float(copula.get("guvenli_liman_agirlik", 1.0))
+    except Exception:
+        pass
+    return 1.0
+
+
 # ─────────────────────────────────────────────
 # BÖLÜM 4b: V5 — ATR BAZLI DİNAMİK SL/TP
 # ─────────────────────────────────────────────
+def dinamik_atr_carpani(teknik_veri: dict) -> float:
+    """
+    V6: Kurtosis + GARCH → Dinamik ATR Trail Çarpanı.
+
+    rapor.json'daki kurtosis ve garch verilerini okur.
+    Normal piyasada ATR×2.5, kriz modunda ATR×5.0 trailing stop kullanır.
+
+    Öncelik: kurtosis > garch > varsayılan
+
+    Returns:
+        float: ATR trail çarpanı (2.5 - 5.0 arasında)
+    """
+    # Kurtosis bazlı karar (birincil)
+    kurtosis_veri = teknik_veri.get("kurtosis")
+    if kurtosis_veri and isinstance(kurtosis_veri, dict):
+        carpan = kurtosis_veri.get("atr_carpan", ATR_TRAIL_VARSAYILAN)
+        seviye = kurtosis_veri.get("risk_seviyesi", "NORMAL")
+        return float(carpan)
+
+    # GARCH bazlı fallback (ikincil)
+    garch_veri = teknik_veri.get("garch")
+    if garch_veri and isinstance(garch_veri, dict):
+        garch_olcek = garch_veri.get("pozisyon_olcegi", 1.0)
+        # GARCH olcek 0.5→1.0 aralığı, ters çevirerek ATR genişletme üret
+        # olcek=1.0 → carpan=2.5, olcek=0.5 → carpan=5.0
+        carpan = ATR_TRAIL_VARSAYILAN + (1.0 - garch_olcek) * 5.0
+        return round(min(max(carpan, 2.5), 5.0), 1)
+
+    return ATR_TRAIL_VARSAYILAN
+
+
+def garch_pozisyon_olcegi(teknik_veri: dict) -> float:
+    """
+    V6: GARCH volatilite tahminine göre pozisyon büyüklüğünü ölçekler.
+    Kelly pozisyonu bu çarpanla çarpılır.
+
+    Returns:
+        float: 0.50 - 1.0 arası ölçek (1.0 = tam pozisyon, 0.5 = yarım)
+    """
+    garch_veri = teknik_veri.get("garch")
+    if garch_veri and isinstance(garch_veri, dict):
+        return float(garch_veri.get("pozisyon_olcegi", 1.0))
+    return 1.0
+
+
+def hurst_long_izni(teknik_veri: dict) -> bool:
+    """
+    V6: Hurst üssü tabanlı LONG filtresi.
+    H < 0.45 (mean-reversion) → LONG sinyali bastırılır.
+
+    Returns:
+        bool: True = LONG açılabilir, False = HOLD'a çek
+    """
+    hurst_veri = teknik_veri.get("hurst")
+    if hurst_veri and isinstance(hurst_veri, dict):
+        return bool(hurst_veri.get("long_izni", True))
+    return True  # Veri yoksa izin ver (güvenli varsayılan)
+
+
 def atr_sl_tp_hesapla(
     fiyat       : float,
     sinyal      : str,
@@ -224,6 +368,7 @@ def final_karar_uret(
     """
     3 katmanı birleştirir → ağırlıklı skor → final karar.
     V5: SL/TP için ATR önce teknik dict'ten, sonra efsane dict'ten alınır.
+    V6: Kurtosis → dinamik ATR çarpanı | GARCH → pozisyon ölçeği | Hurst → LONG filtresi
     """
     t_skor = teknik_skora_cevir(teknik)
     s_skor = sentiment_skora_cevir(sentiment)
@@ -240,27 +385,34 @@ def final_karar_uret(
     toplam_skor = round(t_skor * agirlik_t + s_skor * agirlik_s + e_skor * agirlik_e, 3)
     catisma     = catisma_var_mi(t_skor, e_skor, s_skor)
 
+    # V6: Dinamik eşik hesabı
+    hmm_carpan     = hmm_esik_carpani()           # BULL=1.0, SIDE=1.2, BEAR=1.5
+    gl_carpan      = copula_guvenli_liman_carpani(sembol)  # GLD/USO → daha kolay giriş
+    # Güvenli liman: ESIK düşer (daha kolay LONG izni); Diğerleri: HMM çarpanıyla yükselir
+    esik_yuksek_eff = ESIK_YUKSEK * hmm_carpan / gl_carpan
+    esik_orta_eff   = ESIK_ORTA   * hmm_carpan / gl_carpan
+
     # Final karar
     if catisma:
         sinyal, guven = "HOLD", "DÜŞÜK"
         guven_skoru   = abs(toplam_skor)
         aciklama      = "⚠️ Ajanlar çelişiyor — güvenli bekleme"
-    elif toplam_skor >= ESIK_YUKSEK:
+    elif toplam_skor >= esik_yuksek_eff:
         sinyal, guven = "LONG", "YÜKSEK"
         guven_skoru   = toplam_skor
-        aciklama      = "💪 Güçlü yükseliş konsensüsü"
-    elif toplam_skor >= ESIK_ORTA:
+        aciklama      = f"💪 Güçlü yükseliş konsensüsü (HMM:{hmm_carpan:.1f}×)"
+    elif toplam_skor >= esik_orta_eff:
         sinyal, guven = "LONG", "ORTA"
         guven_skoru   = toplam_skor
-        aciklama      = "👍 Zayıf yükseliş eğilimi"
-    elif toplam_skor <= -ESIK_YUKSEK:
+        aciklama      = f"👍 Zayıf yükseliş eğilimi (HMM:{hmm_carpan:.1f}×)"
+    elif toplam_skor <= -esik_yuksek_eff:
         sinyal, guven = "SHORT", "YÜKSEK"
         guven_skoru   = abs(toplam_skor)
-        aciklama      = "💪 Güçlü düşüş konsensüsü"
-    elif toplam_skor <= -ESIK_ORTA:
+        aciklama      = f"💪 Güçlü düşüş konsensüsü (HMM:{hmm_carpan:.1f}×)"
+    elif toplam_skor <= -esik_orta_eff:
         sinyal, guven = "SHORT", "ORTA"
         guven_skoru   = abs(toplam_skor)
-        aciklama      = "👍 Zayıf düşüş eğilimi"
+        aciklama      = f"👍 Zayıf düşüş eğilimi (HMM:{hmm_carpan:.1f}×)"
     else:
         sinyal, guven = "HOLD", "DÜŞÜK"
         guven_skoru   = abs(toplam_skor)
@@ -271,6 +423,20 @@ def final_karar_uret(
         fiyat = float(teknik["veri"]["son_kapanış"]) if teknik else 0.0
     except Exception:
         fiyat = 0.0
+
+    # V6: Quant filtreler (Hurst LONG filtresi + GARCH ölçek)
+    teknik_veri_dict = teknik.get("veri", {}) if teknik else {}
+    hurst_izni    = hurst_long_izni(teknik_veri_dict)
+    garch_olcek   = garch_pozisyon_olcegi(teknik_veri_dict)
+    atr_carpan_v6 = dinamik_atr_carpani(teknik_veri_dict)
+
+    # Hurst filtresi: H < 0.45 (mean-reversion) → LONG bastır
+    if sinyal == "LONG" and not hurst_izni:
+        hurst_veri = teknik_veri_dict.get("hurst", {})
+        h_deger = hurst_veri.get("hurst", 0.5) if isinstance(hurst_veri, dict) else 0.5
+        sinyal  = "HOLD"
+        guven   = "DÜŞÜK"
+        aciklama = f"🌀 Hurst={h_deger:.3f} — Mean-reversion rejimi, LONG bastırıldı"
 
     # V5: ATR — Önce teknik (mock_agent), sonra efsane (legends_agent)
     atr = None
@@ -287,8 +453,9 @@ def final_karar_uret(
     # V5: ATR bazlı SL/TP
     sl_tp = atr_sl_tp_hesapla(fiyat, sinyal, guven_skoru, atr)
 
-    # Pozisyon büyüklüğü (Kelly)
-    poz_buyukluk = pozisyon_buyuklugu_hesapla(toplam_skor)
+    # Pozisyon büyüklüğü: Dinamik Kelly × GARCH ölçeği
+    poz_buyukluk_kelly = kelly_pozisyon_al(sembol, toplam_skor)  # V6: Rolling Kelly
+    poz_buyukluk = round(poz_buyukluk_kelly * garch_olcek, 4)    # V6: GARCH volatilite ölçeği
 
     # Katman özeti
     katman_ozet = {
@@ -324,8 +491,21 @@ def final_karar_uret(
         "sl_tipi"       : sl_tp.get("sl_tipi"),   # V5: ATR × katsayı mı, sabit % mi
         "atr_kullanildi": sl_tp.get("atr_kullanildi", False),
         "atr_degeri"    : sl_tp.get("atr_degeri"),
-        "poz_buyukluk"  : poz_buyukluk,            # Hesabın kaçta kaçı → alpaca_trader okur
+        "poz_buyukluk"  : poz_buyukluk,            # Kelly × GARCH ölçeği
         "katmanlar"     : katman_ozet,
+        "v6_quant"      : {                         # V6: Quant matematik özeti
+            "atr_carpan"         : atr_carpan_v6,
+            "garch_olcek"        : garch_olcek,
+            "hurst_long_izni"    : hurst_izni,
+            "kurtosis_seviye"    : teknik_veri_dict.get("kurtosis", {}).get("risk_seviyesi", "N/A") if isinstance(teknik_veri_dict.get("kurtosis"), dict) else "N/A",
+            "hurst_deger"        : teknik_veri_dict.get("hurst", {}).get("hurst", "N/A") if isinstance(teknik_veri_dict.get("hurst"), dict) else "N/A",
+            "kalman_son"         : teknik_veri_dict.get("kalman_son"),
+            "hmm_rejim"          : {"esik_carpani": hmm_carpan},
+            "copula_gl_carpan"   : gl_carpan,
+            "esik_yuksek_eff"    : round(esik_yuksek_eff, 4),
+            "esik_orta_eff"      : round(esik_orta_eff, 4),
+            "kelly_f"            : poz_buyukluk_kelly,
+        },
     }
 
 
@@ -433,12 +613,17 @@ def claude_otonom_onay(symbol, fiyat, sinyal, guven, toplam_skor, sl, tp, atr=No
         """
 
         message = client.messages.create(
-            model="claude-opus-4-6",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=300,
             temperature=0.0,
             messages=[{"role": "user", "content": prompt}]
         )
-        return json.loads(message.content[0].text)
+        
+        # Claude'un metnini al ve olası markdown işaretlerini temizle
+        raw_text = message.content[0].text
+        cleaned_text = raw_text.replace("```json", "").replace("```", "").strip()
+        
+        return json.loads(cleaned_text)
 
     except Exception as e:
         print(f"  ❌ Claude API Hatası: {e}")

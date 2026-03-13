@@ -1,5 +1,5 @@
 """
-legends_agent.py  [V5 — ATR Dışa Aktarımı]
+legends_agent.py  [V6 — ADX + Hurst Filtresi]
 ============================================
 Algoritmik Hedge Fon — Efsane Trader Stratejileri
 
@@ -22,6 +22,8 @@ import yfinance as yf
 from ta.momentum import RSIIndicator, WilliamsRIndicator
 from ta.trend import MACD, SMAIndicator, EMAIndicator
 from ta.volatility import AverageTrueRange, BollingerBands
+from ta.trend import ADXIndicator
+from quant_math import hurst_hesapla  # V6: Hurst + ADX LONG filtresi
 
 warnings.filterwarnings("ignore")
 
@@ -91,11 +93,15 @@ def veri_cek(symbol: str) -> pd.DataFrame | None:
         df["BB_MID"]     = _bb.bollinger_mavg()
 
         df["WILLIAMS_R"] = WilliamsRIndicator(high=high, low=low, close=close, lbp=14).williams_r()
+
+        # V6: ADX — Trend gücü (Hurst filtresiyle birlikte kullanılır)
+        _adx             = ADXIndicator(high=high, low=low, close=close, window=14)
+        df["ADX"]        = _adx.adx()
         df["HIGH_20"]    = high.rolling(20).max()
         df["LOW_20"]     = low.rolling(20).min()
         df["VOL_AVG"]    = volume.rolling(20).mean()
 
-        return df.dropna(subset=["RSI", "MACD", "ATR", "WILLIAMS_R", "BB_HIGH", "HIGH_20"]).copy()
+        return df.dropna(subset=["RSI", "MACD", "ATR", "WILLIAMS_R", "BB_HIGH", "HIGH_20", "ADX"]).copy()
     except Exception as e:
         print(f"  ❌ {symbol} veri hatası: {e}")
         return None
@@ -307,6 +313,35 @@ def efsane_oylama(symbol: str, df: pd.DataFrame) -> dict:
         konsensus, konsensus_guven = "SHORT", "ORTA"    # <-- DÜZELTİLDİ
     else:
         konsensus, konsensus_guven = "HOLD", "DÜŞÜK"
+    # V6: Hurst + ADX kombinasyon filtresi
+    # Kural: ADX ≥ 20 AND H ≥ 0.55 → LONG izni (trend güçlü + kalıcı)
+    #        H < 0.45 → Mean-reversion, LONG'u HOLD'a çek
+    hurst_veri = {"hurst": 0.5, "yorum": "HESAPLANAMADI", "long_izni": True}
+    adx_son    = 0.0
+    try:
+        hurst_veri = hurst_hesapla(df["Close"])
+        adx_son    = float(df.iloc[-1]["ADX"])
+    except Exception:
+        pass
+
+    H           = hurst_veri.get("hurst", 0.5)
+    long_izni   = hurst_veri.get("long_izni", True)
+    adx_guclu   = adx_son >= 20
+
+    # Filtre uygula
+    hurst_filtre_aciklama = None
+    if konsensus == "LONG":
+        if not long_izni:
+            # H < 0.45 → mean-reversion bölgesi → LONG bastır
+            konsensus = "HOLD"
+            konsensus_guven = "DÜŞÜK"
+            hurst_filtre_aciklama = f"🌀 Hurst={H:.3f} — Mean-reversion, LONG bastırıldı"
+        elif not adx_guclu:
+            # Trend var (H≥0.45) ama ADX zayıf → güveni düşür
+            if konsensus_guven == "YÜKSEK":
+                konsensus_guven = "ORTA"
+            hurst_filtre_aciklama = f"⚠️ ADX={adx_son:.1f} — trend güçsüz (H={H:.3f})"
+
     # V5: ATR son değerini dışa aktar (state_manager için)
     try:
         atr_son = round(float(df.iloc[-1]["ATR"]), 4)
@@ -321,6 +356,9 @@ def efsane_oylama(symbol: str, df: pd.DataFrame) -> dict:
         "short_oran"      : short_oran,    # V5: alpaca_trader pyramiding için
         "hold_oran"       : hold_oran,
         "atr"             : atr_son,       # V5: state_manager atr_sl_tp_hesapla() için
+        "hurst"           : hurst_veri,    # V6: Hurst üssü — trend/testere tespiti
+        "adx"             : round(adx_son, 2),  # V6: ADX trend gücü
+        "hurst_filtre"    : hurst_filtre_aciklama,  # V6: filtre açıklaması (None = filtre yok)
         "efsane_sonuclari": sonuclar,
     }
 
@@ -342,8 +380,11 @@ def raporu_yazdir(tum_sonuclar: list[dict]) -> None:
         oylar= [v["sinyal"] for v in s["efsane_sonuclari"].values()]
         ayni = oylar.count(s["konsensus"])
         atr  = f"${s['atr']:.2f}" if s.get("atr") else "  N/A"
+        h_str = f"H={s['hurst']['hurst']:.2f}" if isinstance(s.get('hurst'), dict) else "H=N/A"
+        adx_str = f"ADX={s.get('adx', 0):.0f}"
+        filtre_ikon = "🌀" if s.get("hurst_filtre") else "  "
         print(f"  {s['symbol']:<10} {ki} {s['konsensus']:<6} {gi} {s['konsensus_guven']:<8} "
-              f"{s['long_oran']:>5}%  {s['short_oran']:>6}%  {atr:>7}  {ayni}/8 efsane")
+              f"{s['long_oran']:>5}%  {s['short_oran']:>6}%  {atr:>7}  {h_str} {adx_str} {filtre_ikon}")
     print(f"{'═'*80}")
 
 

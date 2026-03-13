@@ -30,7 +30,7 @@ load_dotenv()
 SYMBOL   = "NVDA"
 PERIOD   = "1y"     # V5: SMA_200 için 1 yıl (eski 3mo yetersizdi)
 INTERVAL = "1d"
-LLM      = "gpt-4o-mini"
+LLM      = "anthropic/claude-3-5-sonnet-20241022"
 
 
 # ─────────────────────────────────────────────
@@ -133,10 +133,10 @@ def fetch_and_enrich(symbol: str, period: str, interval: str) -> dict:
 # V5: ATR ve ana trend bilgisi prompt'a eklendi
 # ─────────────────────────────────────────────
 def run_analyst_agent(market_data: dict) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise EnvironmentError("OPENAI_API_KEY bulunamadı. .env'e ekle.")
-    os.environ["OPENAI_API_KEY"] = api_key
+        raise EnvironmentError("ANTHROPIC_API_KEY bulunamadı. .env'e ekle.")
+    os.environ["ANTHROPIC_API_KEY"] = api_key
 
     data_lines = "\n".join(f"  • {k}: {v}" for k, v in market_data.items())
 

@@ -1,5 +1,5 @@
 """
-mock_agent.py  [V5 — ATR+SMA200 Pipeline Entegrasyonu]
+mock_agent.py  [V6 — Quant Arsenal: HMM + Black-Litterman + Copula]
 =======================================================
 Algoritmik Hedge Fon — API'sız Tam Pipeline Testi
 
@@ -23,6 +23,11 @@ from dotenv import load_dotenv
 from ta.trend import MACD, SMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange  # V5: ATR için eklendi
+from quant_math import (
+    sembol_quant_metrikleri,       # V6: Kurtosis, Hurst, GARCH, Kalman
+    hmm_rejim_tespit,              # V6: Piyasa rejim tespiti (SPY/QQQ)
+    black_litterman_agirliklar,    # V6: AI görüşlü portföy optimizasyonu
+)
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -143,6 +148,26 @@ def fetch_and_enrich(symbol: str) -> dict | None:
     except Exception as e:
         print(f"  ❌ {symbol} veri hatası: {e}")
         return None
+
+
+def _quant_metrikleri_ekle(veri: dict, df: object) -> dict:
+    """
+    V6: Kurtosis, Hurst, GARCH ve Kalman metriklerini veri dict'ine ekler.
+    fetch_and_enrich() sonucuna uygulanır.
+    state_manager.py bu değerleri ATR çarpanı ve pozisyon ölçekleme için kullanır.
+    """
+    try:
+        quant = sembol_quant_metrikleri(df["Close"])
+        veri["kurtosis"]        = quant["kurtosis"]       # Fat tail radarı
+        veri["hurst"]           = quant["hurst"]          # Trend/testere kararı
+        veri["garch"]           = quant["garch"]          # Yarınki volatilite
+        veri["kalman_son"]      = quant["kalman_son_fiyat"]  # Filtrelenmiş fiyat
+    except Exception as e:
+        veri["kurtosis"]   = {"kurtosis": 0.0, "atr_carpan": 2.5, "risk_seviyesi": "NORMAL"}
+        veri["hurst"]      = {"hurst": 0.5, "yorum": "HESAPLANAMADI", "long_izni": True}
+        veri["garch"]      = {"sigma_yarin": None, "pozisyon_olcegi": 1.0}
+        veri["kalman_son"] = None
+    return veri
 
 
 # ─────────────────────────────────────────────
@@ -287,6 +312,12 @@ if __name__ == "__main__":
             continue
 
         karar = _mock_karar_motoru(veri)
+
+        # V6: Quant metrikleri ekle (Kurtosis, Hurst, GARCH, Kalman)
+        df_tmp = yf.Ticker(sembol).history(period=PERIOD, interval=INTERVAL)
+        if not df_tmp.empty:
+            veri = _quant_metrikleri_ekle(veri, df_tmp)
+
         rapor.append({"veri": veri, "karar": karar})
         basarili += 1
         atr_str = f"ATR:${veri['ATR_14']:.2f}" if veri.get("ATR_14") else ""
@@ -296,6 +327,65 @@ if __name__ == "__main__":
     raporu_kaydet(rapor, OUTPUT_FILE)
 
     print(f"\n📊 Özet: {basarili} başarılı / {basarisiz} başarısız / {len(WATCHLIST)} toplam")
-    print(f"\n⚡ V5 ATR AKIŞ ZİNCİRİ:")
-    print(f"   mock_agent → rapor.json[ATR_14] → state_manager → atr_sl_tp_hesapla()")
-    print(f"   alpaca_trader → Pyramiding (1.5×ATR eşiği) ✅\n")
+
+    # ─── V6: HMM Rejim Günlük Güncelleme ─────────────────────────────
+    print(f"\n  🔍 HMM Rejim tespiti (SPY)...", end=" ", flush=True)
+    try:
+        import json as json_hmm
+        from pathlib import Path as Path_hmm
+        spy_close = yf.Ticker("SPY").history(period="1y", interval="1d")["Close"]
+        rejim = hmm_rejim_tespit(spy_close)
+        Path_hmm("hmm_rejim.json").write_text(
+            json_hmm.dumps({**rejim, "tarih": __import__("datetime").datetime.now().strftime("%Y-%m-%d")},
+                           ensure_ascii=False, indent=2)
+        )
+        print(f"✅ {rejim['rejim_adi']} (çarpan: ×{rejim['esik_carpani']}) — {rejim['yorum']}")
+    except Exception as e:
+        print(f"⚠️ HMM hata: {e}")
+
+    # ─── V6: Black-Litterman Portföy Ağırlıkları ───────────────────────
+    print(f"  📐 Black-Litterman portföy optimizasyonu...", end=" ", flush=True)
+    try:
+        import json as json_bl
+        from pathlib import Path as Path_bl
+        import numpy as np_bl
+
+        # Sentiment skorlarını görüş olarak kullan
+        goruc_dict = {}
+        for item in rapor:
+            sem = item["veri"]["symbol"]
+            puan = item["karar"].get("PUAN", 0)
+            goruc_dict[sem] = max(-1.0, min(1.0, puan / 10.0))  # [-10, +10] → [-1, +1]
+
+        # Getiri serilerini topla
+        getiri_dict = {}
+        for item in rapor:
+            sem = item["veri"]["symbol"]
+            try:
+                ser = yf.Ticker(sem).history(period="1y", interval="1d")["Close"]
+                if len(ser) > 50:
+                    log_ret = np_bl.diff(np_bl.log(ser.values))
+                    getiri_dict[sem] = log_ret
+            except Exception:
+                pass
+
+        sembol_l = [item["veri"]["symbol"] for item in rapor]
+        bl_agirliklar = black_litterman_agirliklar(sembol_l, getiri_dict, goruc_dict)
+
+        Path_bl("bl_agirliklar.json").write_text(
+            json_bl.dumps(
+                {"tarih": __import__("datetime").datetime.now().strftime("%Y-%m-%d"), "agirliklar": bl_agirliklar},
+                ensure_ascii=False, indent=2, default=str
+            )
+        )
+        top3 = sorted(bl_agirliklar.items(), key=lambda x: x[1] if x[1] else 0, reverse=True)[:3]
+        top3_str = ", ".join(f"{s}:{w:.0%}" for s,w in top3 if w)
+        print(f"✅ Top-3: {top3_str}")
+    except Exception as e:
+        print(f"⚠️ BL hata: {e}")
+
+    print(f"\n⚡ V6 QUANT AKIŞ ZİNCİRİ:")
+    print(f"   mock_agent → rapor.json[ATR+Kurtosis+Hurst+GARCH+Kalman]")
+    print(f"   HMM rejim → hmm_rejim.json → state_manager ESIK×")
+    print(f"   Black-Litterman → bl_agirliklar.json → portföy ağırlıkları")
+    print(f"   state_manager → Kelly×GARCH×Copula → final_karar.json ✅\n")

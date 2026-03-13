@@ -200,6 +200,11 @@ def pozisyon_boyutu_hesapla(
     Kelly Kriteri ile hisse adedi hesaplar. state_manager ile %100 senkron.
     katsayi: Pyramiding eklemelerinde 0.5 (yarım pozisyon).
     """
+    if fiyat <= 0:
+        log.warning("⚠️ Fiyat 0 veya negatif geldi, pozisyon boyutu 1 olarak ayarlandı.")
+        return 1
+        
+    
     try:
         hesap        = api.get_account()
         equity       = float(hesap.equity)
@@ -457,10 +462,7 @@ def _pyramiding_gecmis_say(symbol: str) -> int:
         return 0
 
 
-# ─────────────────────────────────────────────
-# BÖLÜM 8: ANA KARAR MOTORU (HAYATİ KURALLAR 1&2)
-# V5: DUPLICATE_SKIP → PYRAMİDİNG
-# ─────────────────────────────────────────────
+
 # ─────────────────────────────────────────────
 # BÖLÜM 8: ANA KARAR MOTORU (HAYATİ KURALLAR 1&2)
 # V5: DUPLICATE_SKIP → PYRAMİDİNG
