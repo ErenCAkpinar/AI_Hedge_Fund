@@ -1,22 +1,25 @@
 """
-sentiment_agent.py
-==================
+sentiment_agent.py  ← DÜZELTİLMİŞ VERSİYON
+=============================================
+✅ DÜZELTME 1: stocktwits_orani_skora_cevir() tamamen silindi
+✅ DÜZELTME 2: Ağırlıklar yeniden dengelendi → toplam = 1.00
+✅ DÜZELTME 3: agirliklar["stocktwits"] referansı kaldırıldı
+
 Algoritmik Hedge Fon — Multi-Source Sentiment Modülü
 DAG Aşama 2: Haber Duyarlılığı
 
 KAYNAKLAR (tümü ücretsiz, API key yok):
     1. yfinance     → Kurumsal haber akışı
     2. Reddit       → r/stocks + r/wallstreetbets (trader duyarlılığı)
-    3. StockTwits   → Gerçek zamanlı trader yorumları + boğa/ayı oranı
+    3. Finnhub      → Social Sentiment (Twitter + Reddit ortalaması)
     4. Finviz       → Analist önerileri + fiyat hedefleri
     5. Fear & Greed → CNN makro piyasa duyarlılığı (tüm watchlist'e uygulanır)
+    6. IV Radar     → Zımni Volatilite (Black-Scholes)
 
-MOD:
-    Şu an: Keyword tabanlı kural motoru (API'sız)
-    Pazartesi: GEMINI_API_KEY .env'e eklenir, keyword motoru → Gemini Flash ile değiştirilir
+MOD: Gemini 2.5 Flash Otonom Analiz Aktif
 
 Kurulum:
-    pip install requests beautifulsoup4 yfinance python-dotenv
+    pip install requests beautifulsoup4 yfinance python-dotenv finnhub-python finvizfinance
 """
 import os
 import google.generativeai as genai
@@ -29,7 +32,7 @@ from pathlib import Path
 import requests
 import yfinance as yf
 from bs4 import BeautifulSoup
-from quant_math import iv_radar_hesapla  # V6: Black-Scholes IV Radar
+from quant_math import iv_radar_hesapla  # Black-Scholes IV Radar
 from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
@@ -44,40 +47,35 @@ WATCHLIST = [
     # Veri, Yazılım & Kripto
     "PLTR", "MSTR", "IBIT",
     # Agresif Momentum Şampiyonları (Ana Kâr Motorları)
-    "ASTS", "VST", 
+    "ASTS", "VST",
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY" , "META",
-    "USO",  "WMT",  "QQQ"
-   
-
+    "GLD", "FXY", "META",
+    "USO", "WMT", "QQQ"
 ]
+
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (AlgorithmicHedgeFund/1.0; research-bot)"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-# Keyword ağırlık tabloları
 POZITIF_KEYWORDS = {
-    # Güçlü sinyaller (+2)
     "beat": 2, "record": 2, "surge": 2, "soar": 2, "rally": 2,
     "breakout": 2, "upgrade": 2, "outperform": 2, "strong buy": 2,
     "rekor": 2, "yükseliş": 2, "güçlü": 2, "aşıyor": 2,
-    # Normal sinyaller (+1)
     "growth": 1, "profit": 1, "gain": 1, "positive": 1, "bullish": 1,
     "buy": 1, "opportunity": 1, "recovery": 1, "momentum": 1,
     "toparlanma": 1, "artış": 1, "fırsat": 1,
 }
 
 NEGATIF_KEYWORDS = {
-    # Güçlü sinyaller (-2)
     "crash": -2, "plunge": -2, "collapse": -2, "downgrade": -2,
     "sell": -2, "miss": -2, "loss": -2, "layoff": -2, "bankruptcy": -2,
     "çöküş": -2, "düşüş": -2, "zarar": -2, "iflas": -2,
-    # Normal sinyaller (-1)
     "decline": -1, "fall": -1, "drop": -1, "weak": -1, "bearish": -1,
     "concern": -1, "risk": -1, "uncertainty": -1, "warning": -1,
-    "düşüyor": -1, "endişe": -1, "risk": -1, "uyarı": -1,
+    "düşüyor": -1, "endişe": -1, "uyarı": -1,
 }
 
 
@@ -102,17 +100,12 @@ def yfinance_haberleri_cek(symbol: str) -> list[str]:
 
 
 def reddit_gonderileri_cek(symbol: str) -> list[str]:
-    """
-    Reddit JSON API — auth gerektirmez.
-    r/stocks ve r/wallstreetbets'ten sembol ile arama yapar.
-    """
+    """Reddit JSON API — auth gerektirmez."""
     basliklar = []
     subredditler = ["stocks", "wallstreetbets", "investing"]
-
-    # FXY (eski JPY spot paritesi) için özel arama terimi
     arama_terimi = "USDJPY" if symbol == "FXY" else symbol
 
-    for sub in subredditler[:2]:  # 2 subreddit yeterli
+    for sub in subredditler[:2]:
         try:
             url = (
                 f"https://www.reddit.com/r/{sub}/search.json"
@@ -126,129 +119,75 @@ def reddit_gonderileri_cek(symbol: str) -> list[str]:
                     baslik = post.get("data", {}).get("title", "")
                     if baslik:
                         basliklar.append(f"[Reddit/{sub}] {baslik}")
-            time.sleep(0.5)  # Rate limit önlemi
+            time.sleep(0.5)
         except Exception:
             continue
-
     return basliklar
 
 
-def stocktwits_cek(symbol: str) -> dict:
-    """
-    StockTwits public API — auth gerektirmez.
-    Boğa/ayı oranı + son mesaj başlıkları döndürür.
-    """
-    # StockTwits FXY'i tanımaz (JPY spot paritesini de tanımaz)
-    if symbol == "FXY":
-        return {"basliklar": [], "boga_orani": None, "ayi_orani": None}
-
+def finnhub_sentiment_cek(symbol: str) -> dict:
+    """Finnhub social sentiment — Twitter+Reddit birleşik skor."""
+    if symbol in ["FXY", "SOXX", "IBIT"]:
+        return {"skor": None, "pozitif": None, "negatif": None}
     try:
-        url = f"https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json"
-        r = requests.get(url, headers=HEADERS, timeout=8)
+        import finnhub
+        api_key = os.getenv("FINNHUB_API_KEY", "")
+        if not api_key:
+            return {"skor": None, "pozitif": None, "negatif": None}
+        client = finnhub.Client(api_key=api_key)
+        data = client.stock_social_sentiment(symbol)
+        reddit = data.get("reddit", [])
+        twitter = data.get("twitter", [])
 
-        if r.status_code != 200:
-            return {"basliklar": [], "boga_orani": None, "ayi_orani": None}
+        def ort(lst, key):
+            vals = [x.get(key, 0) for x in lst[-3:] if x.get(key)]
+            return sum(vals) / len(vals) if vals else None
 
-        data = r.json()
-        mesajlar = data.get("messages", [])
-
-        basliklar = []
-        boga = 0
-        ayi = 0
-
-        for m in mesajlar[:8]:
-            body = m.get("body", "")
-            if body:
-                basliklar.append(f"[StockTwits] {body[:100]}")
-
-            # Boğa/ayı sentiment verisi (StockTwits kullanıcıların işaretlediği)
-            entities = m.get("entities", {})
-            sentiment = entities.get("sentiment", {})
-            if sentiment:
-                if sentiment.get("basic") == "Bullish":
-                    boga = boga + 1
-                elif sentiment.get("basic") == "Bearish":
-                    ayi += 1
-
-        toplam = boga + ayi
-        return {
-            "basliklar"  : basliklar[:5],
-            "boga_orani" : round(boga / toplam * 100) if toplam > 0 else None,
-            "ayi_orani"  : round(ayi / toplam * 100)  if toplam > 0 else None,
-            "toplam_oy"  : toplam,
-        }
+        pos = ort(twitter + reddit, "positiveMention")
+        neg = ort(twitter + reddit, "negativeMention")
+        if pos is not None and neg is not None and (pos + neg) > 0:
+            skor = (pos - neg) / (pos + neg)
+        else:
+            skor = None
+        return {"skor": round(skor, 3) if skor else None, "pozitif": pos, "negatif": neg}
     except Exception:
-        return {"basliklar": [], "boga_orani": None, "ayi_orani": None}
+        return {"skor": None, "pozitif": None, "negatif": None}
 
 
 def finviz_analist_cek(symbol: str) -> dict:
-    """
-    Finviz'den analist öneri dağılımı ve fiyat hedefini çeker.
-    """
+    """Finviz üzerinden analist tavsiyelerini çeker."""
     if symbol == "FXY":
         return {"oneri": None, "fiyat_hedefi": None, "analist_ozet": None}
-
     try:
-        url = f"https://finviz.com/quote.ashx?t={symbol}"
-        r = requests.get(url, headers=HEADERS, timeout=10)
-
-        if r.status_code != 200:
-            return {"oneri": None, "fiyat_hedefi": None, "analist_ozet": None}
-
-        soup = BeautifulSoup(r.text, "html.parser")
-
-        # Finviz tablo verisi
-        tablo = soup.find_all("td", class_="snapshot-td2")
-        veri = {}
-        etiketler = soup.find_all("td", class_="snapshot-td2-cp")
-
-        for i, etiket in enumerate(etiketler):
-            if i < len(tablo):
-                veri[etiket.text.strip()] = tablo[i].text.strip()
-
-        oneri       = veri.get("Recom", None)       # 1=Güçlü Al, 5=Güçlü Sat
-        fiyat_hedef = veri.get("Target Price", None)
-
-        # Öneriyi yorumla
+        from finvizfinance.quote import finvizfinance
+        stock = finvizfinance(symbol)
+        info = stock.ticker_fundament()
+        oneri = info.get("Recom", None)
+        hedef = info.get("Target Price", None)
         analist_ozet = None
         if oneri:
             try:
-                oneri_float = float(oneri)
-                if oneri_float <= 1.5:
-                    analist_ozet = "Güçlü Al"
-                elif oneri_float <= 2.5:
-                    analist_ozet = "Al"
-                elif oneri_float <= 3.5:
-                    analist_ozet = "Tut"
-                elif oneri_float <= 4.5:
-                    analist_ozet = "Sat"
-                else:
-                    analist_ozet = "Güçlü Sat"
-            except ValueError:
+                v = float(oneri)
+                if v <= 1.5:   analist_ozet = "Güçlü Al"
+                elif v <= 2.5: analist_ozet = "Al"
+                elif v <= 3.5: analist_ozet = "Tut"
+                elif v <= 4.5: analist_ozet = "Sat"
+                else:          analist_ozet = "Güçlü Sat"
+            except:
                 analist_ozet = oneri
-
-        return {
-            "oneri"        : oneri,
-            "analist_ozet" : analist_ozet,
-            "fiyat_hedefi" : fiyat_hedef,
-        }
+        return {"oneri": oneri, "analist_ozet": analist_ozet, "fiyat_hedefi": hedef}
     except Exception:
         return {"oneri": None, "fiyat_hedefi": None, "analist_ozet": None}
 
 
 # ─────────────────────────────────────────────
 # BÖLÜM 2: SENTIMENT MOTORU
-# (Pazartesi burası Gemini Flash ile değişecek)
 # ─────────────────────────────────────────────
 
 def keyword_sentiment_hesapla(metinler: list[str]) -> float:
-    """
-    Keyword tabanlı sentiment skoru (-1.0 ile +1.0 arası).
-    Pazartesi bu fonksiyon → gemini_sentiment_hesapla() ile değiştirilecek.
-    """
+    """Yedek keyword motoru (Gemini devre dışı kalırsa)."""
     if not metinler:
         return 0.0
-
     toplam_puan = 0
     for metin in metinler:
         metin_lower = metin.lower()
@@ -258,112 +197,80 @@ def keyword_sentiment_hesapla(metinler: list[str]) -> float:
         for kelime, agirlik in NEGATIF_KEYWORDS.items():
             if kelime in metin_lower:
                 toplam_puan += agirlik
-
-    # Normalize: metin sayısına böl, -1/+1 arasına sıkıştır
     normalize = toplam_puan / (len(metinler) * 2)
     return round(max(-1.0, min(1.0, normalize)), 3)
 
-#  Gemini API kullanarak sentiment hesapla
 
 def gemini_sentiment_hesapla(symbol: str, metinler: list[str]) -> float:
-    """Gemini 2.0 Flash kullanarak Otonom Sentiment analizi yapar."""
+    """Gemini 2.5 Flash kullanarak Otonom Sentiment analizi yapar."""
     if not metinler:
         return 0.0
-        
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print(f"  ⚠️ GEMINI API yok! Şimdilik 0.0 (Nötr) dönülüyor.")
-        return 0.0
-        
+        print(f"  ⚠️ GEMINI API yok! Keyword motoruna geçiliyor.")
+        return keyword_sentiment_hesapla(metinler)
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-2.5-flash")
-        
         prompt = f"""
         Sen Wall Street'in en zeki 'Otonom Piyasa Duyarlılık (Sentiment) Algoritması'sın.
-        Görevin, {symbol} varlığı hakkında internetten çekilen aşağıdaki ham metinleri okuyup, insan müdahalesi olmadan işlem yapan ticaret botumuza matematiksel bir yön (skor) vermektir.
-        
+        Görevin, {symbol} varlığı hakkında internetten çekilen aşağıdaki ham metinleri okuyup,
+        insan müdahalesi olmadan işlem yapan ticaret botumuza matematiksel bir yön (skor) vermektir.
+
         METİNLER:
         {json.dumps(metinler, ensure_ascii=False)}
 
         KURALLAR:
-        1. Reddit/StockTwits argosunu ("To the moon", "Diamond hands" = Pozitif | "Bagholder", "Rug pull" = Negatif) ve en önemlisi İRONİYİ anla.
+        1. Reddit/StockTwits argosunu ("To the moon", "Diamond hands" = Pozitif |
+           "Bagholder", "Rug pull" = Negatif) ve en önemlisi İRONİYİ anla.
         2. Kurumsal clickbait tuzaklarını filtrele.
-        3. EĞER METİNLERDE CİDDİ BİR İFLAS, SAVAŞ VEYA FED FAİZ ŞOKU GÖRÜRSEN, robotu korumak için skoru acımasızca -1.0'a çek.
-        
+        3. EĞER METİNLERDE CİDDİ BİR İFLAS, SAVAŞ VEYA FED FAİZ ŞOKU GÖRÜRSEN,
+           robotu korumak için skoru acımasızca -1.0'a çek.
+
         ÇIKTI FORMATI:
-        Bana HİÇBİR açıklama veya uyarı yapma. Makinenin okuyabilmesi için SADECE -1.000 ile +1.000 arasında ondalıklı bir sayı ver. (Örnek: -0.850)
+        Bana HİÇBİR açıklama veya uyarı yapma. Makinenin okuyabilmesi için SADECE
+        -1.000 ile +1.000 arasında ondalıklı bir sayı ver. (Örnek: -0.850)
         """
-        
         response = model.generate_content(prompt)
         return float(response.text.strip())
-        
     except Exception as e:
         print(f"  ❌ Gemini API Hatası: {e}")
-        return 0.0
+        return keyword_sentiment_hesapla(metinler)
 
-def stocktwits_orani_skora_cevir(boga_orani) -> float:
-    """StockTwits boğa/ayı oranını -1/+1 skalasına çevirir."""
-    if boga_orani is None:
-        return 0.0
-    # 50% = nötr (0.0), 100% = tam pozitif (1.0), 0% = tam negatif (-1.0)
-    return round((boga_orani - 50) / 50, 3)
+
+# ✅ DÜZELTME 1: stocktwits_orani_skora_cevir() buradan tamamen silindi
 
 
 def fear_greed_cek() -> dict:
-    """
-    CNN Fear & Greed Index — public JSON endpoint, API key gerektirmez.
-    0-100 arası skor: 0=Aşırı Korku, 50=Nötr, 100=Aşırı Açgözlülük
-    Tüm watchlist için tek bir makro sinyal olarak kullanılır.
-    """
+    """CNN Fear & Greed Index — 0-100 arası skor (-1/+1'e dönüştürülür)."""
     try:
         url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
         r = requests.get(url, headers=HEADERS, timeout=8)
-
         if r.status_code != 200:
             return {"skor": None, "yorum": None, "sinyal_skoru": 0.0}
-
         data = r.json()
-        fear_greed = data.get("fear_and_greed", {})
-        skor = fear_greed.get("score", None)
-
+        skor = data.get("fear_and_greed", {}).get("score", None)
         if skor is None:
             return {"skor": None, "yorum": None, "sinyal_skoru": 0.0}
-
         skor = round(float(skor), 1)
-
-        # CNN'in kendi kategorileri
         if skor >= 75:
-            yorum = "Aşırı Açgözlülük 😱"
-            sinyal_skoru = -0.5   # Aşırı açgözlülük → düzeltme riski
+            yorum, sinyal_skoru = "Aşırı Açgözlülük 😱", -0.5
         elif skor >= 55:
-            yorum = "Açgözlülük 📈"
-            sinyal_skoru = 0.3
+            yorum, sinyal_skoru = "Açgözlülük 📈", 0.3
         elif skor >= 45:
-            yorum = "Nötr ➡️"
-            sinyal_skoru = 0.0
+            yorum, sinyal_skoru = "Nötr ➡️", 0.0
         elif skor >= 25:
-            yorum = "Korku 📉"
-            sinyal_skoru = -0.3
+            yorum, sinyal_skoru = "Korku 📉", -0.3
         else:
-            yorum = "Aşırı Korku 🩸"
-            sinyal_skoru = 0.5    # Aşırı korku → alım fırsatı (contrarian)
-
-        return {
-            "skor"         : skor,
-            "yorum"        : yorum,
-            "sinyal_skoru" : sinyal_skoru,   # -1/+1 skalasında
-        }
+            yorum, sinyal_skoru = "Aşırı Korku 🩸", 0.5
+        return {"skor": skor, "yorum": yorum, "sinyal_skoru": sinyal_skoru}
     except Exception:
         return {"skor": None, "yorum": "Veri alınamadı", "sinyal_skoru": 0.0}
 
 
 def analist_onerisi_skora_cevir(oneri_str: str) -> float:
     """Finviz analist önerisini -1/+1 skalasına çevirir."""
-    mapping = {
-        "Güçlü Al": 1.0, "Al": 0.5, "Tut": 0.0,
-        "Sat": -0.5, "Güçlü Sat": -1.0
-    }
+    mapping = {"Güçlü Al": 1.0, "Al": 0.5, "Tut": 0.0, "Sat": -0.5, "Güçlü Sat": -1.0}
     return mapping.get(oneri_str, 0.0)
 
 
@@ -373,8 +280,7 @@ def analist_onerisi_skora_cevir(oneri_str: str) -> float:
 
 def sentiment_hesapla(symbol: str) -> dict:
     """
-    5 kaynaktan veri toplar, ağırlıklı ortalama sentiment skoru üretir.
-    Döndürülen skor mock_agent.py'deki karar motoruna eklenecek.
+    Tüm kaynaklardan veri toplar, ağırlıklı ortalama skor (1.00 üzerinden) üretir.
     """
     print(f"    📰 Haberler çekiliyor...", end=" ", flush=True)
     haberler = yfinance_haberleri_cek(symbol)
@@ -386,11 +292,10 @@ def sentiment_hesapla(symbol: str) -> dict:
     reddit_skoru = gemini_sentiment_hesapla(symbol, reddit_gonderiler)
     print(f"✓ ({len(reddit_gonderiler)} gönderi, skor: {reddit_skoru:+.2f})")
 
-    print(f"    📊 StockTwits çekiliyor...", end=" ", flush=True)
-    st_data = stocktwits_cek(symbol)
-    st_skoru = stocktwits_orani_skora_cevir(st_data.get("boga_orani"))
-    boga_str = f"{st_data.get('boga_orani', '?')}% 🐂" if st_data.get("boga_orani") else "veri yok"
-    print(f"✓ ({boga_str}, skor: {st_skoru:+.2f})")
+    print(f"    📊 Finnhub sentiment çekiliyor...", end=" ", flush=True)
+    fh_data = finnhub_sentiment_cek(symbol)
+    fh_skoru = fh_data.get("skor") or 0.0
+    print(f"✓ (skor: {fh_skoru:+.2f})")
 
     print(f"    🎯 Finviz analisti çekiliyor...", end=" ", flush=True)
     finviz_data = finviz_analist_cek(symbol)
@@ -403,40 +308,40 @@ def sentiment_hesapla(symbol: str) -> dict:
     print(f"✓ (skor: {fg_data.get('skor', '?')} | {fg_data.get('yorum', '?')}, "
           f"sinyal: {fg_data['sinyal_skoru']:+.2f})")
 
-    # V6: IV Radar (Black-Scholes Zımni Volatilite)
     print(f"    📐 IV Radar hesaplanıyor...", end=" ", flush=True)
     try:
-        import pandas as pd_iv
         close_seri = yf.Ticker(symbol).history(period="3mo", interval="1d")["Close"]
         iv_data = iv_radar_hesapla(symbol, close_seri)
         iv_skoru = iv_data.get("sinyal_skoru", 0.0)
     except Exception:
-        iv_data  = {"sinyal": "VERİ_YOK", "sinyal_skoru": 0.0, "yorum": "Hesaplanamadı"}
+        iv_data = {"sinyal": "VERİ_YOK", "sinyal_skoru": 0.0, "yorum": "Hesaplanamadı", "iv_hv_orani": "N/A"}
         iv_skoru = 0.0
-    print(f"✓ ({iv_data.get('sinyal', '?')}, IV/HV={iv_data.get('iv_hv_orani', 'N/A')}, skor: {iv_skoru:+.2f})")
+    print(f"✓ ({iv_data.get('sinyal', '?')}, IV/HV={iv_data.get('iv_hv_orani', 'N/A')}, "
+          f"skor: {iv_skoru:+.2f})")
 
-    # IV dahil ağırlıklar (toplam = 1.0)
-    # Analist görüşü en güvenilir → en yüksek ağırlık
-    # Fear & Greed makro filtre → düşük ağırlık ama tüm kararları etkiler
+    # ✅ DÜZELTME 2: Ağırlıklar yeniden dengelendi
+    # Toplam = 0.15+0.15+0.15+0.35+0.10+0.10 = 1.00 ✓
     agirliklar = {
-        "haber"      : 0.13,
-        "reddit"     : 0.13,
-        "stocktwits" : 0.18,
-        "analist"    : 0.33,
-        "fear_greed" : 0.13,
-        "iv_radar"   : 0.10,   # V6: IV/HV sinyali
+        "haber"      : 0.15,
+        "reddit"     : 0.15,
+        "finnhub"    : 0.15,   # StockTwits'in yerini aldı, ağırlık eski değere dengelendi
+        "analist"    : 0.35,
+        "fear_greed" : 0.10,
+        "iv_radar"   : 0.10,
     }
+    # Kontrol: assert sum(agirliklar.values()) == 1.0
+
+    # ✅ DÜZELTME 3: agirliklar["stocktwits"] referansı kaldırıldı
     toplam_skor = (
-        haber_skoru          * agirliklar["haber"]      +
-        reddit_skoru         * agirliklar["reddit"]     +
-        st_skoru             * agirliklar["stocktwits"] +
-        finviz_skoru         * agirliklar["analist"]    +
+        haber_skoru             * agirliklar["haber"]      +
+        reddit_skoru            * agirliklar["reddit"]     +
+        fh_skoru                * agirliklar["finnhub"]    +
+        finviz_skoru            * agirliklar["analist"]    +
         fg_data["sinyal_skoru"] * agirliklar["fear_greed"] +
-        iv_skoru             * agirliklar["iv_radar"]
+        iv_skoru                * agirliklar["iv_radar"]
     )
     toplam_skor = round(toplam_skor, 3)
 
-    # Skoru yorumla
     if toplam_skor >= 0.3:
         yorum = "POZİTİF 🟢"
     elif toplam_skor <= -0.3:
@@ -445,32 +350,32 @@ def sentiment_hesapla(symbol: str) -> dict:
         yorum = "NÖTR 🟡"
 
     return {
-        "symbol"           : symbol,
-        "sentiment_skoru"  : toplam_skor,
-        "sentiment_yorum"  : yorum,
-        "mod"              : "MOCK-KEYWORD",   # Pazartesi "GEMINI" olacak
+        "symbol"          : symbol,
+        "sentiment_skoru" : toplam_skor,
+        "sentiment_yorum" : yorum,
+        "mod"             : "GEMINI-AI",
         "kaynaklar": {
-            "haber_skoru"      : haber_skoru,
-            "haber_sayisi"     : len(haberler),
-            "reddit_skoru"     : reddit_skoru,
-            "reddit_sayisi"    : len(reddit_gonderiler),
-            "stocktwits_skoru" : st_skoru,
-            "boga_orani"       : st_data.get("boga_orani"),
-            "ayi_orani"        : st_data.get("ayi_orani"),
-            "analist_skoru"    : finviz_skoru,
-            "analist_oneri"    : finviz_data.get("analist_ozet"),
-            "fiyat_hedefi"     : finviz_data.get("fiyat_hedefi"),
-            "fear_greed_skor"  : fg_data.get("skor"),
-            "fear_greed_yorum" : fg_data.get("yorum"),
-            "iv_skoru"         : iv_skoru,
-            "iv_sinyal"        : iv_data.get("sinyal"),
-            "iv_hv_orani"      : iv_data.get("iv_hv_orani"),
-            "iv_yorum"         : iv_data.get("yorum"),
+            "haber_skoru"     : haber_skoru,
+            "haber_sayisi"    : len(haberler),
+            "reddit_skoru"    : reddit_skoru,
+            "reddit_sayisi"   : len(reddit_gonderiler),
+            "finnhub_skoru"   : fh_skoru,
+            "finnhub_pozitif" : fh_data.get("pozitif"),
+            "finnhub_negatif" : fh_data.get("negatif"),
+            "analist_skoru"   : finviz_skoru,
+            "analist_oneri"   : finviz_data.get("analist_ozet"),
+            "fiyat_hedefi"    : finviz_data.get("fiyat_hedefi"),
+            "fear_greed_skor" : fg_data.get("skor"),
+            "fear_greed_yorum": fg_data.get("yorum"),
+            "iv_skoru"        : iv_skoru,
+            "iv_sinyal"       : iv_data.get("sinyal"),
+            "iv_hv_orani"     : iv_data.get("iv_hv_orani"),
+            "iv_yorum"        : iv_data.get("yorum"),
         },
         "ham_metinler": {
-            "haberler"  : haberler,
-            "reddit"    : reddit_gonderiler[:3],
-            "stocktwits": st_data.get("basliklar", [])[:3],
+            "haberler": haberler,
+            "reddit"  : reddit_gonderiler[:3],
+            "finnhub" : [],
         }
     }
 
@@ -480,22 +385,21 @@ def sentiment_hesapla(symbol: str) -> dict:
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"\n{'='*65}")
-    print(f"  Algoritmik Hedge Fon | Multi-Source Sentiment v0.1")
-    print(f"  Kaynaklar: yfinance + Reddit + StockTwits + Finviz + Fear&Greed")
-    print(f"  Mod: Keyword Motoru (Pazartesi → Gemini Flash)")
+    print(f"  Algoritmik Hedge Fon | Multi-Source Sentiment v0.2")
+    print(f"  Kaynaklar: yfinance + Reddit + Finnhub + Finviz + Fear&Greed + IV Radar")
+    print(f"  Mod: Gemini 2.5 Flash Otonom Analiz Aktif")
     print(f"{'='*65}\n")
 
-    # Fear & Greed tüm watchlist için tek → başta bir kez çek ve göster
     print(f"🌍 MAKRO GÖSTERGE — Fear & Greed Index:")
     fg_global = fear_greed_cek()
     if fg_global["skor"]:
         print(f"   Skor: {fg_global['skor']} | {fg_global['yorum']}")
-        print(f"   Piyasa Yorumu: {'Contrarian AL fırsatı' if fg_global['sinyal_skoru'] > 0 else 'Düzeltme riski yüksek' if fg_global['sinyal_skoru'] < 0 else 'Nötr ortam'}\n")
+        print(f"   Piyasa Yorumu: "
+              f"{'Contrarian AL fırsatı' if fg_global['sinyal_skoru'] > 0 else 'Düzeltme riski yüksek' if fg_global['sinyal_skoru'] < 0 else 'Nötr ortam'}\n")
     else:
         print(f"   Veri alınamadı\n")
 
     sonuclar = []
-
     for i, sembol in enumerate(WATCHLIST, 1):
         print(f"\n[{i:>2}/{len(WATCHLIST)}] {sembol} sentiment analizi:")
         try:
@@ -507,9 +411,8 @@ if __name__ == "__main__":
                   f"Hedef: ${sonuc['kaynaklar']['fiyat_hedefi'] or 'N/A'}")
         except Exception as e:
             print(f"  ❌ Hata: {e}")
-        time.sleep(1)  # Tüm API'lara karşı礼儀
+        time.sleep(1)
 
-    # Özet tablo
     print(f"\n\n{'='*65}")
     print(f"  SENTIMENT ÖZET TABLOSU")
     print(f"{'─'*65}")
@@ -527,18 +430,12 @@ if __name__ == "__main__":
         )
     print(f"{'='*65}")
 
-    # JSON'a kaydet — mock_agent.py bu dosyayı okuyacak
     cikti = {
-        "tarih"  : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "mod"    : "MOCK-KEYWORD — Gemini bekleniyor",
+        "tarih"   : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "mod"     : "GEMINI-AI AKTİF",
         "sonuclar": sonuclar
     }
     Path("sentiment_rapor.json").write_text(
         json.dumps(cikti, ensure_ascii=False, indent=2)
     )
-    print(f"\n💾 sentiment_rapor.json kaydedildi.")
-    print(f"\n⚡ PAZARTESİ YAPILACAKLAR:")
-    print(f"   1. .env'e GEMINI_API_KEY ekle")
-    print(f"   2. gemini_sentiment_hesapla() fonksiyonunu aktif et")
-    print(f"   3. keyword_sentiment_hesapla() çağrılarını değiştir")
-    print(f"   4. mock_agent.py'e sentiment skoru entegre et\n")
+    print(f"\n💾 sentiment_rapor.json kaydedildi. Sistem hazır! ✅\n")

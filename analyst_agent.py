@@ -30,7 +30,7 @@ load_dotenv()
 SYMBOL   = "NVDA"
 PERIOD   = "1y"     # V5: SMA_200 için 1 yıl (eski 3mo yetersizdi)
 INTERVAL = "1d"
-LLM      = "anthropic/claude-3-5-sonnet-20241022"
+LLM      = "anthropic/claude-sonnet-4-20250514"
 
 
 # ─────────────────────────────────────────────

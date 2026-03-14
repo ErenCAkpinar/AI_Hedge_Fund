@@ -613,7 +613,7 @@ def claude_otonom_onay(symbol, fiyat, sinyal, guven, toplam_skor, sl, tp, atr=No
         """
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-20250514",
             max_tokens=300,
             temperature=0.0,
             messages=[{"role": "user", "content": prompt}]
