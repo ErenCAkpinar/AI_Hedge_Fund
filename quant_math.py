@@ -838,7 +838,7 @@ def copula_korelasyon_kalkan(sembol_listesi: list, close_dict: dict, pencere: in
 def black_litterman_agirliklar(
     sembol_listesi : list,
     getiri_dict    : dict,
-    gorус_dict     : dict,   # {sembol: sentiment_skoru}  -1.0 → +1.0
+    goruc_dict     : dict,   # {sembol: sentiment_skoru}  -1.0 → +1.0
     tau            : float = 0.05,
     delta          : float = 2.5,
 ) -> dict:
@@ -853,7 +853,7 @@ def black_litterman_agirliklar(
     Args:
         sembol_listesi: Portföy sembolleri
         getiri_dict:    {sembol: günlük getiri serisi (np.array)}
-        gorус_dict:     AI sentiment skoru per sembol (-1 to +1)
+        goruc_dict:     AI sentiment skoru per sembol (-1 to +1)
         tau:            Belirsizlik skalası (tipik 0.05)
         delta:          Piyasa risk-aversion katsayısı
 
@@ -897,9 +897,9 @@ def black_litterman_agirliklar(
         # Mutlak görüşler: "sembol X, Y% getiri sağlar"
         gorucler = {}
         for s in ret_df.columns:
-            if s in gorус_dict:
+            if s in goruc_dict:
                 # Sentiment -1/+1 → tahmini yıllık fazla getiri ±%15
-                gorucler[s] = gorус_dict[s] * 0.15
+                gorucler[s] = goruc_dict[s] * 0.15
 
         if not gorucler:
             # Görüş yok → piyasa dengesini kullan (eşit ağırlık)
