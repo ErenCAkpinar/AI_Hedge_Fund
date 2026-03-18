@@ -39,9 +39,11 @@ from quant_math import (
 # ─────────────────────────────────────────────
 # CONFIG — Ağırlıklar
 # ─────────────────────────────────────────────
-AGIRLIK_TEKNIK    = 0.40
-AGIRLIK_EFSANE    = 0.35
-AGIRLIK_SENTIMENT = 0.25
+AGIRLIK_TEKNIK    = 0.35
+AGIRLIK_EFSANE    = 0.25
+AGIRLIK_SENTIMENT = 0.15
+AGIRLIK_INSIDER   = 0.15
+AGIRLIK_GAMMA     = 0.10
 
 ESIK_YUKSEK = 0.30   # API gelince → 0.45
 ESIK_ORTA   = 0.15   # API gelince → 0.28
@@ -49,6 +51,9 @@ ESIK_ORTA   = 0.15   # API gelince → 0.28
 DOSYA_TEKNIK    = "rapor.json"
 DOSYA_SENTIMENT = "sentiment_rapor.json"
 DOSYA_EFSANE    = "legends_rapor.json"
+DOSYA_INSIDER   = "insider_rapor.json"
+DOSYA_SWAN      = "swan_rapor.json"
+DOSYA_GAMMA     = "gamma_rapor.json"
 DOSYA_CIKTI     = "final_karar.json"
 DOSYA_HMM_REJIM = "hmm_rejim.json"    # V6: HMM rejim önbelleği (her gün 1 kez hesaplanır)
 DOSYA_KELLY_GEC = "kelly_gecmis.json" # V6: Sembol bazında geçmiş işlemler (Kelly için)
@@ -93,6 +98,47 @@ def efsane_veri_oku() -> dict:
     with open(DOSYA_EFSANE, "r", encoding="utf-8") as f:
         veri = json.load(f)
     return {r["symbol"]: r for r in veri.get("sonuclar", [])}
+
+
+def swan_risk_oku() -> dict:
+    """swan_rapor.json'dan risk durumunu okur."""
+    try:
+        swan_path = Path(DOSYA_SWAN)
+        if swan_path.exists():
+            return json.loads(swan_path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {"risk_off": False, "risk_skoru": 0, "risk_adi": "BILINMIYOR",
+            "vix": {"deger": 20.0}}
+
+
+def insider_veri_oku() -> dict:
+    """insider_rapor.json'dan sembol → skor dict döndürür."""
+    if not Path(DOSYA_INSIDER).exists():
+        return {}
+    try:
+        rapor = json.loads(Path(DOSYA_INSIDER).read_text(encoding="utf-8"))
+        return {
+            sem: veri.get("skor", {"final_skor": 0.0, "carpan": 1.0})
+            for sem, veri in rapor.get("varlıklar", {}).items()
+        }
+    except Exception:
+        return {}
+
+
+def gamma_skor_oku() -> dict:
+    """gamma_rapor.json'dan sembol → gamma skor dict döndürür."""
+    if not Path(DOSYA_GAMMA).exists():
+        return {}
+    try:
+        rapor = json.loads(Path(DOSYA_GAMMA).read_text(encoding="utf-8"))
+        return {
+            sem: veri["skor"]
+            for sem, veri in rapor.get("varlıklar", {}).items()
+            if "skor" in veri
+        }
+    except Exception:
+        return {}
 
 
 # ─────────────────────────────────────────────
@@ -364,17 +410,62 @@ def final_karar_uret(
     teknik    : dict,
     sentiment : dict,
     efsane    : dict,
+    insider   : dict | None = None,
+    swan      : dict | None = None,
+    gamma     : dict | None = None,
 ) -> dict:
     """
-    3 katmanı birleştirir → ağırlıklı skor → final karar.
+    5 katmanı birleştirir → ağırlıklı skor → final karar.
     V5: SL/TP için ATR önce teknik dict'ten, sonra efsane dict'ten alınır.
     V6: Kurtosis → dinamik ATR çarpanı | GARCH → pozisyon ölçeği | Hurst → LONG filtresi
+    Gözcü: Insider sinyal %15 ağırlıkla eklendi; büyük satış → LONG eşiği ×1.5
+    Swan: Risk-Off aktifse güvenli liman dışındaki sembollere otomatik HOLD
+    Gamma: GEX/UOA/IV Skew %10 ağırlık + TP wall ayarı + pozisyon büyüklüğü çarpanı
     """
+    # ─── Black Swan: Risk-Off erken çıkış ───────────────────────────
+    GUVENLI_LIMANLAR = {"GLD", "USO", "FXY"}
+    swan_veri        = swan or {}
+    if swan_veri.get("risk_off") and sembol not in GUVENLI_LIMANLAR:
+        vix_deger = swan_veri.get("vix", {}).get("deger", "?")
+        return {
+            "symbol"        : sembol,
+            "fiyat"         : 0.0,
+            "final_sinyal"  : "HOLD",
+            "guven"         : "DÜŞÜK",
+            "guven_skoru"   : 0.0,
+            "toplam_skor"   : 0.0,
+            "catisma"       : False,
+            "aciklama"      : f"🦢 RISK-OFF aktif (VIX={vix_deger}) — sadece GLD/USO/FXY",
+            "stop_loss"     : None,
+            "take_profit"   : None,
+            "risk_odül"     : None,
+            "sl_tipi"       : "RISK_OFF",
+            "atr_kullanildi": False,
+            "atr_degeri"    : None,
+            "poz_buyukluk"  : 0.0,
+            "katmanlar"     : {},
+        }
     t_skor = teknik_skora_cevir(teknik)
     s_skor = sentiment_skora_cevir(sentiment)
     e_skor = efsane_skora_cevir(efsane)
 
-    # Sentiment zayıfsa ağırlığını dağıt
+    # Insider sinyali
+    insider_sinyal = 0.0
+    insider_carpan = 1.0
+    if insider:
+        insider_sinyal = float(insider.get("final_skor", 0.0))
+        insider_carpan = float(insider.get("carpan", 1.0))
+
+    # Gamma sinyali
+    gamma_sinyal  = 0.0
+    gamma_carpan  = 1.0
+    gamma_tp_ayar = None
+    if gamma:
+        gamma_sinyal  = float(gamma.get("final_skor", 0.0))
+        gamma_carpan  = float(gamma.get("pozisyon_ayar", 1.0))
+        gamma_tp_ayar = gamma.get("tp_ayar", None)
+
+    # Sentiment zayıfsa ağırlığını dağıt (insider ve gamma ağırlığı korunur)
     if abs(s_skor) < 0.10:
         agirlik_t = AGIRLIK_TEKNIK    + AGIRLIK_SENTIMENT * 0.60
         agirlik_e = AGIRLIK_EFSANE    + AGIRLIK_SENTIMENT * 0.40
@@ -382,15 +473,27 @@ def final_karar_uret(
     else:
         agirlik_t, agirlik_e, agirlik_s = AGIRLIK_TEKNIK, AGIRLIK_EFSANE, AGIRLIK_SENTIMENT
 
-    toplam_skor = round(t_skor * agirlik_t + s_skor * agirlik_s + e_skor * agirlik_e, 3)
+    toplam_skor = round(
+        t_skor         * agirlik_t       +
+        s_skor         * agirlik_s       +
+        e_skor         * agirlik_e       +
+        insider_sinyal * AGIRLIK_INSIDER +
+        gamma_sinyal   * AGIRLIK_GAMMA,
+        3
+    )
     catisma     = catisma_var_mi(t_skor, e_skor, s_skor)
 
     # V6: Dinamik eşik hesabı
     hmm_carpan     = hmm_esik_carpani()           # BULL=1.0, SIDE=1.2, BEAR=1.5
     gl_carpan      = copula_guvenli_liman_carpani(sembol)  # GLD/USO → daha kolay giriş
-    # Güvenli liman: ESIK düşer (daha kolay LONG izni); Diğerleri: HMM çarpanıyla yükselir
-    esik_yuksek_eff = ESIK_YUKSEK * hmm_carpan / gl_carpan
-    esik_orta_eff   = ESIK_ORTA   * hmm_carpan / gl_carpan
+    # Swan risk çarpanı: risk_skoru > 70 → ×1.5, > 50 → ×1.25
+    risk_skoru  = swan_veri.get("risk_skoru", 0)
+    swan_carpan = 1.5 if risk_skoru > 70 else (1.25 if risk_skoru > 50 else 1.0)
+
+    # Güvenli liman: ESIK düşer (daha kolay LONG izni); Diğerleri: HMM + Swan çarpanıyla yükselir
+    # Gözcü: büyük insider satış varsa insider_carpan=1.5 → LONG eşiği daha da yükselir
+    esik_yuksek_eff = ESIK_YUKSEK * hmm_carpan * insider_carpan * swan_carpan / gl_carpan
+    esik_orta_eff   = ESIK_ORTA   * hmm_carpan * insider_carpan * swan_carpan / gl_carpan
 
     # Final karar
     if catisma:
@@ -453,9 +556,24 @@ def final_karar_uret(
     # V5: ATR bazlı SL/TP
     sl_tp = atr_sl_tp_hesapla(fiyat, sinyal, guven_skoru, atr)
 
-    # Pozisyon büyüklüğü: Dinamik Kelly × GARCH ölçeği
+    # Gamma: TP wall ayarı (call_wall/put_wall direnç/destek seviyelerine göre)
+    if gamma and sinyal in ("LONG", "SHORT") and sl_tp.get("take_profit") and fiyat > 0:
+        g_put_wall  = gamma.get("put_wall",  0.0)
+        g_call_wall = gamma.get("call_wall", 0.0)
+        if sinyal == "LONG" and g_call_wall > 0:
+            if (abs(g_call_wall - fiyat) / fiyat < 0.03
+                    and sl_tp["take_profit"] > g_call_wall):
+                sl_tp["take_profit"] = round(g_call_wall * 0.99, 2)
+                sl_tp["tp_tipi"] = f"Gamma Call Wall: ${g_call_wall:.2f}"
+        elif sinyal == "SHORT" and g_put_wall > 0:
+            if (abs(fiyat - g_put_wall) / fiyat < 0.03
+                    and sl_tp["take_profit"] < g_put_wall):
+                sl_tp["take_profit"] = round(g_put_wall * 1.01, 2)
+                sl_tp["tp_tipi"] = f"Gamma Put Wall: ${g_put_wall:.2f}"
+
+    # Pozisyon büyüklüğü: Dinamik Kelly × GARCH ölçeği × Gamma ayarı
     poz_buyukluk_kelly = kelly_pozisyon_al(sembol, toplam_skor)  # V6: Rolling Kelly
-    poz_buyukluk = round(poz_buyukluk_kelly * garch_olcek, 4)    # V6: GARCH volatilite ölçeği
+    poz_buyukluk = round(poz_buyukluk_kelly * garch_olcek * gamma_carpan, 4)  # × Gamma
 
     # Katman özeti
     katman_ozet = {
@@ -473,6 +591,28 @@ def final_karar_uret(
             "long_oran" : efsane.get("long_oran", 0) if efsane else 0,
             "short_oran": efsane.get("short_oran", 0) if efsane else 0,
             "skor"      : e_skor,
+        },
+        "insider": {
+            "skor"   : insider_sinyal,
+            "carpan" : insider_carpan,
+            "yorum"  : insider.get("yorum", "N/A") if insider else "Gözcü raporu yok",
+        },
+        "swan": {
+            "risk_skoru" : risk_skoru,
+            "risk_adi"   : swan_veri.get("risk_adi", "N/A"),
+            "risk_off"   : swan_veri.get("risk_off", False),
+            "vix"        : swan_veri.get("vix", {}).get("deger", "N/A"),
+            "swan_carpan": swan_carpan,
+        },
+        "gamma": {
+            "skor"         : gamma_sinyal,
+            "piyasa_modu"  : gamma.get("piyasa_modu", "N/A") if gamma else "N/A",
+            "net_gex"      : gamma.get("net_gex", 0) if gamma else 0,
+            "put_wall"     : gamma.get("put_wall") if gamma else None,
+            "call_wall"    : gamma.get("call_wall") if gamma else None,
+            "uoa_var"      : gamma.get("uoa_var", False) if gamma else False,
+            "pozisyon_ayar": gamma_carpan,
+            "tp_ayar"      : gamma_tp_ayar or ("N/A" if not gamma else "Gamma raporu yok"),
         },
     }
 
@@ -635,15 +775,18 @@ def claude_otonom_onay(symbol, fiyat, sinyal, guven, toplam_skor, sl, tp, atr=No
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"\n{'═'*85}")
-    print(f"  Algoritmik Hedge Fon | State Manager V5")
-    print(f"  Final Karar: Teknik(%40) + Efsane(%35) + Sentiment(%25)")
-    print(f"  V5: ATR bazlı dinamik SL/TP (backtest ile senkron)")
+    print(f"  Algoritmik Hedge Fon | State Manager V5 + Gözcü + Gamma")
+    print(f"  Final Karar: Teknik(%35) + Efsane(%25) + Sentiment(%15) + Insider(%15) + Gamma(%10)")
+    print(f"  V5: ATR bazlı dinamik SL/TP | Gamma: GEX + UOA + IV Skew + TP Wall")
     print(f"{'═'*85}\n")
 
     print(f"📂 Ajan raporları yükleniyor...")
     teknik_map    = teknik_veri_oku()
     sentiment_map = sentiment_veri_oku()
     efsane_map    = efsane_veri_oku()
+    insider_map   = insider_veri_oku()
+    swan_rapor    = swan_risk_oku()
+    gamma_map     = gamma_skor_oku()
 
     if not teknik_map:
         print("\n[KRİTİK HATA] Teknik veri yok. Önce: python mock_agent.py")
@@ -653,18 +796,31 @@ if __name__ == "__main__":
     if teknik_map:    yuklenen.append(f"Teknik ({len(teknik_map)} varlık)")
     if sentiment_map: yuklenen.append(f"Sentiment ({len(sentiment_map)} varlık)")
     if efsane_map:    yuklenen.append(f"Efsane ({len(efsane_map)} varlık)")
+    if insider_map:   yuklenen.append(f"Insider ({len(insider_map)} varlık)")
+    else:             print(f"  ℹ️  insider_rapor.json yok — Gözcü sinyali 0.0 olarak kullanılacak")
+    if gamma_map:     yuklenen.append(f"Gamma ({len(gamma_map)} varlık)")
+    else:             print(f"  ℹ️  gamma_rapor.json yok — Gamma sinyali 0.0 olarak kullanılacak")
+
+    swan_adi = swan_rapor.get("risk_adi", "BILINMIYOR")
+    vix_val  = swan_rapor.get("vix", {}).get("deger", "?")
+    risk_off = "🔴 AKTİF" if swan_rapor.get("risk_off") else "🟢 PASİF"
+    yuklenen.append(f"Swan (VIX={vix_val}, {swan_adi}, Risk-Off:{risk_off})")
+
     print(f"  ✅ {' | '.join(yuklenen)}\n")
 
     semboller = list(teknik_map.keys())
     kararlar  = []
 
-    print(f"⚙️  Final kararlar üretiliyor (V5 ATR SL/TP)...")
+    print(f"⚙️  Final kararlar üretiliyor (V5 ATR SL/TP + Gözcü insider + Gamma)...")
     for sembol in semboller:
         karar = final_karar_uret(
             sembol    = sembol,
             teknik    = teknik_map.get(sembol),
             sentiment = sentiment_map.get(sembol),
             efsane    = efsane_map.get(sembol),
+            insider   = insider_map.get(sembol),
+            swan      = swan_rapor,
+            gamma     = gamma_map.get(sembol),
         )
         kararlar.append(karar)
 
@@ -680,8 +836,10 @@ if __name__ == "__main__":
 
     cikti = {
         "tarih"      : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "versiyon"   : "V5 — ATR bazlı dinamik SL/TP",
-        "agirliklar" : {"teknik": AGIRLIK_TEKNIK, "efsane": AGIRLIK_EFSANE, "sentiment": AGIRLIK_SENTIMENT},
+        "versiyon"   : "V5+Gözcü+Gamma — ATR bazlı dinamik SL/TP + Insider + Gamma sinyal",
+        "agirliklar" : {"teknik": AGIRLIK_TEKNIK, "efsane": AGIRLIK_EFSANE,
+                        "sentiment": AGIRLIK_SENTIMENT, "insider": AGIRLIK_INSIDER,
+                        "gamma": AGIRLIK_GAMMA},
         "atr_config" : {"sl_yuksek": ATR_SL_YUKSEK, "tp_yuksek": ATR_TP_YUKSEK,
                         "sl_orta": ATR_SL_ORTA, "tp_orta": ATR_TP_ORTA},
         "kararlar"   : kararlar,

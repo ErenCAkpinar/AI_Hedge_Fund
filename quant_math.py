@@ -930,6 +930,197 @@ def black_litterman_agirliklar(
         return {s: round(1/n, 4) for s in sembol_listesi}
 
 
+# ═══════════════════════════════════════════════════════════════
+# SPRINT 5 — BLACK SWAN ENGINE
+# ═══════════════════════════════════════════════════════════════
+
+def monte_carlo_sim(
+    getiriler          : pd.Series,
+    n_sim              : int   = 10000,
+    ufuk               : int   = 252,
+    baslangic_sermaye  : float = 1500.0,
+) -> dict:
+    """
+    GARCH volatilite clustering ile Monte Carlo simülasyonu.
+
+    10.000 senaryo × 252 günlük yol üretir. Vectorized — hızlı.
+
+    Args:
+        getiriler:         Günlük log getiri serisi
+        n_sim:             Simülasyon sayısı
+        ufuk:              Kaç günlük ileriye bak (252 = 1 yıl)
+        baslangic_sermaye: Portföy başlangıç değeri ($)
+
+    Returns:
+        dict: median_sonuc, var_95, cvar_95, iflas_olasiligi,
+              hedef_olasiligi, en_kotu_10, en_iyi_10, n_sim, ufuk_gun
+    """
+    getiri_arr  = np.array(getiriler.dropna())
+    if len(getiri_arr) < 30:
+        return {
+            "median_sonuc"   : baslangic_sermaye,
+            "var_95"         : baslangic_sermaye * 0.85,
+            "cvar_95"        : baslangic_sermaye * 0.75,
+            "iflas_olasiligi": 0.10,
+            "hedef_olasiligi": 0.40,
+            "en_kotu_10"     : baslangic_sermaye * 0.80,
+            "en_iyi_10"      : baslangic_sermaye * 1.20,
+            "n_sim"          : n_sim,
+            "ufuk_gun"       : ufuk,
+        }
+
+    mu          = float(np.mean(getiri_arr))
+    sigma       = float(np.std(getiri_arr))
+
+    # GARCH(1,1) ile yarınki sigma tahmini
+    garch       = garch_volatilite(pd.Series(getiri_arr))
+    sigma_yarin = garch.get("sigma_yarin")
+    if sigma_yarin:
+        sigma_yarin = sigma_yarin / 100.0  # % → oran
+    else:
+        sigma_yarin = sigma
+
+    np.random.seed(42)
+    rastgele = np.random.normal(mu, sigma_yarin, (n_sim, ufuk))
+
+    # Volatilite clustering: her günün vol'u bir öncekinden etkilenir
+    for t in range(1, ufuk):
+        vol_t = 0.10 + 0.85 * np.abs(rastgele[:, t - 1])
+        with np.errstate(invalid="ignore"):
+            carpan = np.where(sigma_yarin > 0, vol_t / sigma_yarin, 1.0)
+        rastgele[:, t] = rastgele[:, t] * np.clip(carpan, 0.5, 3.0)
+
+    yollar       = baslangic_sermaye * np.exp(np.cumsum(rastgele, axis=1))
+    son_degerler = yollar[:, -1]
+
+    iflas_esigi  = baslangic_sermaye * 0.50   # %50 kayıp = iflas
+    hedef_esigi  = baslangic_sermaye * 1.50   # %50 kazanç = hedef
+
+    pct5         = float(np.percentile(son_degerler, 5))
+    cvar_vals    = son_degerler[son_degerler <= pct5]
+
+    return {
+        "median_sonuc"    : round(float(np.median(son_degerler)), 2),
+        "var_95"          : round(pct5, 2),
+        "cvar_95"         : round(float(np.mean(cvar_vals)) if len(cvar_vals) else pct5, 2),
+        "iflas_olasiligi" : round(float(np.mean(son_degerler < iflas_esigi)), 4),
+        "hedef_olasiligi" : round(float(np.mean(son_degerler > hedef_esigi)), 4),
+        "en_kotu_10"      : round(float(np.percentile(son_degerler, 10)), 2),
+        "en_iyi_10"       : round(float(np.percentile(son_degerler, 90)), 2),
+        "n_sim"           : n_sim,
+        "ufuk_gun"        : ufuk,
+    }
+
+
+def kriz_stres_testi(portfoy_degeri: float) -> dict:
+    """
+    5 tarihi kriz şokunu portföye uygular.
+
+    S&P 500 peak-to-trough gerçek düşüş verileri.
+
+    Args:
+        portfoy_degeri: Anlık portföy değeri ($)
+
+    Returns:
+        dict: krizler (detay), en_kotu, min_kalan, risk_seviyesi
+    """
+    KRIZLER = {
+        "2008_finansal_kriz": {
+            "dusus"    : -0.565,
+            "sure_gun" : 365,
+            "aciklama" : "Lehman Brothers iflası",
+        },
+        "2020_covid": {
+            "dusus"    : -0.340,
+            "sure_gun" : 33,
+            "aciklama" : "COVID pandemisi",
+        },
+        "2022_fed_artirimi": {
+            "dusus"    : -0.252,
+            "sure_gun" : 282,
+            "aciklama" : "FED 475bps faiz artışı",
+        },
+        "2001_dotcom": {
+            "dusus"    : -0.490,
+            "sure_gun" : 546,
+            "aciklama" : "DotCom balonu",
+        },
+        "2018_q4_dusus": {
+            "dusus"    : -0.196,
+            "sure_gun" : 95,
+            "aciklama" : "FED QT + Çin ticaret savaşı",
+        },
+    }
+
+    sonuclar = {}
+    for kriz_adi, kv in KRIZLER.items():
+        kayip = portfoy_degeri * kv["dusus"]
+        kalan = portfoy_degeri + kayip
+        sonuclar[kriz_adi] = {
+            "dusus_pct"    : round(kv["dusus"] * 100, 1),
+            "kayip_dolar"  : round(kayip, 2),
+            "kalan_dolar"  : round(kalan, 2),
+            "sure_gun"     : kv["sure_gun"],
+            "aciklama"     : kv["aciklama"],
+            "hayatta_kaldi": kalan > 0,
+        }
+
+    en_kotu_adi  = min(sonuclar, key=lambda k: sonuclar[k]["kalan_dolar"])
+    min_kalan    = sonuclar[en_kotu_adi]["kalan_dolar"]
+    risk_seviyesi = "YUKSEK" if min_kalan < portfoy_degeri * 0.50 else "ORTA"
+
+    return {
+        "krizler"      : sonuclar,
+        "en_kotu"      : en_kotu_adi,
+        "min_kalan"    : round(min_kalan, 2),
+        "risk_seviyesi": risk_seviyesi,
+    }
+
+
+def vix_stres_hesapla(vix_skoru: float, portfoy_degeri: float) -> dict:
+    """
+    VIX seviyesine göre beklenen maksimum kayıp ve risk kararı.
+
+    VIX < 15   → DÜŞÜK  : normal işlem
+    VIX 15-25  → ORTA   : dikkat
+    VIX 25-40  → YÜKSEK : savunmaya geç
+    VIX > 40   → PANİK  : Risk-Off
+
+    Args:
+        vix_skoru:      Güncel VIX değeri
+        portfoy_degeri: Anlık portföy değeri ($)
+
+    Returns:
+        dict: vix, risk_adi, beklenen_dusus, beklenen_kayip,
+              tavsiye, risk_off_aktif
+    """
+    if vix_skoru < 15:
+        beklenen_dusus = -0.05
+        risk_adi       = "DUSUK"
+        tavsiye        = "Normal işlem"
+    elif vix_skoru < 25:
+        beklenen_dusus = -0.12
+        risk_adi       = "ORTA"
+        tavsiye        = "Pozisyon büyüklüklerini %20 küçült"
+    elif vix_skoru < 40:
+        beklenen_dusus = -0.25
+        risk_adi       = "YUKSEK"
+        tavsiye        = "GLD/USO ağırlığını artır, yeni LONG alma"
+    else:
+        beklenen_dusus = -0.45
+        risk_adi       = "PANIK"
+        tavsiye        = "Risk-Off: tüm pozisyonları kapat, sadece GLD/USO/FXY"
+
+    return {
+        "vix"            : vix_skoru,
+        "risk_adi"       : risk_adi,
+        "beklenen_dusus" : beklenen_dusus,
+        "beklenen_kayip" : round(portfoy_degeri * beklenen_dusus, 2),
+        "tavsiye"        : tavsiye,
+        "risk_off_aktif" : vix_skoru >= 40,
+    }
+
+
 def ou_spread_analizi(fiyat1: pd.Series, fiyat2: pd.Series,
                       sembol1: str = "A", sembol2: str = "B") -> dict:
     """
