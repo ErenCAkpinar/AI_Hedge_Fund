@@ -18,8 +18,8 @@ V5 (TAM PİPELİNE):
          Hafta içi her gün 12:00 TR'de çalıştırılıyor (ayrı görev).
 
 Çalışma Saatleri (NYSE'ye göre):
-    16:30 TR → NYSE açılış (09:30 ET)
-    23:00 TR → NYSE kapanış öncesi (16:00 ET)
+    13:30 UTC → NYSE açılış (09:30 ET)
+    19:50 UTC → NYSE kapanış öncesi (16:00 ET)
 
 Çalıştırma:
     python scheduler.py
@@ -47,8 +47,8 @@ import schedule
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
-SAAT_ACILIS       = "16:30"   # NYSE açılış (TR)
-SAAT_KAPANIS      = "23:00"   # NYSE kapanış öncesi (TR)
+SAAT_ACILIS       = "13:30"   # NYSE açılış (UTC)
+SAAT_KAPANIS      = "19:50"   # NYSE kapanış öncesi (UTC)
 SAAT_SENTIMENT    = "12:00"   # Gündüz sentiment taraması (TR)
 LOG_DOSYA         = "scheduler.log"
 TIMEOUT_KISA      = 180       # mock/legends/pairs/sheets: 3 dakika
@@ -63,8 +63,11 @@ TIMEOUT_SENTIMENT = 600       # 17 sembol × ~15sn ≈ 255sn min, gecikmelerle 4
 PIPELINE_ADIMLARI = [
     ("mock_agent.py",    TIMEOUT_KISA, True,  "Teknik Analiz (ATR+SMA200)"),
     ("legends_agent.py", TIMEOUT_KISA, True,  "Efsane Oylama (ATR ihraç)"),
+    ("swan_agent.py",    TIMEOUT_KISA, False, "Black Swan Engine (VIX + MC + Kriz)"),
     ("pairs_agent.py",   TIMEOUT_KISA, False, "Pairs Tarama ve Copula Kalkanı"),
-    ("state_manager.py", TIMEOUT_UZUN, True,  "Final Karar (ATR bazlı SL/TP)"),
+    ("insider_agent.py", TIMEOUT_UZUN, False, "Project Gözcü (6 Katman Insider)"),
+    ("gamma_agent.py",   TIMEOUT_UZUN, False, "Gamma Sentinel (GEX + UOA + IV Skew)"),
+    ("state_manager.py", TIMEOUT_UZUN, True,  "Final Karar (ATR + Swan + Insider + Gamma)"),
     ("alpaca_trader.py", TIMEOUT_UZUN, False, "İşlem Motoru (Pyramiding)"),
     ("sheets_pusher.py", TIMEOUT_KISA, False, "Dashboard Güncelleme"),
 ]
@@ -100,7 +103,7 @@ def hafta_ici_mi() -> bool:
 def market_acik_mi_basit() -> bool:
     """
     Alpaca API'ye bağlanmadan basit saat + gün kontrolü.
-    NYSE: Hafta içi 09:30–16:00 ET = TR 16:30–23:00.
+    NYSE: Hafta içi 09:30–16:00 ET = UTC 13:30–20:00.
     Yalnızca alpaca_trader adımının çalışıp çalışmayacağını belirler.
     Not: alpaca_trader kendi içinde de kontrol yapar → ikinci güvenlik katmanı.
     """
@@ -108,8 +111,8 @@ def market_acik_mi_basit() -> bool:
         return False
     simdi   = datetime.now()
     saat    = simdi.hour * 60 + simdi.minute
-    acilis  = 16 * 60 + 25    # 16:25 TR
-    kapanis = 23 * 60 + 5     # 23:05 TR
+    acilis  = 13 * 60 + 25    # 13:25 UTC
+    kapanis = 20 * 60 + 5     # 20:05 UTC
     return acilis <= saat <= kapanis
 
 
@@ -295,17 +298,17 @@ def sentiment_tarama_calistir() -> None:
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  Algoritmik Hedge Fon | Scheduler V5.3")
-    print(f"  Pipeline: mock→legends→pairs→state_mgr→alpaca→sheets")
-    print(f"  Çalışma: {SAAT_ACILIS} | {SAAT_KAPANIS} | {SAAT_SENTIMENT} (TR saati)")
+    print(f"  Algoritmik Hedge Fon | Scheduler V5.4")
+    print(f"  Pipeline: mock→legends→swan→pairs→insider→gamma→state_mgr→alpaca→sheets")
+    print(f"  Çalışma: {SAAT_ACILIS} | {SAAT_KAPANIS} | {SAAT_SENTIMENT} (UTC)")
     print(f"  Yalnızca hafta içi (Pzt–Cum) çalışır.")
     print(f"  Durdurmak: Ctrl+C")
     print(f"{'='*60}\n")
 
     log.info("⏰ Scheduler V5.3 başlatıldı.")
-    log.info(f"   NYSE Açılış  : {SAAT_ACILIS} TR — tam pipeline")
-    log.info(f"   NYSE Kapanış : {SAAT_KAPANIS} TR — tam pipeline")
-    log.info(f"   Sentiment    : {SAAT_SENTIMENT} TR — bağımsız tarama")
+    log.info(f"   NYSE Açılış  : {SAAT_ACILIS} UTC — tam pipeline")
+    log.info(f"   NYSE Kapanış : {SAAT_KAPANIS} UTC — tam pipeline")
+    log.info(f"   Sentiment    : {SAAT_SENTIMENT} UTC — bağımsız tarama")
     log.info(f"   Timeout      : kısa={TIMEOUT_KISA}s | uzun={TIMEOUT_UZUN}s | sentiment={TIMEOUT_SENTIMENT}s")
 
     schedule.every().day.at(SAAT_ACILIS).do(tam_pipeline_calistir)

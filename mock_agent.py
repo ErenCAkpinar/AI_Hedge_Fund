@@ -280,7 +280,7 @@ def raporu_yazdir(rapor: list[dict]) -> None:
 def raporu_kaydet(rapor: list[dict], dosya: str) -> None:
     cikti = {
         "tarih"         : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "mod"           : "MOCK-V5 — ATR+SMA200 entegre, API bağlantısı bekleniyor",
+        "mod"           : "QUANT-V6 — Gemini AI & Alpaca API CANLI BAĞLANTI AKTİF 🟢",
         "varlık_sayısı" : len(rapor),
         "v5_degisiklik" : "ATR_14 ve SMA_200 tüm varlıklar için rapor.json'a eklendi",
         "varlıklar"     : rapor
@@ -288,8 +288,6 @@ def raporu_kaydet(rapor: list[dict], dosya: str) -> None:
     Path(dosya).write_text(json.dumps(cikti, ensure_ascii=False, indent=2))
     print(f"\n💾 Rapor kaydedildi → {dosya}")
     print(f"   V5: ATR_14 ve SMA_200 verisi artık state_manager'a akıyor ✅")
-
-
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────

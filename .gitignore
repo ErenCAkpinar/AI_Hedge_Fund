@@ -44,6 +44,14 @@ final_karar.json
 true_backtest_rapor.json
 true_backtest_v3_rapor.json
 order_log.json
+swan_rapor.json
+insider_rapor.json
+gamma_rapor.json
+pairs_rapor.json
+copula_durum.json
+bl_agirliklar.json
+hmm_rejim.json
+kelly_gecmis.json
 
 # ── Log Files ─────────────────────────────────────────────────────────
 *.log
