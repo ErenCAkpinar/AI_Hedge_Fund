@@ -15,6 +15,7 @@ yfinance==1.2.0
 ta==0.11.0
 
 # AI / ML
+anthropic>=0.49.0
 google-generativeai==0.8.6
 hmmlearn==0.3.3
 crewai==1.10.1
