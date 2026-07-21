@@ -185,65 +185,46 @@ This 5,281-signal filter is the system working as designed: **quality over quant
 
 ## Architecture
 
+Orchestrated pipeline: six deterministic quant agents produce evidence, a
+Claude-backed decision engine fuses it into one sized order, Alpaca executes it.
+Execution is gated on critical-step success and market hours.
+
+```mermaid
+flowchart TD
+    SCHED["scheduler.py — orchestrator<br/>13:30 and 19:50 UTC full pipeline<br/>12:00 UTC sentiment scan<br/>weekend skip"]
+
+    subgraph SIG ["Signal agents — deterministic quant, no LLM"]
+        direction LR
+        A1["Technical Analysis<br/>ATR · SMA200 · HMM regime"]
+        A2["Legends Voting<br/>8 strategies · ADX/Hurst filter"]
+        A3["Black Swan Engine<br/>VIX · Monte Carlo"]
+        A4["Pairs + Copula Shield<br/>Ornstein-Uhlenbeck"]
+        A5["Insider Tracker<br/>6-layer"]
+        A6["Gamma Sentinel<br/>GEX · UOA · IV skew"]
+    end
+
+    SENT["Sentiment Scan<br/>Gemini 2.5 Flash"]
+    DEC{"Decision Engine<br/>state_manager.py<br/>Claude Sonnet 4 · Rolling Kelly"}
+    EXEC["Execution — Alpaca<br/>ATR stops · pyramiding"]
+    REP["Reporting<br/>Telegram · Google Sheets · Next.js war-room"]
+    WD["Position Watchdog<br/>Claude Haiku 4.5"]
+
+    SCHED --> SIG
+    SCHED --> SENT
+    SIG --> DEC
+    SENT --> DEC
+    DEC --> EXEC
+    EXEC --> REP
+    EXEC -.-> WD
+    WD -.-> REP
+
+    style SCHED fill:#38a169,color:#fff
+    style DEC fill:#2d3748,color:#fff
+    style EXEC fill:#2b6cb0,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                   SCHEDULER (16:30 TR / 23:00 TR)                       │
-└────────────────────────────┬────────────────────────────────────────────┘
-                             │  triggers
-         ┌───────────────────▼────────────────────────────────────────┐
-         │                    DAG PIPELINE                            │
-         │                                                            │
-         │  ┌──────────────────────────────────────────────────────┐  │
-         │  │  0. quant_math.py  [V6 NEW]                         │  │
-         │  │     14-Function Institutional Quant Library          │  │
-         │  │     Pure math — no I/O, no API calls, stateless      │  │
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ imported by all modules           │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  1. mock_agent / analyst_agent  [V6 updated]         │  │  RSI, MACD, SMA20/50/200
-         │  │     Technical Signal Engine                          │  │  ATR_14 → rapor.json
-         │  │     + Kurtosis, Hurst, GARCH, Kalman per symbol      │  │  + hmm_rejim.json
-         │  │     + Daily HMM regime detection (SPY)               │  │  + bl_agirliklar.json
-         │  │     + Black-Litterman portfolio weights               │  │
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ ATR_14, SMA_200, quant metrics    │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  2. legends_agent.py  [V6 updated]                   │  │  8 legendary strategies
-         │  │     Weighted Voting System                           │  │  → legends_rapor.json
-         │  │     + ADX ≥ 20 AND Hurst ≥ 0.55 LONG filter          │  │
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ consensus + ATR + hurst_filtre    │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  3. sentiment_agent.py  [V6 updated]                 │  │  Gemini Flash AI
-         │  │     Multi-Source Sentiment                           │  │  → sentiment_rapor.json
-         │  │     + IV Radar (Black-Scholes) as 6th signal         │  │
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ sentiment_skoru + iv_sinyal       │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  4. pairs_agent.py  [V6 NEW]                         │  │  Ornstein-Uhlenbeck
-         │  │     OU Spread Analysis — 5 pairs                     │  │  → pairs_rapor.json
-         │  │     Copula Portfolio Correlation Shield               │  │  → copula_durum.json
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ copula_durum                      │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  5. state_manager.py  [V6 updated]                   │  │  40% Technical
-         │  │     Final Decision Engine                            │  │  35% Legends
-         │  │     + Rolling Kelly position sizing                  │  │  25% Sentiment
-         │  │     + HMM adaptive threshold scaling                 │  │  → final_karar.json
-         │  │     + Copula safe-haven routing (GLD/USO/FXY)        │  │
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │ final_karar.json                  │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  6. alpaca_trader.py  [V5 — unchanged]               │  │  State Awareness rules
-         │  │     Trade Execution + Pyramiding                     │  │  ATR Trailing Stop
-         │  └──────────────────────┬───────────────────────────────┘  │
-         │                        │                                   │
-         │  ┌──────────────────────▼───────────────────────────────┐  │
-         │  │  sheets_pusher + telegram_bot                        │  │  Google Sheets Dashboard
-         │  │     Reporting & Notifications                        │  │  Operator Telegram Alerts
-         │  └──────────────────────────────────────────────────────┘  │
-         └────────────────────────────────────────────────────────────┘
-```
+
+**[→ Full technical diagram](docs/architecture.md)** — every agent, JSON artifact,
+external API, LLM routing and the critical-step gate.
 
 ---
 
