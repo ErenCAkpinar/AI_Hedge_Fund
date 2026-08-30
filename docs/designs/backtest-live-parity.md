@@ -237,24 +237,62 @@ the thing that will make the rest of this concrete.
   argued for. On the canonical-constants question in Open Questions, I do not have a
   view that should beat yours, and I would rather you overrule me there.
 
+## Outside Voice — Codex (gpt-5.6-sol, xhigh) — 2026-08-30
+
+Verdict: **"retire it as a trading system now. Preserve only a bounded research autopsy."**
+
+Six of six testable claims verified against the code:
+
+| Claim | Verified | Evidence |
+|---|---|---|
+| Backtest is not a portfolio simulation | YES | `ORTALAMA POZISYON 18.0%` is the mean per-trade `pos_oran`. Actual concurrent gross exposure: **66.5% mean, 217.5% max, 94 of 427 weekdays over 100%** |
+| Sharpe is invalid | YES | per-trade returns x `sqrt(252)`, `true_backtest.py:590` |
+| Live 15% cap is fictional | YES | `_pyramiding_gecmis_say` filters `startswith(bugun)` — 2 adds **per day**, not per position |
+| GCP key in public git history | YES | added `a571ed1b`, removed `458637ae`; still in history, local file 0644 |
+| Rolling Kelly cannot reach execution | YES | `poz_buyukluk` exists only in `state_manager.py`; `json_normalize` drops it, Alpaca re-derives from `guven_skoru` |
+| Take-profit never submitted | YES | `grep take_profit alpaca_trader.py` → zero hits |
+| Daily OHLC cannot order high vs low | YES | `true_backtest.py:415-423` raises the trail on the bar high, then tests the bar low against the raised trail |
+
+The last one **invalidates the original T2 design**: labelling an exit `SL` when "the watermark never moved" is unsound, because the watermark update itself assumes an intraday ordering a daily bar cannot supply.
+
+### Cross-model tensions, resolved by the user
+
+- **D10 supersedes D4.** Codex said retire; the plan said all 38 tasks. Resolved: **build a correct
+  portfolio simulator first, predeclare a go/no-go pass mark, then decide.** The 501-bar window is
+  now contaminated as out-of-sample data — its results have been seen and the system is being
+  changed in response.
+- **D11 supersedes D5.** Codex rejected rules-and-fractions parity: capital is not a neutral input,
+  it changes short eligibility, share rounding, minimum-order oversizing and buying-power clamps.
+  Resolved: **two named profiles (`live-parity`, `research`) with behavioural assertions.**
+- **D12 refines D8.** Codex named E7 (deleting `LONG_ONLY_LIST`) the highest-risk task in the 38:
+  the executor places a market order and submits the stop separately, so a stop-submission failure
+  leaves a **naked short**. Resolved: **`SHORT_ENABLED` is necessary but not sufficient — SHORT
+  stays gated until broker-mock execution tests pass.**
+
+14 further tasks recorded in `tasks-outside-voice-*.jsonl`, led by **S1: revoke the GCP key.**
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | ISSUES | 10 proposals, 8 accepted, 2 deferred |
-| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | not run |
+| Codex Review | `/codex review` | Independent 2nd opinion | 1 | ISSUES | 10 findings, 6/6 testable claims verified |
 | Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES | 12 issues, 4 critical gaps |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | no UI scope |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | not run |
 
-**OUTSIDE VOICE:** FAILED both attempts. Codex returned 401 Unauthorized on all 5 retries
-in both the CEO and eng reviews, despite `gstack-codex-probe` reporting `CODEX_MODE: ready`
-(the probe caches for 1h and fails open). Gemini CLI is tier-ineligible and redirects to
-Antigravity, which is an IDE with no scriptable prompt entry point on this machine. The
-Claude-subagent fallback is disallowed by this session's configuration. No substitute was
-faked. Fix with `codex login` and rerun.
+**CODEX:** Ran on gpt-5.6-sol at xhigh reasoning after the user fixed CLI auth. Verdict: retire the
+system as a trading system, keep a bounded research autopsy. Six of six testable claims verified.
+Found five defects both Claude reviews missed, including a live security exposure.
 
-**VERDICT:** CEO + ENG reviewed, both status ISSUES — 38 tasks open (26 CEO + 12 eng),
-4 critical gaps. Not cleared to ship; cleared to implement.
+**CROSS-MODEL:** Three tensions surfaced (D10, D11, D12). All three resolved toward Codex. Where the
+two reviewers agreed — measurement is untrustworthy, safety gates are inadequate, LLM veto is
+unproven — confidence is high. Where they disagreed, Codex was right each time: it read the numbers
+before the plan, and the plan was written before the numbers existed.
+
+**VERDICT:** CEO + ENG + CODEX all reviewed, all status ISSUES. 52 tasks open (26 CEO + 12 eng +
+14 outside-voice). Plan resequenced: portfolio simulator and go/no-go gate now precede everything.
+Not cleared to ship. Not cleared to trade. Cleared to measure.
 
 NO UNRESOLVED DECISIONS
+
