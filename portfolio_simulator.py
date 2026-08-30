@@ -139,7 +139,11 @@ class SignalDecision:
     confidence: str
     target_fraction: float     # fraction of equity to deploy
     atr: float                 # frozen on the SIGNAL date, never the entry bar
-    trail_multiple: float
+    trail_multiple: float      # kurtosis-driven, 2.5-5.0, for TRAILING only
+    # The INITIAL stop is a different, tighter multiple (1.8 YÜKSEK / 1.5 ORTA).
+    # Using the trail multiple for the initial stop widens it to 2.5-5.0x ATR and
+    # silently changes the strategy. Caught by Codex in review of this file.
+    initial_stop_multiple: float = 1.5
 
 
 @dataclass
@@ -227,6 +231,12 @@ def simulate_portfolio(
     """
     if cfg.max_gross_exposure <= 0:
         raise ValueError("max_gross_exposure must be positive")
+    if cfg.allow_short:
+        # Short cash flow (proceeds received, collateral held, borrow) is NOT
+        # implemented. Silently wrong accounting is worse than refusing.
+        raise NotImplementedError(
+            "allow_short=True is not supported: short proceeds, collateral and "
+            "borrow are unimplemented. Gated on broker-mock tests (D12).")
 
     calendar = list(calendar)
     # A signal on a close fills at the NEXT open. Filling at the same close is
@@ -320,8 +330,29 @@ def simulate_portfolio(
             cap_room = cfg.max_gross_exposure * e0 - gross_mv
             avail = cash
 
-            # deterministic: score desc, then symbol. WATCHLIST order cannot matter.
+            # deterministic ordering, but allocation is PROPORTIONAL not greedy.
+            # Greedy-by-score double-counts score, because score already drives
+            # target_fraction; a high scorer would crowd out several smaller
+            # names on top of already being sized larger. (Codex answer 1.)
             due.sort(key=lambda i: (-i["score"], i["symbol"]))
+
+            # pass 1: what each candidate wants, all priced off the SAME e0
+            wants = {}
+            for intent in due:
+                sym = intent["symbol"]
+                b = bar(sym, date)
+                if sym in exited_today or b is None:
+                    continue
+                px = adverse_price(float(b["Open"]), intent["side"], True, cfg)
+                if px <= 0:
+                    continue
+                notional = (e0 * intent["target_fraction"] if intent["kind"] == "ENTRY"
+                            else intent["requested_qty"] * px)
+                wants[sym] = (px, notional)
+
+            demand = sum(n for _, n in wants.values())
+            budget = max(min(avail, cap_room), 0.0)
+            scale = 1.0 if demand <= budget or demand <= 0 else budget / demand
             for intent in due:
                 sym = intent["symbol"]
                 if sym in exited_today:
@@ -338,17 +369,21 @@ def simulate_portfolio(
                 if px <= 0:
                     continue
 
+                scaled_notional = wants.get(sym, (px, 0.0))[1] * scale
                 if intent["kind"] == "ENTRY":
-                    want = int(math.floor((e0 * intent["target_fraction"]) / px))
+                    want = int(math.floor(scaled_notional / px))
                 else:
-                    want = int(math.floor(intent["requested_qty"]))
+                    want = min(int(math.floor(intent["requested_qty"])),
+                               int(math.floor(scaled_notional / px)))
                 if want < 1:
                     rejections.append({"date": str(date)[:10], "symbol": sym,
                                        "reason": "BELOW_ONE_SHARE",
                                        "kind": intent["kind"]})
                     continue
 
-                afford = int(math.floor(avail / px))
+                # fees are part of what the order costs, so they bound it too
+                per_share_fee = cfg.cat_fee_per_share
+                afford = int(math.floor(avail / (px + per_share_fee)))
                 room = int(math.floor(max(cap_room, 0.0) / px))
                 qty = min(want, afford, room)
                 if qty < 1:
@@ -375,7 +410,9 @@ def simulate_portfolio(
                 if intent["kind"] == "ENTRY":
                     trade_seq += 1
                     atr, mult = intent["atr"], intent["trail_multiple"]
-                    stop = px - atr * mult if intent["side"] > 0 else px + atr * mult
+                    init_mult = intent["initial_stop_multiple"]
+                    stop = (px - atr * init_mult if intent["side"] > 0
+                            else px + atr * init_mult)
                     levels = tuple(
                         px + intent["side"] * atr * 1.5 * (n + 1)
                         for n in range(cfg.max_pyramids)) if atr > 0 else ()
@@ -395,6 +432,7 @@ def simulate_portfolio(
                     pos = positions.get(sym)
                     if pos is None:
                         continue
+                    pos.next_pyramid_index += 1   # consumed only on a real fill
                     pos.avg_entry_price = (
                         (pos.avg_entry_price * pos.qty + px * qty) / (pos.qty + qty))
                     pos.qty += qty
@@ -480,7 +518,6 @@ def simulate_portfolio(
             if not crossed:
                 continue
             add = int(math.floor(pos.base_qty * cfg.pyramid_fraction))
-            pos.next_pyramid_index += 1
             if add < 1:
                 rejections.append({"date": str(date)[:10], "symbol": pos.symbol,
                                    "reason": "PYRAMID_BELOW_ONE_SHARE"})
@@ -493,7 +530,8 @@ def simulate_portfolio(
                             "score": pos.score, "confidence": pos.confidence,
                             "requested_qty": add, "target_fraction": 0.0,
                             "atr": pos.atr_at_signal,
-                            "trail_multiple": pos.trail_multiple})
+                            "trail_multiple": pos.trail_multiple,
+                            "initial_stop_multiple": 0.0})
 
         # ── 7b. entry signals for symbols flat all session ───────────────────
         for sym in symbols:
@@ -519,15 +557,26 @@ def simulate_portfolio(
                             "score": d.score, "confidence": d.confidence,
                             "target_fraction": d.target_fraction,
                             "requested_qty": None,
-                            "atr": d.atr, "trail_multiple": d.trail_multiple})
+                            "atr": d.atr, "trail_multiple": d.trail_multiple,
+                            "initial_stop_multiple": d.initial_stop_multiple})
 
     # ── forced liquidation at the final close ────────────────────────────────
+    # Must restate the last equity row afterwards: otherwise the liquidation's
+    # spread, slippage and fees land in closed_trades and the cost totals but
+    # never in final_equity, overstating the headline. (Codex blocker 1.)
     if calendar and positions:
         last = calendar[-1]
         for sym in list(positions):
             b = bar(sym, last)
             if b is not None:
                 close_position(positions[sym], last, float(b["Close"]), "END_OF_DATA")
+        if daily and daily[-1]["date"] == last:
+            row = daily[-1]
+            row.update(cash=cash, long_market_value=0.0, short_market_value=0.0,
+                       gross_exposure=0.0, net_exposure=0.0, gross_exposure_pct=0.0,
+                       equity=cash, execution_cost_cum=cum_cost, fees_cum=cum_fees,
+                       open_positions=0)
+            row["drawdown_pct"] = cash / max(peak_equity, 1e-9) - 1.0
 
     curve = pd.DataFrame(daily).set_index("date") if daily else pd.DataFrame()
     if not curve.empty:
