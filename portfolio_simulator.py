@@ -50,7 +50,49 @@ __all__ = [
     "Position",
     "SimulationResult",
     "simulate_portfolio",
+    "equity_metrics",
 ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Metrics (S4)
+# ─────────────────────────────────────────────────────────────────────────────
+def equity_metrics(equity: pd.Series, risk_free_annual: float = 0.05) -> dict:
+    """Risk metrics from a DAILY equity curve.
+
+    docs/designs/go-no-go.md requires that strategy and every benchmark be
+    scored by this same function, so it lives here rather than in a caller.
+
+    The old sharpe_calmar_hesapla treated per-trade returns as daily
+    observations and annualised them by sqrt(252). With 142 trades over 501
+    sessions that overstated Sharpe badly and made it incomparable to SPY's.
+    Here the observations are actual daily equity changes, flat days included.
+    """
+    equity = equity.dropna()
+    if len(equity) < 3:
+        return {"sharpe": None, "sortino": None, "max_drawdown_pct": None,
+                "total_return_pct": None, "days": len(equity)}
+
+    r = equity.pct_change(fill_method=None).dropna()
+    rf_daily = risk_free_annual / 252.0
+    excess = r - rf_daily
+    sd = float(r.std(ddof=1))
+    sharpe = float(excess.mean() / sd * (252 ** 0.5)) if sd > 0 else None
+
+    downside = r[r < rf_daily]
+    dsd = float(downside.std(ddof=1)) if len(downside) > 1 else 0.0
+    sortino = float(excess.mean() / dsd * (252 ** 0.5)) if dsd > 0 else None
+
+    peak = equity.cummax()
+    max_dd = float((equity / peak - 1.0).min())
+
+    return {
+        "sharpe": round(sharpe, 3) if sharpe is not None else None,
+        "sortino": round(sortino, 3) if sortino is not None else None,
+        "max_drawdown_pct": round(max_dd * 100, 2),
+        "total_return_pct": round(float(equity.iloc[-1] / equity.iloc[0] - 1) * 100, 2),
+        "days": int(len(equity)),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
