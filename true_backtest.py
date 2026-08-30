@@ -1,33 +1,41 @@
 """
-true_backtest_v5.py — 4 KÂR ARTIRICI GELİŞTİRME
-=================================================
+true_backtest_v6.py — STATE MANAGER V6 İLE TAM SENKRON
+=======================================================
 
-v4 → v5 DEĞİŞİKLİKLER:
+v5 → v6 DEĞİŞİKLİKLER:
 
-  🏃 GELİŞTİRME 1: İZLEYEN STOP (Trailing Stop)
-    - Sabit TP (Take Profit) kaldırıldı.
-    - Fiyat yükseldikçe Stop-Loss arkasından tırmanır.
-    - ATR_TRAIL_KATSAYI = 2.5  (giriş sonrası trail mesafesi)
-    - Rallinin tamamını kasaya koyar, erken çıkışı önler.
+  🧠 GELİŞTİRME 5: HMM REJİM TESPİTİ
+    - BULL/SIDEWAYS/BEAR piyasa rejimi → dinamik eşik çarpanı
+    - BEAR piyasada giriş eşiği ×1.5 → daha az işlem, daha güvenli
 
-  ⚖️  GELİŞTİRME 2: DİNAMİK POZİSYON BÜYÜKLÜĞÜ (Kelly Kriteri)
-    - Sabit %10 yerine state_manager toplam_skor baz alınır:
-        Skor ≥ 0.60 → %35  |  ≥ 0.40 → %25
-        Skor ≥ 0.30 → %15  |  < 0.30 → %10
-    - Makine en emin olduğunda ağır yumruk atar.
+  📊 GELİŞTİRME 6: KURTOSİS DİNAMİK ATR TRAİL
+    - Sabit ATR_TRAIL_KATSAYI=2.5 → Kurtosis bazlı 2.5-5.0
+    - Kalın kuyruk (fat tail) algılanırsa trail mesafesi genişler
 
-  🧱 GELİŞTİRME 3: PYRAMIDING (Kazanan Ata Ekleme)
-    - Trend devam ettiğinde her 1.5 ATR'de bir ek giriş (max 2 katman).
-    - Piramit boyutu = ana pozisyonun %50'si.
-    - Dennis Turtle Trading: "Kazanana ekle, kaybedeni kes."
+  📈 GELİŞTİRME 7: HURST LONG FİLTRESİ
+    - Hurst < 0.45 (mean-reversion) → LONG engellenir
+    - Trend var mı yok mu istatistiksel test
 
-  ❄️  GELİŞTİRME 4: BİLEŞİK GETİRİ (Compounding)
-    - Tüm işlemler kronolojik sıralanır.
-    - Kâr ana sermayeye eklenir, bir sonraki işlem güncel equity'den açılır.
-    - Kartopu etkisiyle dik büyüme eğrisi.
+  🌊 GELİŞTİRME 8: GARCH POZİSYON ÖLÇEĞİ
+    - GARCH(1,1) volatilite tahmini → Kelly pozisyon küçültme
+    - Yüksek vol → yarım pozisyon
+
+  🦢 GELİŞTİRME 9: VIX/BLACK SWAN SİMÜLASYONU
+    - Tarihsel ^VIX verisi ile risk-off dönemleri simüle edilir
+    - VIX > 30 → güvenli liman hariç HOLD
+
+  📉 GELİŞTİRME 10: GELİŞMİŞ METRİKLER
+    - Sortino Ratio, VaR/CVaR, Walk-Forward analiz
+
+  v5'ten devam:
+    1. İzleyen Stop (Trailing Stop)
+    2. Dinamik Pozisyon Büyüklüğü (Kelly)
+    3. Pyramiding
+    4. Bileşik Getiri (Compounding)
 """
 
 import sys, json, warnings
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -46,11 +54,27 @@ from state_manager import (
     teknik_skora_cevir, efsane_skora_cevir,
     catisma_var_mi,
     pozisyon_buyuklugu_hesapla,
-    AGIRLIK_TEKNIK, AGIRLIK_EFSANE,
+    AGIRLIK_TEKNIK, AGIRLIK_EFSANE, AGIRLIK_SENTIMENT,
+    AGIRLIK_INSIDER, AGIRLIK_GAMMA,
+)
+from portfolio_simulator import (
+    SignalDecision,
+    SimulatorConfig,
+    equity_metrics,
+    simulate_portfolio,
+)
+from quant_math import (
+    kurtosis_hesapla,
+    hurst_hesapla,
+    garch_volatilite,
+    hmm_rejim_tespit,
+    sortino_hesapla,
+    var_cvar_hesapla,
+    walk_forward_test,
 )
 
 # ─────────────────────────────────────────────
-# CONFIG v5
+# CONFIG v6
 # ─────────────────────────────────────────────
 WATCHLIST = [
     # Yarı İletken & AI Liderleri
@@ -58,26 +82,29 @@ WATCHLIST = [
     # Veri, Yazılım & Kripto
     "PLTR", "MSTR", "IBIT",
     # Agresif Momentum Şampiyonları (Ana Kâr Motorları)
-    "ASTS", "VST", 
+    "ASTS", "VST",
     # Savunma, İlaç & Otomotiv
     "LMT", "LLY", "TSLA",
     # Makro Koruma & Değer
-    "GLD", "FXY" , "META",
-    "USO",  "WMT",  "QQQ"
-   
-
+    "GLD", "FXY", "META",
+    "USO", "WMT", "QQQ"
 ]
 
-LONG_ONLY_LIST = {"NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", "ASTS", "VST", "LMT", "LLY",  "TSLA", "GLD", "FXY", "META",
-    "USO",  "WMT",  "QQQ"}
+LONG_ONLY_LIST = {
+    "NVDA", "AVGO", "SOXX", "PLTR", "MSTR", "IBIT", "ASTS", "VST",
+    "LMT", "LLY", "TSLA", "GLD", "FXY", "META", "USO", "WMT", "QQQ"
+}
+
+GUVENLI_LIMANLAR = {"GLD", "USO", "FXY"}
 
 BASLANGIC_SERMAYE = 1_500
 PERIOD            = "2y"
 ISINMA_GUN        = 60
 MAX_POZISYON_GUN  = 15
 
-ESIK_YUKSEK = 0.40
-ESIK_ORTA   = 0.30
+# V6: state_manager ile senkron eşikler
+ESIK_YUKSEK = 0.45
+ESIK_ORTA   = 0.28
 
 ADX_MIN_LONG    = 20
 ADX_MIN_SHORT   = 30
@@ -86,14 +113,20 @@ SHORT_ORAN_MIN  = 60
 # ATR stop katsayıları
 ATR_SL_YUKSEK = 1.8
 ATR_SL_ORTA   = 1.5
+ATR_TP_YUKSEK = 4.5
+ATR_TP_ORTA   = 3.5
 
-# 🆕 1. İZLEYEN STOP (Trailing Stop)
-ATR_TRAIL_KATSAYI = 2.5   # Trailing stop ATR mesafesi — TP'nin yerini aldı
+# V6: Kurtosis bazlı trail — varsayılan, runtime'da override edilir
+ATR_TRAIL_KATSAYI_DEFAULT = 2.5
 
-# 🆕 3. PYRAMIDING
-PYRAMID_TRIGGER_ATR = 1.5   # Her X ATR'de bir ek giriş
-PYRAMID_MAX         = 2     # Maksimum ek giriş katmanı
-PYRAMID_BOYUT       = 0.50  # Piramit boyutu = ana pozisyonun %50'si
+# Pyramiding
+PYRAMID_TRIGGER_ATR = 1.5
+PYRAMID_MAX         = 2
+PYRAMID_BOYUT       = 0.50
+
+# V6: VIX eşikleri (swan_agent ile senkron)
+VIX_RISK_OFF = 30     # VIX > 30 → güvenli liman dışında HOLD
+
 
 # ─────────────────────────────────────────────
 # BÖLÜM 1: VERİ
@@ -135,6 +168,17 @@ def veri_cek(symbol):
         return None
 
 
+def vix_tarihsel_cek():
+    """Tarihsel VIX verisi çeker — swan simülasyonu için."""
+    try:
+        vix = yf.Ticker("^VIX").history(period=PERIOD, interval="1d")
+        if vix.empty:
+            return None
+        return vix["Close"]
+    except Exception:
+        return None
+
+
 # ─────────────────────────────────────────────
 # BÖLÜM 2: MOCK AGENT (RSI doğru, SMA cross dahil)
 # ─────────────────────────────────────────────
@@ -153,9 +197,9 @@ def mock_agent_karar(df_slice):
     sma50     = son.get("SMA_50")
 
     if pd.notna(rsi):
-        if rsi < 30:   puan += 2   # oversold = LONG
+        if rsi < 30:   puan += 2
         elif rsi < 45: puan += 1
-        elif rsi > 70: puan -= 2   # overbought = SHORT
+        elif rsi > 70: puan -= 2
         elif rsi > 55: puan -= 1
 
     if pd.notna(histogram) and pd.notna(macd):
@@ -175,59 +219,94 @@ def mock_agent_karar(df_slice):
     return {"SİNYAL": sinyal, "PUAN": puan}
 
 
-# ─────────────────────────────────────────────
-# BÖLÜM 3: ATR BAZLI SL/TP
-# ─────────────────────────────────────────────
-def atr_sl_tp(fiyat, sinyal, guven, atr):
-    if sinyal == "HOLD" or fiyat == 0 or not atr or pd.isna(atr):
-        return {"stop_loss": None, "take_profit": None}
-
-    sl_k = ATR_SL_YUKSEK if guven == "YÜKSEK" else ATR_SL_ORTA
-    tp_k = ATR_TP_YUKSEK if guven == "YÜKSEK" else ATR_TP_ORTA
-
-    if sinyal == "LONG":
-        sl = round(fiyat - atr * sl_k, 4)
-        tp = round(fiyat + atr * tp_k, 4)
-    else:
-        sl = round(fiyat + atr * sl_k, 4)
-        tp = round(fiyat - atr * tp_k, 4)
-
-    return {"stop_loss": sl, "take_profit": tp, "rr": f"1:{round(tp_k/sl_k,1)}"}
-
 
 # ─────────────────────────────────────────────
-# BÖLÜM 4: v4 SİNYAL
+# BÖLÜM 4: V6 SİNYAL (5 katman + dinamik eşik)
 # ─────────────────────────────────────────────
-def v4_sinyal(symbol, df_slice):
+def v6_sinyal(symbol, df_slice, vix_bugun=None, hmm_carpan=1.0):
+    """
+    V6: 5 katmanlı sinyal üretici (state_manager ile senkron).
+    - Teknik + Efsane = aktif katmanlar
+    - Sentiment/Insider/Gamma = backtest'te 0 (veri yok)
+    - Ağırlıkları state_manager'dan alır, eksik katmanları teknik+efsane'ye dağıtır
+    - HMM rejim çarpanı eşikleri dinamik yapar
+    - VIX risk-off kontrolü
+    - Hurst LONG filtresi
+    """
     red_flags = []
     son = df_slice.iloc[-1]
+    close = float(son["Close"])
+
+    # V6: VIX risk-off kontrolü (güvenli liman hariç)
+    if vix_bugun is not None and vix_bugun > VIX_RISK_OFF and symbol not in GUVENLI_LIMANLAR:
+        red_flags.append(f"VIX={vix_bugun:.1f}>RISK_OFF")
+        return "HOLD", "DÜŞÜK", 0.0, red_flags
 
     mock_karar  = mock_agent_karar(df_slice)
-    teknik_dict = {"karar": mock_karar, "veri": {"son_kapanış": float(son["Close"])}}
+    teknik_dict = {"karar": mock_karar, "veri": {"son_kapanış": close}}
     efsane_dict = efsane_oylama(symbol, df_slice)
 
     t_skor = teknik_skora_cevir(teknik_dict)
     e_skor = efsane_skora_cevir(efsane_dict)
 
-    agirlik_t = AGIRLIK_TEKNIK + 0.25 * 0.60
-    agirlik_e = AGIRLIK_EFSANE + 0.25 * 0.40
-    toplam    = round(t_skor * agirlik_t + e_skor * agirlik_e, 3)
+    # Sentiment/Insider/Gamma = 0 (backtest'te tarihsel veri yok)
+    s_skor         = 0.0
+    insider_sinyal = 0.0
+    gamma_sinyal   = 0.0
 
-    if catisma_var_mi(t_skor, e_skor, 0.0):
+    # Sentiment olmadığı için ağırlığını teknik+efsane'ye dağıt
+    agirlik_t = AGIRLIK_TEKNIK + AGIRLIK_SENTIMENT * 0.60
+    agirlik_e = AGIRLIK_EFSANE + AGIRLIK_SENTIMENT * 0.40
+
+    toplam = round(
+        t_skor         * agirlik_t       +
+        e_skor         * agirlik_e       +
+        s_skor         * 0.0             +
+        insider_sinyal * AGIRLIK_INSIDER +
+        gamma_sinyal   * AGIRLIK_GAMMA,
+        3
+    )
+
+    if catisma_var_mi(t_skor, e_skor, s_skor):
         return "HOLD", "DÜŞÜK", abs(toplam), ["Ajan çatışması"]
 
-    if toplam >= ESIK_YUKSEK:
+    # V6: Hurst LONG filtresi
+    close_series = df_slice["Close"]
+    if len(close_series) >= 50:
+        try:
+            hurst_sonuc = hurst_hesapla(close_series)
+            if not hurst_sonuc.get("long_izni", True) and toplam > 0:
+                red_flags.append(f"Hurst={hurst_sonuc.get('hurst', 0):.2f}<0.45 mean-reversion")
+                return "HOLD", "DÜŞÜK", abs(toplam), red_flags
+        except Exception:
+            pass
+
+    # V6: VIX swan çarpanı
+    swan_carpan = 1.0
+    if vix_bugun is not None:
+        if vix_bugun > 25:
+            swan_carpan = 1.5
+        elif vix_bugun > 20:
+            swan_carpan = 1.25
+
+    # V6: Dinamik eşikler (HMM × Swan)
+    # Güvenli liman: eşik düşer (daha kolay giriş)
+    gl_carpan = 1.5 if symbol in GUVENLI_LIMANLAR else 1.0
+    esik_yuksek_eff = ESIK_YUKSEK * hmm_carpan * swan_carpan / gl_carpan
+    esik_orta_eff   = ESIK_ORTA   * hmm_carpan * swan_carpan / gl_carpan
+
+    if toplam >= esik_yuksek_eff:
         ham, guven = "LONG", "YÜKSEK"
-    elif toplam >= ESIK_ORTA:
+    elif toplam >= esik_orta_eff:
         ham, guven = "LONG", "ORTA"
-    elif toplam <= -ESIK_YUKSEK:
+    elif toplam <= -esik_yuksek_eff:
         ham, guven = "SHORT", "YÜKSEK"
-    elif toplam <= -ESIK_ORTA:
+    elif toplam <= -esik_orta_eff:
         ham, guven = "SHORT", "ORTA"
     else:
         return "HOLD", "DÜŞÜK", abs(toplam), ["Eşik altı"]
 
-    # ADX filtresi (SHORT için daha sert)
+    # ADX filtresi
     adx     = son.get("ADX", 0)
     adx_min = ADX_MIN_SHORT if ham == "SHORT" else ADX_MIN_LONG
     if pd.isna(adx) or adx < adx_min:
@@ -241,7 +320,6 @@ def v4_sinyal(symbol, df_slice):
 
     # SHORT için SMA200 altı zorunlu (Tudor Jones)
     if ham == "SHORT":
-        close  = float(son["Close"])
         sma200 = son.get("SMA_200")
         sma50  = son.get("SMA_50")
         ref    = sma200 if (pd.notna(sma200) and sma200 > 0) else sma50
@@ -259,468 +337,292 @@ def v4_sinyal(symbol, df_slice):
     return ham, guven, abs(toplam), red_flags
 
 
+# ─────────────────────────────────────────────
+# BÖLÜM 5: İŞLEM SİMÜLATÖRÜ v6
+# V6: Kurtosis ATR trail + GARCH pozisyon ölçeği
+# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# BÖLÜM 5: SİNYAL ADAPTÖRÜ
+# v6_sinyal is untouched. This closes over the frames plus the VIX series and
+# the HMM multiplier so the simulator can call a plain (symbol, date) callback.
+# ─────────────────────────────────────────────
+def make_signal_fn(frames, vix_series, hmm_carpan, sayaclar, cache=None):
+    """Build the (symbol, date) -> SignalDecision|None callback.
 
-# ─────────────────────────────────────────────
-# BÖLÜM 5: İŞLEM SİMÜLATÖRÜ v5
-# 🆕 Trailing Stop + Pyramiding + Dinamik Pozisyon
-# ─────────────────────────────────────────────
-def islem_simule(df, giris_idx, sinyal, guven, skor):
+    `cache` is shared across cost-sensitivity runs. A signal depends only on
+    price history, VIX and the regime multiplier — never on execution cost —
+    so recomputing Hurst/kurtosis/GARCH per bar for each cost level would be
+    5x the work for an identical answer.
+
+    ATR, the kurtosis trail multiple and the GARCH position scale are all read
+    on the SIGNAL date. That bar is complete at its close, when the decision is
+    made; the fill happens at the next open. The old code read the ENTRY bar's
+    ATR while entering at that bar's open, which required the bar's own
+    High/Low/Close — a look-ahead that set every stop in every backtest.
     """
-    v5 Yenilikler:
-      - TP yok, TRAIL_STOP var (fiyat arkasından tırmanır)
-      - skor baz alınarak dinamik pozisyon büyüklüğü
-      - Her PYRAMID_TRIGGER_ATR'de ek giriş (max PYRAMID_MAX katman)
-    """
-    giris_fiyat  = float(df.iloc[giris_idx]["Open"] or df.iloc[giris_idx]["Close"])
-    giris_tarihi = str(df.index[giris_idx])[:10]
-    atr          = float(df.iloc[giris_idx].get("ATR") or 0)
+    def signal_fn(symbol, date):
+        if cache is not None and (symbol, date) in cache:
+            return cache[(symbol, date)]
+        d = _compute(symbol, date)
+        if cache is not None:
+            cache[(symbol, date)] = d
+        return d
 
-    # 🆕 2. Dinamik pozisyon büyüklüğü (Kelly)
-    pos_oran = pozisyon_buyuklugu_hesapla(skor)
+    def _compute(symbol, date):
+        df = frames.get(symbol)
+        if df is None or date not in df.index:
+            return None
+        idx = df.index.get_loc(date)
+        if idx < ISINMA_GUN:
+            return None
+        df_slice = df.iloc[:idx + 1]
 
-    # ATR bazlı başlangıç stop-loss
-    sl_k = ATR_SL_YUKSEK if guven == "YÜKSEK" else ATR_SL_ORTA
-    if atr > 0:
-        if sinyal == "LONG":
-            trail_stop = giris_fiyat - atr * sl_k
-        else:
-            trail_stop = giris_fiyat + atr * sl_k
-    else:
-        fallback = 0.03 if guven == "YÜKSEK" else 0.025
-        trail_stop = (giris_fiyat * (1 - fallback) if sinyal == "LONG"
-                      else giris_fiyat * (1 + fallback))
+        vix_bugun = None
+        if vix_series is not None:
+            try:
+                vix_bugun = float(vix_series.asof(date))
+            except Exception:
+                sayaclar["vix_asof_fail"] += 1
+                vix_bugun = None          # D15: unknown, NOT treated as calm
 
-    # 🆕 1. Trailing stop watermark
-    watermark = giris_fiyat   # LONG: en yüksek fiyat  |  SHORT: en düşük fiyat
-
-    # 🆕 3. Pyramiding — tetikleme seviyeleri
-    pyramid_girisleri = []   # [(fiyat, oran), ...]
-    if atr > 0:
-        if sinyal == "LONG":
-            pyramid_levels = [giris_fiyat + atr * PYRAMID_TRIGGER_ATR * (n + 1)
-                              for n in range(PYRAMID_MAX)]
-        else:
-            pyramid_levels = [giris_fiyat - atr * PYRAMID_TRIGGER_ATR * (n + 1)
-                              for n in range(PYRAMID_MAX)]
-    else:
-        pyramid_levels = []   # ATR yoksa piramit yok
-
-    max_i = min(giris_idx + MAX_POZISYON_GUN, len(df) - 1)
-    cikis_fiyat  = float(df.iloc[max_i]["Close"])
-    cikis_tarihi = str(df.index[max_i])[:10]
-    cikis_neden  = "SÜRE"
-
-    for i in range(giris_idx + 1, max_i + 1):
-        gun  = df.iloc[i]
-        high = float(gun["High"])
-        low  = float(gun["Low"])
-        close= float(gun["Close"])
-
-        if sinyal == "LONG":
-            # 🆕 3. Piramit kontrolü
-            for pi, ptrigger in enumerate(pyramid_levels):
-                if pi >= len(pyramid_girisleri) and close >= ptrigger:
-                    pyramid_girisleri.append((close, pos_oran * PYRAMID_BOYUT))
-
-            # 🆕 1. Watermark güncelle → trailing stop tırmandır
-            if high > watermark:
-                watermark = high
-                if atr > 0:
-                    new_trail = watermark - atr * ATR_TRAIL_KATSAYI
-                    if new_trail > trail_stop:
-                        trail_stop = new_trail
-
-            # Çıkış: trailing stop kırıldı mı?
-            if low <= trail_stop:
-                cikis_fiyat  = trail_stop
-                cikis_neden  = "TRAIL"
-                cikis_tarihi = str(df.index[i])[:10]
-                break
-
-        else:  # SHORT
-            # 🆕 3. Piramit kontrolü (SHORT: fiyat düşünce ekle)
-            for pi, ptrigger in enumerate(pyramid_levels):
-                if pi >= len(pyramid_girisleri) and close <= ptrigger:
-                    pyramid_girisleri.append((close, pos_oran * PYRAMID_BOYUT))
-
-            # 🆕 1. Watermark güncelle → trailing stop aşağı çek
-            if low < watermark:
-                watermark = low
-                if atr > 0:
-                    new_trail = watermark + atr * ATR_TRAIL_KATSAYI
-                    if new_trail < trail_stop:
-                        trail_stop = new_trail
-
-            if high >= trail_stop:
-                cikis_fiyat  = trail_stop
-                cikis_neden  = "TRAIL"
-                cikis_tarihi = str(df.index[i])[:10]
-                break
-
-    # 🆕 3. Piramit ağırlıklı ortalama giriş
-    tum_girişler    = [(giris_fiyat, pos_oran)] + pyramid_girisleri
-    toplam_pos_oran = sum(o for _, o in tum_girişler)
-    ort_giris       = sum(f * o for f, o in tum_girişler) / toplam_pos_oran
-
-    if sinyal == "LONG":
-        pnl_pct = (cikis_fiyat - ort_giris) / ort_giris
-    else:
-        pnl_pct = (ort_giris - cikis_fiyat) / ort_giris
-
-    # pnl_dolar = placeholder, 🆕 4. Bileşik hesap MAIN'de yapılır
-    pnl_dolar_basit = round(pnl_pct * BASLANGIC_SERMAYE * toplam_pos_oran, 2)
-
-    return {
-        "giris_tarihi"   : giris_tarihi,
-        "cikis_tarihi"   : cikis_tarihi,
-        "giris_fiyat"    : round(giris_fiyat, 2),
-        "cikis_fiyat"    : round(cikis_fiyat, 2),
-        "sl"             : round(trail_stop, 2),   # son trailing stop seviyesi
-        "tp"             : None,                   # artık TP yok
-        "cikis_neden"    : cikis_neden,
-        "pnl_pct"        : round(pnl_pct * 100, 2),
-        "pnl_dolar"      : pnl_dolar_basit,        # bileşiksiz (referans için)
-        "pos_oran"       : round(toplam_pos_oran, 3),
-        "pyramid_sayisi" : len(pyramid_girisleri),
-        "dogru_karar"    : pnl_pct > 0,
-        "atr"            : round(float(atr), 2) if atr else 0,
-    }
-
-
-# ─────────────────────────────────────────────
-# BÖLÜM 6: SEMBOL BACKTEST (skor pass-through eklendi)
-# ─────────────────────────────────────────────
-def sembol_backtest(symbol, df):
-    islemler      = []
-    filtre_sayac  = {
-        "adx_long": 0, "adx_short": 0, "long_only": 0,
-        "tudor": 0, "legends_short": 0, "catisma": 0, "esik": 0
-    }
-
-    # --- 1 AYLIK TEST AYARI (Son 22 İşlem Günü) ---
-    sonraki_giris = ISINMA_GUN
-
-    for idx in range(ISINMA_GUN, len(df) - 2):
-        if idx < sonraki_giris:
-            continue
-
-        df_slice = df.iloc[:idx + 1].copy()
-        sinyal, guven, skor, flags = v4_sinyal(symbol, df_slice)
-
+        sinyal, guven, skor, flags = v6_sinyal(symbol, df_slice, vix_bugun, hmm_carpan)
         for f in flags:
-            if "ADX" in f and "30" in f:       filtre_sayac["adx_short"] += 1
-            elif "ADX" in f:                   filtre_sayac["adx_long"] += 1
-            elif "LONG_ONLY" in f:             filtre_sayac["long_only"] += 1
-            elif "Tudor" in f or "Bull" in f:  filtre_sayac["tudor"] += 1
-            elif "Legends" in f:               filtre_sayac["legends_short"] += 1
-            elif "çatışma" in f.lower() or "Ajan" in f: filtre_sayac["catisma"] += 1
-            else:                              filtre_sayac["esik"] += 1
-
+            if "VIX" in f:       sayaclar["vix_risk_off"] += 1
+            elif "Hurst" in f:   sayaclar["hurst_block"] += 1
+            elif "ADX" in f:     sayaclar["adx"] += 1
+            elif "Ajan" in f:    sayaclar["catisma"] += 1
+            else:                sayaclar["esik"] += 1
         if sinyal == "HOLD":
-            continue
+            return None
 
-        giris_idx = idx + 1
-        if giris_idx >= len(df) - 1:
-            break
-
-        # 🆕 skor artık islem_simule'ye geçiyor (dinamik pozisyon + pyramid için)
-        sonuc = islem_simule(df, giris_idx, sinyal, guven, skor)
-        islemler.append({
-            "symbol": symbol, "sinyal_tarihi": str(df.index[idx])[:10],
-            "sinyal": sinyal, "guven": guven, "sistem_skoru": round(skor, 3),
-            **sonuc,
-        })
+        close_s = df_slice["Close"]
+        atr = float(df.iloc[idx].get("ATR") or 0.0)
+        if not atr or atr <= 0:
+            sayaclar["atr_yok"] += 1
+            return None
 
         try:
-            cikis_loc = df.index.get_loc(sonuc["cikis_tarihi"])
-            sonraki_giris = cikis_loc + 1
+            trail_mult = float(kurtosis_hesapla(close_s).get("atr_carpan", 2.5))
         except Exception:
-            sonraki_giris = giris_idx + MAX_POZISYON_GUN + 1
+            sayaclar["kurtosis_fail"] += 1
+            trail_mult = 2.5
+        try:
+            garch_olcek = float(garch_volatilite(close_s).get("pozisyon_olcegi", 1.0))
+        except Exception:
+            sayaclar["garch_fail"] += 1
+            garch_olcek = 1.0
 
-    return islemler, filtre_sayac
+        frac = pozisyon_buyuklugu_hesapla(skor) * garch_olcek
+        return SignalDecision(
+            side=1 if sinyal == "LONG" else -1,
+            score=float(skor), confidence=guven,
+            target_fraction=float(frac),
+            atr=atr, trail_multiple=trail_mult)
+    return signal_fn
 
-# ─────────────────────────────────────────────
-# BÖLÜM 6b: 🆕 BİLEŞİK GETİRİ HESAPLAMA
-# ─────────────────────────────────────────────
-def bilesik_pnl_hesapla(tum_islemler, baslangic_sermaye):
-    """
-    Tüm işlemleri tarihe göre sıralar, kârı ana sermayeye ekleyerek
-    bileşik getiriyi simüle eder.
-
-    Her işlem bir öncekinin güncellenmiş equity'si üzerinden
-    pozisyon büyüklüğü hesaplar → kartopu etkisi.
-    """
-    sirali = sorted(tum_islemler, key=lambda x: x["giris_tarihi"])
-    cari_sermaye = float(baslangic_sermaye)
-
-    for islem in sirali:
-        pnl_pct_decimal = islem["pnl_pct"] / 100.0
-        pos_oran        = islem["pos_oran"]
-
-        # 🆕 Bileşik: güncel equity üzerinden hesapla
-        pnl_bilesik = round(pnl_pct_decimal * cari_sermaye * pos_oran, 2)
-
-        islem["sermaye_once"]   = round(cari_sermaye, 2)
-        islem["pnl_dolar_bilesik"] = pnl_bilesik
-        cari_sermaye += pnl_bilesik
-        islem["sermaye_sonra"]  = round(cari_sermaye, 2)
-
-    return sirali, round(cari_sermaye, 2)
 
 # ─────────────────────────────────────────────
-# BÖLÜM 6c: SHARPE & CALMAR HESAPLAMA
+# BÖLÜM 6: BENCHMARKS
+# Scored by the SAME equity_metrics() as the strategy — required by
+# docs/designs/go-no-go.md.
 # ─────────────────────────────────────────────
-def sharpe_calmar_hesapla(tum_islemler, baslangic_sermaye, yillik_getiri_pct):
-    """
-    Sharpe Ratio  = (Ortalama işlem getirisi - risksiz faiz) / Std  * sqrt(252)
-    Calmar Ratio  = Yıllık getiri % / Max Drawdown %
-    """
-    if not tum_islemler:
-        return None, None
-
-    # Bileşik PnL varsa onu kullan, yoksa basit PnL
-    getiriler = []
-    for x in tum_islemler:
-        sermaye_once = x.get("sermaye_once", baslangic_sermaye)
-        pnl          = x.get("pnl_dolar_bilesik", x.get("pnl_dolar", 0))
-        if sermaye_once and sermaye_once > 0:
-            getiriler.append(pnl / sermaye_once)
-
-    if not getiriler:
-        return None, None
-
-    getiriler = np.array(getiriler)
-    ort       = np.mean(getiriler)
-    std       = np.std(getiriler)
-
-    if std == 0:
-        return None, None
-
-    # Yıllık ölçekleme: 252 işlem günü
-    risk_free_gunluk = 0.05 / 252
-    sharpe = round((ort - risk_free_gunluk) / std * np.sqrt(252), 2)
-
-    # Calmar = Yıllık getiri / |Max Drawdown %|
-    pnl_listesi = [x.get("pnl_dolar_bilesik", x.get("pnl_dolar", 0)) for x in tum_islemler]
-    cum         = np.cumsum(pnl_listesi)
-    max_dd_dolar = float(np.min(cum - np.maximum.accumulate(cum)))
-    max_dd_pct   = abs(max_dd_dolar) / baslangic_sermaye * 100
-
-    calmar = round(yillik_getiri_pct / max_dd_pct, 2) if max_dd_pct > 0 else None
-
-    return sharpe, calmar
+def buy_hold_curve(frames, calendar, symbols, capital):
+    """Equal-weight buy-and-hold equity curve over `calendar`."""
+    usable = [s for s in symbols if s in frames and len(frames[s].index) > 0]
+    if not usable:
+        return pd.Series(dtype=float)
+    per = capital / len(usable)
+    shares, rows = {}, []
+    for s in usable:
+        first = frames[s].index[frames[s].index >= calendar[0]]
+        if len(first):
+            shares[s] = per / float(frames[s].loc[first[0], "Close"])
+    for d in calendar:
+        v = 0.0
+        for s, q in shares.items():
+            df = frames[s]
+            if d in df.index:
+                v += q * float(df.loc[d, "Close"])
+            elif len(df.index[df.index <= d]):
+                v += q * float(df.loc[df.index[df.index <= d][-1], "Close"])
+        rows.append(v)
+    return pd.Series(rows, index=pd.DatetimeIndex(calendar))
 
 
 # ─────────────────────────────────────────────
 # BÖLÜM 7: RAPOR
 # ─────────────────────────────────────────────
-def rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet):
-    if not tum_islemler:
-        print("❌ Hiç işlem yok."); return {}
+def rapor_yazdir(res, bench, sayaclar, meta):
+    ec = res.equity_curve
+    st = equity_metrics(ec["equity"])
+    trades = res.closed_trades
+    wins = [t for t in trades if (t.get("pnl_dollar") or 0) > 0]
+    reasons = {}
+    for t in trades:
+        reasons[t["reason"]] = reasons.get(t["reason"], 0) + 1
 
-    pnl_l    = [x["pnl_dolar"]   for x in tum_islemler]
-    dogru_l  = [x["dogru_karar"] for x in tum_islemler]
-    long_is  = [x for x in tum_islemler if x["sinyal"] == "LONG"]
-    short_is = [x for x in tum_islemler if x["sinyal"] == "SHORT"]
-    yuk_is   = [x for x in tum_islemler if x["guven"]  == "YÜKSEK"]
-    orta_is  = [x for x in tum_islemler if x["guven"]  == "ORTA"]
-    trail_is = [x for x in tum_islemler if x["cikis_neden"] == "TRAIL"]
-    tp_is    = trail_is  # v5: TP → TRAIL
-    sl_is    = [x for x in tum_islemler if x["cikis_neden"] == "SL"]
-    sure_is  = [x for x in tum_islemler if x["cikis_neden"] == "SÜRE"]
+    print(f"\n{'═'*78}")
+    print(f"  🔬 TRUE BACKTEST — portfolio-v1 simulator")
+    print(f"  cash ledger · {res.config.max_gross_exposure:.0%} gross cap · "
+          f"{res.config.side_cost_bps:.0f} bps/side · SHORT "
+          f"{'ON' if res.config.allow_short else 'OFF'}")
+    print(f"{'═'*78}")
 
-    toplam_pnl = sum(pnl_l)
-    getiri_pct = toplam_pnl / BASLANGIC_SERMAYE * 100
-    genel_acc  = sum(dogru_l) / len(dogru_l) * 100 if dogru_l else 0
+    print(f"\n  ┌─ 💰 PERFORMANS {'─'*56}")
+    print(f"  │  Başlangıç      : ${res.config.initial_cash:,.2f}")
+    print(f"  │  Son sermaye    : ${res.final_equity:,.2f}")
+    print(f"  │  Getiri         : {st['total_return_pct']:+.2f}%")
+    print(f"  │  Sharpe         : {st['sharpe']}   (günlük equity eğrisinden)")
+    print(f"  │  Sortino        : {st['sortino']}")
+    print(f"  │  Max Drawdown   : {st['max_drawdown_pct']:.2f}%")
+    print(f"  │  İşlem sayısı   : {len(trades)}   kazanan: {len(wins)} "
+          f"({len(wins)/max(len(trades),1)*100:.1f}%)")
+    print(f"  │  Çıkış nedeni   : " + " · ".join(f"{k}={v}" for k, v in sorted(reasons.items())))
+    print(f"  │  İşlem maliyeti : ${res.total_execution_cost:,.2f} "
+          f"+ ${res.total_fees:,.2f} harç")
+    print(f"  ├─ 📊 GERÇEK POZİSYON {'─'*51}")
+    print(f"  │  Ort. brüt maruziyet : {ec['gross_exposure_pct'].mean()*100:5.1f}%")
+    print(f"  │  Maks brüt maruziyet : {ec['gross_exposure_pct'].max()*100:5.1f}%")
+    print(f"  │  100% üstü gün       : {int((ec['gross_exposure_pct']>1.0).sum())}"
+          f" / {len(ec)}   (cap ile 0 olmalı)")
+    print(f"  │  Reddedilen emir     : {len(res.rejections)}")
 
-    def acc(lst): return sum(x["dogru_karar"] for x in lst) / max(len(lst), 1) * 100
-    def pf(lst):
-        kaz = sum(x["pnl_dolar"] for x in lst if x["pnl_dolar"] > 0)
-        kay = sum(abs(x["pnl_dolar"]) for x in lst if x["pnl_dolar"] <= 0)
-        return round(kaz / max(kay, 1), 2)
+    print(f"  ├─ 🎯 KARŞILAŞTIRMA (aynı fonksiyon, aynı pencere) {'─'*22}")
+    print(f"  │  {'':22s} {'Getiri':>9} {'Sharpe':>8} {'MaxDD':>8}")
+    print(f"  │  {'STRATEJİ':22s} {st['total_return_pct']:>8.2f}% "
+          f"{str(st['sharpe']):>8} {st['max_drawdown_pct']:>7.2f}%")
+    for name, m in bench.items():
+        print(f"  │  {name:22s} {m['total_return_pct']:>8.2f}% "
+              f"{str(m['sharpe']):>8} {m['max_drawdown_pct']:>7.2f}%")
 
-    pf_genel = pf(tum_islemler)
-    cum       = np.cumsum(pnl_l)
-    max_dd    = float(np.min(cum - np.maximum.accumulate(cum))) if len(cum) > 0 else 0
-    en_iyi    = max(tum_islemler, key=lambda x: x["pnl_dolar"])
-    en_kotu   = min(tum_islemler, key=lambda x: x["pnl_dolar"])
-    sl_oran   = len(sl_is) / max(len(tum_islemler), 1) * 100
-    p_ikon    = "🟢" if toplam_pnl >= 0 else "🔴"
+    print(f"  ├─ 🔍 FİLTRE / HATA SAYAÇLARI {'─'*43}")
+    for k, v in sorted(sayaclar.items()):
+        if v:
+            flag = "  ← SESSİZ BOZULMA" if k.endswith("_fail") else ""
+            print(f"  │  {k:22s}: {v}{flag}")
+    print(f"  └{'─'*76}")
 
-    # Sharpe & Calmar
-    yillik_getiri_pct = getiri_pct / 2.0  # 2 yıllık backtest → yıllık
-    sharpe, calmar = sharpe_calmar_hesapla(tum_islemler, BASLANGIC_SERMAYE, yillik_getiri_pct)
-
-    print(f"\n{'═'*72}")
-    print(f"  🔬 TRUE BACKTEST v4 — KÖK NEDEN DÜZELTMELERİ")
-    print(f"  TrailingStop | Kelly Sizing | Pyramiding | Compounding")
-    print(f"{'═'*72}")
-
-    # Karşılaştırma
-    refs = [("v1 Buglu",768,32.6,31621,1.22,66.1),
-            ("v3 RSI✓",368,36.4,19999,1.33,62.8),
-            ("v5 Bu  ",len(tum_islemler),round(genel_acc,1),round(toplam_pnl),pf_genel,round(sl_oran,1))]
-    print(f"\n  {'Ver':<12} {'İşlem':>6} {'ACC%':>7} {'P&L':>10} {'PF':>6} {'SL%':>6}")
-    print(f"  {'─'*50}")
-    for (ad,is_,ac,pl,pf_,sl_) in refs:
-        pi = "🟢" if pl>0 else "🔴"
-        ai = "✅" if ac>=50 else "⚠️ " if ac>=40 else "❌"
-        print(f"  {ad:<12} {is_:>6} {ai}{ac:>4.1f}% {pi}${pl:>+8,.0f} {pf_:>5.2f}x {sl_:>5.1f}%")
-
-    print(f"\n  ┌─ 💰 PERFORMANS {'─'*44}")
-    print(f"  │  Toplam P&L     : {p_ikon} ${toplam_pnl:+,.2f}  ({getiri_pct:+.2f}%)")
-    print(f"  │  Profit Factor  : {pf_genel}x")
-    print(f"  │  Max Drawdown   : ${max_dd:,.2f}")
-    print(f"  │  Toplam İşlem   : {len(tum_islemler)}")
-    print(f"  │  TRAIL/SL/Süre  : {len(tp_is)} / {len(sl_is)} / {len(sure_is)}")
-    print(f"  │  SL Oranı       : %{sl_oran:.1f}")
-    sharpe_str = f"{sharpe}" if sharpe is not None else "N/A"
-    calmar_str = f"{calmar}" if calmar is not None else "N/A"
-    print(f"  │  Sharpe Ratio   : {sharpe_str}  (>1 = iyi, >2 = mükemmel)")
-    print(f"  │  Calmar Ratio   : {calmar_str}  (>1 = iyi, >3 = mükemmel)")
-    ai = lambda a: "🟢" if a>=55 else "🟡" if a>=45 else "🔴"
-    print(f"  ├─ 🎯 ACCURACY {'─'*48}")
-    print(f"  │  GENEL    : {ai(genel_acc)} %{genel_acc:.1f}  ({sum(dogru_l)}/{len(dogru_l)})")
-    print(f"  │  LONG     : {ai(acc(long_is))} %{acc(long_is):.1f}  ({len(long_is)} işlem)")
-    print(f"  │  SHORT    : {ai(acc(short_is))} %{acc(short_is):.1f}  ({len(short_is)} işlem)")
-    print(f"  │  YÜKSEK💪 : {'✅' if acc(yuk_is)>=55 else '⚠️ '} %{acc(yuk_is):.1f}  ({len(yuk_is)} işlem)")
-    print(f"  │  ORTA  👍 : {'✅' if acc(orta_is)>=50 else '⚠️ '} %{acc(orta_is):.1f}  ({len(orta_is)} işlem)")
-    print(f"  ├─ 🔍 FİLTRE ETKİSİ {'─'*40}")
-    for k, v in filtre_ozet.items():
-        if v > 0: print(f"  │  {k:<25}: {v}")
-    print(f"  │  TOPLAM ENGELLENDİ      : {sum(filtre_ozet.values())}")
-    print(f"  └─{'─'*56}")
-    print(f"     🏆 {en_iyi['symbol']} {en_iyi['sinyal']} {en_iyi['giris_tarihi']} → ${en_iyi['pnl_dolar']:+,.0f}")
-    print(f"     💀 {en_kotu['symbol']} {en_kotu['sinyal']} {en_kotu['giris_tarihi']} → ${en_kotu['pnl_dolar']:+,.0f}")
-
-    print(f"\n{'─'*72}")
-    print(f"  {'SEM':<7} {'İŞ':>4} {'ACC%':>5} {'L✓%':>5} {'S✓%':>5} {'PNL':>9} {'PF':>5}  STATUS")
-    print(f"{'─'*72}")
-    for sym, s in sorted(sembol_ozet.items(), key=lambda x: x[1]["pnl"], reverse=True):
-        if s["islem"] == 0: continue
-        pi = "🟢" if s["pnl"] >= 0 else "🔴"
-        ai2 = "✅" if s["acc"] >= 55 else "⚠️ " if s["acc"] >= 45 else "❌"
-        lo = "⛔" if sym in LONG_ONLY_LIST else "  "
-        print(f"  {pi} {sym:<6}{lo}{s['islem']:>3} {ai2}{s['acc']:>4.0f}%"
-              f" {s['long_acc']:>4.0f}% {s['short_acc']:>4.0f}%"
-              f" {s['pnl']:>+9,.0f} {s['pf']:>4.1f}x  {s['yorum']}")
-    print(f"{'─'*72}")
-    print(f"  ⛔ = LONG_ONLY modu aktif")
-
-    print(f"\n  📋 SON 15 İŞLEM:")
-    print(f"  {'SEM':<6} {'GİRİŞ':<11} {'ÇIKIŞ':<11} {'YÖN':<6} {'GÜV':<7} {'SN':<5} {'ATR':>5} {'PNL':>8} D?")
-    print(f"  {'─'*70}")
-    for x in tum_islemler[-15:]:
-        pi = "🟢" if x["pnl_dolar"] >= 0 else "🔴"
-        di = "✅" if x["dogru_karar"] else "❌"
-        print(f"  {x['symbol']:<6} {x['giris_tarihi']:<11} {x['cikis_tarihi']:<11} "
-              f"{x['sinyal']:<6} {x['guven']:<7} {x['cikis_neden']:<5} "
-              f"{x.get('atr',0):>5.2f} {pi}{x['pnl_dolar']:>+7,.0f} {di}")
-    print(f"{'═'*72}")
-
-    return {
-        "toplam_islem": len(tum_islemler), "toplam_pnl": round(toplam_pnl, 2),
-        "getiri_pct": round(getiri_pct, 2), "genel_acc": round(genel_acc, 1),
-        "long_acc": round(acc(long_is), 1), "short_acc": round(acc(short_is), 1),
-        "yuksek_acc": round(acc(yuk_is), 1), "orta_acc": round(acc(orta_is), 1),
-        "profit_factor": pf_genel, "max_drawdown": round(max_dd, 2),
-        "tp": len(tp_is), "sl": len(sl_is), "sure": len(sure_is),
-        "sl_oran": round(sl_oran, 1), "filtreler": filtre_ozet,
-        "sharpe_ratio": sharpe, "calmar_ratio": calmar,
-    }
+    # ── go / no-go, criterion fixed in docs/designs/go-no-go.md (8b4aa68d) ──
+    spy = bench.get("SPY buy & hold")
+    print(f"\n  📊 GO / NO-GO  (ölçüt: 8b4aa68d, simülatörden ÖNCE yazıldı)")
+    if spy and st["sharpe"] is not None and spy["sharpe"] is not None:
+        s_ok = st["sharpe"] > spy["sharpe"]
+        d_ok = st["max_drawdown_pct"] > spy["max_drawdown_pct"]   # less negative
+        print(f"     Sharpe  {st['sharpe']} > SPY {spy['sharpe']} ......... "
+              f"{'✅ GEÇTİ' if s_ok else '❌ KALDI'}")
+        print(f"     MaxDD   {st['max_drawdown_pct']:.2f}% > SPY "
+              f"{spy['max_drawdown_pct']:.2f}% ... {'✅ GEÇTİ' if d_ok else '❌ KALDI'}")
+        print(f"     SONUÇ   : {'✅ GEÇTİ' if (s_ok and d_ok) else '❌ KALDI — arşivle'}")
+    else:
+        print("     hesaplanamadı")
+    if meta.get("hmm_lookahead"):
+        print("  ⚠️  HMM rejim çarpanı hâlâ tüm pencereden hesaplanıyor (look-ahead, E5 bekliyor)")
+    print(f"{'═'*78}\n")
+    return st
 
 
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
-    print(f"\n{'═'*72}")
-    print(f"  Algoritmik Hedge Fon | TRUE BACKTEST v5")
-    print(f"  v5: TrailingStop | Kelly Sizing | Pyramiding | Compounding")
-    print(f"{'═'*72}\n")
+    print(f"\n{'═'*78}")
+    print(f"  Algoritmik Hedge Fon | TRUE BACKTEST — portfolio-v1")
+    print(f"{'═'*78}\n")
 
-    tum_islemler = []
-    sembol_ozet  = {}
-    filtre_ozet  = {
-        "adx_long": 0, "adx_short": 0, "long_only": 0,
-        "tudor": 0, "legends_short": 0, "catisma": 0, "esik": 0
+    sayaclar = defaultdict(int)
+
+    print("  📡 SPY (takvim + benchmark)...")
+    spy_df = yf.Ticker("SPY").history(period=PERIOD, interval="1d")
+    if spy_df.empty:
+        raise SystemExit("SPY verisi alınamadı — takvim kurulamaz.")
+    calendar = list(spy_df.index)
+    print(f"  ✅ {len(calendar)} seans | {str(calendar[0])[:10]} → {str(calendar[-1])[:10]}")
+
+    print("  📡 VIX...")
+    vix_series = vix_tarihsel_cek()
+    print(f"  {'✅' if vix_series is not None else '⚠️ '} VIX "
+          f"{len(vix_series) if vix_series is not None else 0} gün")
+
+    hmm_carpan, hmm_rejim = 1.0, "BİLİNMİYOR"
+    try:
+        h = hmm_rejim_tespit(spy_df["Close"])
+        hmm_carpan = h.get("esik_carpani", 1.0)
+        hmm_rejim = h.get("rejim_adi", "BİLİNMİYOR")
+    except Exception as e:
+        sayaclar["hmm_fail"] += 1
+        print(f"  ⚠️  HMM: {e}")
+    print(f"  🧠 HMM: {hmm_rejim} (×{hmm_carpan})  ⚠️ look-ahead, E5 bekliyor")
+
+    frames = {}
+    for i, s in enumerate(WATCHLIST, 1):
+        print(f"[{i:>2}/{len(WATCHLIST)}] {s}...", end=" ", flush=True)
+        df = veri_cek(s)
+        if df is None:
+            print("⚠️  veri yok"); sayaclar["veri_yok"] += 1; continue
+        frames[s] = df
+        print(f"✅ {len(df)} bar")
+
+    if not frames:
+        raise SystemExit("Hiç sembol verisi yok.")
+
+    cfg = SimulatorConfig(initial_cash=BASLANGIC_SERMAYE,
+                          max_gross_exposure=1.00,
+                          max_holding_sessions=MAX_POZISYON_GUN,
+                          allow_short=False)
+
+    print(f"\n  ⚙️  Simülasyon: ${cfg.initial_cash:,.0f} nakit · "
+          f"{cfg.max_gross_exposure:.0%} brüt tavan · {cfg.side_cost_bps:.0f} bps/yön")
+    sig_cache = {}
+    res = simulate_portfolio(calendar, frames,
+                             make_signal_fn(frames, vix_series, hmm_carpan,
+                                            sayaclar, sig_cache),
+                             cfg, symbols=list(frames.keys()))
+
+    spy_curve = spy_df["Close"] / float(spy_df["Close"].iloc[0]) * BASLANGIC_SERMAYE
+    bench = {
+        "SPY buy & hold": equity_metrics(spy_curve),
+        "Watchlist eşit ağırlık": equity_metrics(
+            buy_hold_curve(frames, calendar, list(frames.keys()), BASLANGIC_SERMAYE)),
     }
 
-    for i, sembol in enumerate(WATCHLIST, 1):
-        lo_tag = " [LONG_ONLY]" if sembol in LONG_ONLY_LIST else ""
-        print(f"[{i:>2}/{len(WATCHLIST)}] {sembol}{lo_tag}...", end=" ", flush=True)
-        df = veri_cek(sembol)
-        if df is None:
-            print("⚠️  Veri yok"); continue
+    st = rapor_yazdir(res, bench, sayaclar, {"hmm_lookahead": True})
 
-        islemler, f_sayac = sembol_backtest(sembol, df)
-        tum_islemler.extend(islemler)
-        for k in filtre_ozet:
-            filtre_ozet[k] += f_sayac.get(k, 0)
+    # ── cost sensitivity: 0 bps is a diagnostic, never the headline ──────────
+    print("  📐 MALİYET DUYARLILIĞI")
+    grid = {}
+    for bps in (0.0, 5.0, 10.0, 20.0):
+        c = SimulatorConfig(initial_cash=BASLANGIC_SERMAYE, max_gross_exposure=1.00,
+                            max_holding_sessions=MAX_POZISYON_GUN, allow_short=False,
+                            half_spread_bps=bps / 2, slippage_bps=bps / 2)
+        rr = simulate_portfolio(calendar, frames,
+                                make_signal_fn(frames, vix_series, hmm_carpan,
+                                               defaultdict(int), sig_cache),
+                                c, symbols=list(frames.keys()))
+        m = equity_metrics(rr.equity_curve["equity"])
+        grid[f"{bps:.0f}bps"] = m
+        tag = "  (frictionless — teşhis, manşet değil)" if bps == 0 else ""
+        print(f"     {bps:>4.0f} bps/yön → {m['total_return_pct']:+7.2f}%  "
+              f"Sharpe {str(m['sharpe']):>6}{tag}")
+    print()
 
-        if islemler:
-            pnl_s = sum(x["pnl_dolar"] for x in islemler)
-            acc_s = sum(x["dogru_karar"] for x in islemler) / len(islemler) * 100
-            l_is  = [x for x in islemler if x["sinyal"] == "LONG"]
-            s_is  = [x for x in islemler if x["sinyal"] == "SHORT"]
-            l_acc = sum(x["dogru_karar"] for x in l_is) / max(len(l_is), 1) * 100
-            s_acc = sum(x["dogru_karar"] for x in s_is) / max(len(s_is), 1) * 100
-            kaz   = sum(x["pnl_dolar"] for x in islemler if x["pnl_dolar"] > 0)
-            kay   = sum(abs(x["pnl_dolar"]) for x in islemler if x["pnl_dolar"] <= 0)
-            pf_s  = round(kaz / max(kay, 1), 2)
-            sembol_ozet[sembol] = {
-                "islem": len(islemler), "acc": acc_s,
-                "long_acc": l_acc, "short_acc": s_acc,
-                "pnl": round(pnl_s, 2), "pf": pf_s,
-                "yorum": "✅ Kârlı" if pnl_s > 0 else "❌ Zararlı"
-            }
-            a = "✅" if acc_s >= 55 else "⚠️ "
-            print(f"{a} {len(islemler)} işlem | ACC %{acc_s:.0f} | P&L ${pnl_s:+,.0f}")
-        else:
-            sembol_ozet[sembol] = {"islem":0,"acc":0,"long_acc":0,"short_acc":0,"pnl":0,"pf":0,"yorum":"—"}
-            print("— sinyal yok")
-
-    tum_islemler.sort(key=lambda x: x["giris_tarihi"])
-
-    # 🆕 4. BİLEŞİK GETİRİ HESAPLA
-    tum_islemler, son_sermaye = bilesik_pnl_hesapla(tum_islemler, BASLANGIC_SERMAYE)
-    bilesik_getiri = son_sermaye - BASLANGIC_SERMAYE
-    bilesik_getiri_pct = bilesik_getiri / BASLANGIC_SERMAYE * 100
-    pyramid_toplam = sum(x.get("pyramid_sayisi", 0) for x in tum_islemler)
-    print(f"\n  ❄️  BİLEŞİK GETİRİ: ${son_sermaye:,.2f}  ({bilesik_getiri_pct:+.2f}%)")
-    print(f"  🧱 TOPLAM PİRAMİT GİRİŞİ: {pyramid_toplam}")
-    print(f"  ⚖️  ORTALAMA POZİSYON: %{sum(x['pos_oran'] for x in tum_islemler)/max(len(tum_islemler),1)*100:.1f}")
-
-    stats = rapor_yazdir(tum_islemler, sembol_ozet, filtre_ozet)
-    stats["bilesik_son_sermaye"] = son_sermaye
-    stats["bilesik_getiri"] = round(bilesik_getiri, 2)
-    stats["bilesik_getiri_pct"] = round(bilesik_getiri_pct, 2)
-
-    if stats:
-        acc   = stats.get("genel_acc", 0)
-        pnl   = stats.get("toplam_pnl", 0)
-        pf_   = stats.get("profit_factor", 0)
-        s_acc = stats.get("short_acc", 0)
-        print(f"\n  📊 VERDİKT:")
-        if acc >= 50 and pnl > 0 and pf_ >= 1.5:
-            print(f"  ✅ SİSTEM GÜÇLÜ — API entegrasyonuna hazır!")
-        elif pnl > 0 and pf_ >= 1.3:
-            print(f"  ⚠️  POZİTİF & KARLI — API'ye geç, izle")
-        else:
-            print(f"  ❌ Beklentinin altında — watchlist'i gözden geçir")
-
-# JSON KAYDETME - NUMPY HATALARINA KARŞI KORUMALI (default=str eklendi)
-    Path("true_backtest_rapor.json").write_text(
-        json.dumps({
-            "tarih": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "versiyon": "v5",
-            "gelistirmeler_v5": {
-                "1_trailing_stop": f"ATR_TRAIL_KATSAYI={ATR_TRAIL_KATSAYI}  (TP kaldırıldı)",
-                "A_short_adr": f"ADX≥{ADX_MIN_SHORT}, SMA200 altı, legends≥{SHORT_ORAN_MIN}%",
-                "3_pyramiding": f"trigger={PYRAMID_TRIGGER_ATR}ATR, max={PYRAMID_MAX} katman, boyut=%{PYRAMID_BOYUT*100:.0f}",
-                "4_compounding": f"başlangıç=${BASLANGIC_SERMAYE}, son=${stats.get('bilesik_son_sermaye',0):,.2f}",
-            },
-            "stats": stats, "sembol": sembol_ozet, "islemler": tum_islemler,
-        }, ensure_ascii=False, indent=2, default=str)
-    )
-    print(f"\n  💾 RAPOR BAŞARIYLA KAYDEDİLDİ! SİSTEM KUSURSUZ ÇALIŞIYOR!\n")
+    Path("true_backtest_rapor.json").write_text(json.dumps({
+        "tarih": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "versiyon": "v6", "simulator": "portfolio-v1",
+        "pencere": {"baslangic": str(calendar[0])[:10], "bitis": str(calendar[-1])[:10],
+                    "seans": len(calendar)},
+        "config": {"initial_cash": cfg.initial_cash,
+                   "max_gross_exposure": cfg.max_gross_exposure,
+                   "side_cost_bps": cfg.side_cost_bps,
+                   "allow_short": cfg.allow_short,
+                   "hmm_lookahead_present": True},
+        "strateji": st, "benchmarks": bench, "maliyet_duyarliligi": grid,
+        "sayaclar": dict(sayaclar),
+        "islemler": res.closed_trades,
+        "reddedilen": res.rejections[:200],
+        "equity_curve": [
+            {"date": str(i)[:10], "equity": round(r.equity, 2),
+             "cash": round(r.cash, 2),
+             "gross_pct": round(r.gross_exposure_pct, 4)}
+            for i, r in res.equity_curve.iterrows()],
+    }, ensure_ascii=False, indent=2, default=str))
+    print("  💾 true_backtest_rapor.json kaydedildi.\n")
