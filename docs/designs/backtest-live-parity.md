@@ -236,3 +236,25 @@ the thing that will make the rest of this concrete.
 - You picked the recommended option four times in a row. Two of those I would have
   argued for. On the canonical-constants question in Open Questions, I do not have a
   view that should beat yours, and I would rather you overrule me there.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | ISSUES | 10 proposals, 8 accepted, 2 deferred |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | not run |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES | 12 issues, 4 critical gaps |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | no UI scope |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | not run |
+
+**OUTSIDE VOICE:** FAILED both attempts. Codex returned 401 Unauthorized on all 5 retries
+in both the CEO and eng reviews, despite `gstack-codex-probe` reporting `CODEX_MODE: ready`
+(the probe caches for 1h and fails open). Gemini CLI is tier-ineligible and redirects to
+Antigravity, which is an IDE with no scriptable prompt entry point on this machine. The
+Claude-subagent fallback is disallowed by this session's configuration. No substitute was
+faked. Fix with `codex login` and rerun.
+
+**VERDICT:** CEO + ENG reviewed, both status ISSUES — 38 tasks open (26 CEO + 12 eng),
+4 critical gaps. Not cleared to ship; cleared to implement.
+
+NO UNRESOLVED DECISIONS
