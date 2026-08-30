@@ -38,11 +38,19 @@ def frame(dates, o=None, h=None, l=None, c=None, flat=100.0):
         index=pd.DatetimeIndex(dates))
 
 
-def once(symbol, on_date, side=1, score=0.5, frac=0.30, atr=2.0, mult=2.5):
-    """Signal callback that fires for one symbol on one date."""
+def once(symbol, on_date, side=1, score=0.5, frac=0.30, atr=2.0,
+         mult=2.5, init_mult=1.5):
+    """Signal callback that fires for one symbol on one date.
+
+    mult      = TRAILING multiple (kurtosis-driven 2.5-5.0)
+    init_mult = INITIAL stop multiple (1.8 YÜKSEK / 1.5 ORTA)
+    These are different numbers. Conflating them silently widened every initial
+    stop from ~1.5xATR to 2.5-5.0xATR, which changed the strategy rather than
+    the measurement.
+    """
     def fn(sym, date):
         if sym == symbol and date == on_date:
-            return SignalDecision(side, score, "YÜKSEK", frac, atr, mult)
+            return SignalDecision(side, score, "YÜKSEK", frac, atr, mult, init_mult)
         return None
     return fn
 
@@ -62,13 +70,13 @@ def test_todays_favourable_extreme_cannot_trigger_todays_stop():
     fire during it.
     """
     d = cal(6)
-    # entry fills at bar1 open=100, stop = 100 - 2*2.5 = 95
+    # entry fills at bar1 open=100; INITIAL stop = 100 - 2*1.5 = 97
     px_o = [100, 100, 100, 100, 100, 100]
     px_h = [100, 100, 100, 130, 100, 100]   # bar3 spikes
-    px_l = [100, 100, 100,  96, 100, 100]   # and dips, but stays above 95
+    px_l = [100, 100, 100,  98, 100, 100]   # and dips, but stays above 97
     r = simulate_portfolio(d, {"X": frame(d, px_o, px_h, px_l, px_o)},
                            once("X", d[0]), NOCOST)
-    # bar3's low of 96 is above the stop of 95 that was active before bar3.
+    # bar3's low of 98 is above the stop of 97 that was active before bar3.
     # If the trail had been raised from bar3's high of 130 first, the stop
     # would be 125 and the position would have exited on bar3.
     exits_on_bar3 = [t for t in r.closed_trades if t["exit_date"] == str(d[3])[:10]]
@@ -231,3 +239,62 @@ def test_gross_exposure_never_exceeds_configured_cap():
 
     r = simulate_portfolio(d, frames, always, NOCOST)
     assert (r.equity_curve["gross_exposure_pct"] <= 1.0 + 1e-9).all()
+
+
+# ── regression tests for the seven blockers Codex found in the implementation ─
+def test_initial_stop_uses_its_own_multiple_not_the_trail_multiple():
+    """Blocker 2. The initial stop is 1.5-1.8xATR; the kurtosis trail is
+    2.5-5.0xATR. Using the trail multiple at entry widens every initial stop."""
+    d = cal(4)
+    # atr=2, init_mult=1.5 -> stop 97. A bar low of 96.5 must hit it.
+    px_o = [100, 100, 100, 100]
+    px_l = [100, 100, 96.5, 100]
+    r = simulate_portfolio(d, {"X": frame(d, px_o, px_o, px_l, px_o)},
+                           once("X", d[0], atr=2.0, mult=5.0, init_mult=1.5), NOCOST)
+    assert len(r.closed_trades) == 1
+    assert r.closed_trades[0]["raw_exit_price"] == pytest.approx(97.0), \
+        "stop must be at 1.5xATR, not the 5.0x trail multiple"
+
+
+def test_final_equity_includes_end_of_data_liquidation_cost():
+    """Blocker 1. Liquidation ran after the last equity row, so its spread and
+    fees reached closed_trades but never final_equity."""
+    d = cal(6)
+    cfg = SimulatorConfig(half_spread_bps=50.0, slippage_bps=50.0)   # 100bps, loud
+    r = simulate_portfolio(d, {"X": frame(d, 100.0)}, once("X", d[0]), cfg)
+    assert r.closed_trades[-1]["reason"] == "END_OF_DATA"
+    last_row_equity = float(r.equity_curve["equity"].iloc[-1])
+    assert r.final_equity == pytest.approx(last_row_equity)
+    assert r.final_equity < cfg.initial_cash, \
+        "a round trip at 100bps/side on a flat price must lose money"
+
+
+def test_allow_short_is_refused_rather_than_silently_miscounted():
+    """Blocker 5. Short proceeds/collateral/borrow are unimplemented, so the
+    config must raise rather than produce wrong cash flows."""
+    with pytest.raises(NotImplementedError, match="allow_short"):
+        simulate_portfolio(cal(3), {"X": frame(cal(3), 100.0)},
+                           once("X", cal(3)[0]),
+                           SimulatorConfig(allow_short=True))
+
+
+def test_rejected_pyramid_layer_is_not_consumed():
+    """Blocker / answer 2. The layer index must advance only on a real fill,
+    otherwise a capacity rejection permanently burns a pyramid level."""
+    d = cal(12)
+    # rising price so the pyramid trigger keeps being crossed
+    px = [100 + i * 4 for i in range(12)]
+    cfg = SimulatorConfig(initial_cash=400.0, half_spread_bps=0.0, slippage_bps=0.0,
+                          sec_fee_rate=0.0, finra_taf_per_share=0.0, cat_fee_per_share=0.0)
+    r = simulate_portfolio(d, {"X": frame(d, px)}, once("X", d[0], frac=0.30), cfg)
+    burned = [x for x in r.rejections if "PYRAMID" in x.get("reason", "")]
+    # whatever happens, a rejection must not be the reason a later layer vanishes
+    assert all(f["kind"] != "PYRAMID" or f["qty"] >= 1 for f in r.fills)
+
+
+def test_cash_never_goes_negative_once_fees_are_counted():
+    """Blocker 3. Affordability ignored fees, so cash could dip below zero."""
+    d = cal(6)
+    cfg = SimulatorConfig(initial_cash=1000.0, cat_fee_per_share=0.05)  # loud fee
+    r = simulate_portfolio(d, {"X": frame(d, 9.97)}, once("X", d[0], frac=1.0), cfg)
+    assert (r.equity_curve["cash"] >= -1e-9).all()

@@ -34,6 +34,7 @@ v5 → v6 DEĞİŞİKLİKLER:
     4. Bileşik Getiri (Compounding)
 """
 
+import math
 import sys, json, warnings
 from collections import defaultdict
 from datetime import datetime
@@ -98,7 +99,11 @@ LONG_ONLY_LIST = {
 GUVENLI_LIMANLAR = {"GLD", "USO", "FXY"}
 
 BASLANGIC_SERMAYE = 1_500
-PERIOD            = "2y"
+# A moving PERIOD="2y" silently re-dates every run, so no two results are
+# comparable and "identical window for strategy and benchmark" is unverifiable.
+BACKTEST_START    = "2024-08-29"
+BACKTEST_END      = "2026-08-29"   # yfinance end is exclusive
+PERIOD            = None
 ISINMA_GUN        = 60
 MAX_POZISYON_GUN  = 15
 
@@ -133,7 +138,8 @@ VIX_RISK_OFF = 30     # VIX > 30 → güvenli liman dışında HOLD
 # ─────────────────────────────────────────────
 def veri_cek(symbol):
     try:
-        df = yf.Ticker(symbol).history(period=PERIOD, interval="1d")
+        df = yf.Ticker(symbol).history(start=BACKTEST_START, end=BACKTEST_END,
+                                       interval="1d")
         if df.empty or len(df) < ISINMA_GUN + 10:
             return None
 
@@ -171,7 +177,8 @@ def veri_cek(symbol):
 def vix_tarihsel_cek():
     """Tarihsel VIX verisi çeker — swan simülasyonu için."""
     try:
-        vix = yf.Ticker("^VIX").history(period=PERIOD, interval="1d")
+        vix = yf.Ticker("^VIX").history(start=BACKTEST_START, end=BACKTEST_END,
+                                        interval="1d")
         if vix.empty:
             return None
         return vix["Close"]
@@ -397,9 +404,14 @@ def make_signal_fn(frames, vix_series, hmm_carpan, sayaclar, cache=None):
 
         close_s = df_slice["Close"]
         atr = float(df.iloc[idx].get("ATR") or 0.0)
-        if not atr or atr <= 0:
+        if not math.isfinite(atr) or atr <= 0:
             sayaclar["atr_yok"] += 1
             return None
+        for _name, _v in (("open", df.iloc[idx].get("Open")),
+                          ("close", df.iloc[idx].get("Close"))):
+            if _v is None or not math.isfinite(float(_v)) or float(_v) <= 0:
+                sayaclar[f"gecersiz_{_name}"] += 1
+                return None
 
         try:
             trail_mult = float(kurtosis_hesapla(close_s).get("atr_carpan", 2.5))
@@ -417,7 +429,9 @@ def make_signal_fn(frames, vix_series, hmm_carpan, sayaclar, cache=None):
             side=1 if sinyal == "LONG" else -1,
             score=float(skor), confidence=guven,
             target_fraction=float(frac),
-            atr=atr, trail_multiple=trail_mult)
+            atr=atr, trail_multiple=trail_mult,
+            initial_stop_multiple=(ATR_SL_YUKSEK if guven == "YÜKSEK"
+                                   else ATR_SL_ORTA))
     return signal_fn
 
 
@@ -426,34 +440,58 @@ def make_signal_fn(frames, vix_series, hmm_carpan, sayaclar, cache=None):
 # Scored by the SAME equity_metrics() as the strategy — required by
 # docs/designs/go-no-go.md.
 # ─────────────────────────────────────────────
-def buy_hold_curve(frames, calendar, symbols, capital):
-    """Equal-weight buy-and-hold equity curve over `calendar`."""
-    usable = [s for s in symbols if s in frames and len(frames[s].index) > 0]
+def buy_hold_curve(frames, calendar, symbols, capital, anchor=None):
+    """Equal-weight buy-and-hold equity curve over `calendar`.
+
+    A constituent that has not begun trading by the anchor date is held as CASH
+    until its first bar. Skipping it instead makes the curve start below
+    `capital` and jump when the symbol appears — a fabricated gain. (Codex
+    blocker 7.)
+    """
+    start = anchor if anchor is not None else calendar[0]
+    usable = [s for s in symbols if s in frames and len(frames[s].index)]
     if not usable:
         return pd.Series(dtype=float)
+
     per = capital / len(usable)
-    shares, rows = {}, []
+    shares, cash_leg, first_date = {}, {}, {}
     for s in usable:
-        first = frames[s].index[frames[s].index >= calendar[0]]
-        if len(first):
-            shares[s] = per / float(frames[s].loc[first[0], "Close"])
-    for d in calendar:
+        idx = frames[s].index[frames[s].index >= start]
+        if len(idx):
+            first_date[s] = idx[0]
+            shares[s] = per / float(frames[s].loc[idx[0], "Close"])
+            cash_leg[s] = per          # held as cash until first_date
+        else:
+            cash_leg[s] = per          # never trades in-window: stays cash
+
+    rows, dates = [], [d for d in calendar if d >= start]
+    for d in dates:
         v = 0.0
-        for s, q in shares.items():
+        for s in usable:
+            fd = first_date.get(s)
+            if fd is None or d < fd:
+                v += cash_leg[s]                       # not yet invested
+                continue
             df = frames[s]
             if d in df.index:
-                v += q * float(df.loc[d, "Close"])
-            elif len(df.index[df.index <= d]):
-                v += q * float(df.loc[df.index[df.index <= d][-1], "Close"])
+                v += shares[s] * float(df.loc[d, "Close"])
+            else:
+                prior = df.index[df.index <= d]
+                v += shares[s] * float(df.loc[prior[-1], "Close"]) if len(prior) else cash_leg[s]
         rows.append(v)
-    return pd.Series(rows, index=pd.DatetimeIndex(calendar))
+    return pd.Series(rows, index=pd.DatetimeIndex(dates))
 
 
 # ─────────────────────────────────────────────
 # BÖLÜM 7: RAPOR
 # ─────────────────────────────────────────────
-def rapor_yazdir(res, bench, sayaclar, meta):
+def rapor_yazdir(res, bench, sayaclar, meta, anchor=None):
     ec = res.equity_curve
+    # Score from the anchor onward. The first ISINMA_GUN sessions are warmup:
+    # no signal can fire, so they are artificial zero-return days that would
+    # deflate volatility and inflate Sharpe. (Codex answer 5.)
+    if anchor is not None and not ec.empty:
+        ec = ec.loc[ec.index >= anchor]
     st = equity_metrics(ec["equity"])
     trades = res.closed_trades
     wins = [t for t in trades if (t.get("pnl_dollar") or 0) > 0]
@@ -532,7 +570,8 @@ if __name__ == "__main__":
     sayaclar = defaultdict(int)
 
     print("  📡 SPY (takvim + benchmark)...")
-    spy_df = yf.Ticker("SPY").history(period=PERIOD, interval="1d")
+    spy_df = yf.Ticker("SPY").history(start=BACKTEST_START, end=BACKTEST_END,
+                                      interval="1d")
     if spy_df.empty:
         raise SystemExit("SPY verisi alınamadı — takvim kurulamaz.")
     calendar = list(spy_df.index)
@@ -578,14 +617,21 @@ if __name__ == "__main__":
                                             sayaclar, sig_cache),
                              cfg, symbols=list(frames.keys()))
 
-    spy_curve = spy_df["Close"] / float(spy_df["Close"].iloc[0]) * BASLANGIC_SERMAYE
+    # Every curve is rebased at the SAME anchor close, so the comparison window
+    # is identical by construction rather than by assumption.
+    anchor = calendar[ISINMA_GUN] if len(calendar) > ISINMA_GUN else calendar[0]
+    spy_post = spy_df["Close"].loc[spy_df.index >= anchor]
+    spy_curve = spy_post / float(spy_post.iloc[0]) * BASLANGIC_SERMAYE
     bench = {
         "SPY buy & hold": equity_metrics(spy_curve),
         "Watchlist eşit ağırlık": equity_metrics(
-            buy_hold_curve(frames, calendar, list(frames.keys()), BASLANGIC_SERMAYE)),
+            buy_hold_curve(frames, calendar, list(frames.keys()),
+                           BASLANGIC_SERMAYE, anchor=anchor)),
     }
+    print(f"  ⚓ Skorlama başlangıcı (anchor): {str(anchor)[:10]} "
+          f"— ilk {ISINMA_GUN} ısınma seansı metriklerden hariç")
 
-    st = rapor_yazdir(res, bench, sayaclar, {"hmm_lookahead": True})
+    st = rapor_yazdir(res, bench, sayaclar, {"hmm_lookahead": True}, anchor=anchor)
 
     # ── cost sensitivity: 0 bps is a diagnostic, never the headline ──────────
     print("  📐 MALİYET DUYARLILIĞI")
@@ -598,7 +644,8 @@ if __name__ == "__main__":
                                 make_signal_fn(frames, vix_series, hmm_carpan,
                                                defaultdict(int), sig_cache),
                                 c, symbols=list(frames.keys()))
-        m = equity_metrics(rr.equity_curve["equity"])
+        _e = rr.equity_curve
+        m = equity_metrics(_e.loc[_e.index >= anchor, "equity"])
         grid[f"{bps:.0f}bps"] = m
         tag = "  (frictionless — teşhis, manşet değil)" if bps == 0 else ""
         print(f"     {bps:>4.0f} bps/yön → {m['total_return_pct']:+7.2f}%  "
