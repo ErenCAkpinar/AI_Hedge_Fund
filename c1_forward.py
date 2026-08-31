@@ -38,11 +38,23 @@ INITIAL_CASH = 1_500.0
 SIDE_COST_BPS = 10.0
 MAX_GROSS_EXPOSURE = 1.0
 TARGET_WEIGHT_DENOMINATOR = len(C1_SYMBOLS)
-RECORD_TYPES = {"PROGRAM", "DECISION", "DIVIDEND", "FILL", "EXECUTION", "EQUITY"}
+RECORD_TYPES = {
+    "PROGRAM", "DECISION", "DIVIDEND", "FILL", "EXECUTION", "EQUITY",
+    "BAR_GAP_ACKNOWLEDGED",
+}
 
 
 class C1ForwardError(RuntimeError):
     """Advancing would make the C1 paper ledger invalid."""
+
+
+@dataclass(frozen=True)
+class BarGapAcknowledgement:
+    """Explicit permission to skip one symbol's missing bar for one session."""
+
+    session: str | pd.Timestamp
+    symbol: str
+    reason: str
 
 
 @dataclass
@@ -53,6 +65,7 @@ class LedgerState:
     )
     pending_decision: str | None = None
     last_session: pd.Timestamp | None = None
+    processed_sessions: list[pd.Timestamp] = field(default_factory=list)
     equities: list[dict] = field(default_factory=list)
 
 
@@ -149,6 +162,7 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
     program_count = 0
     decision_ids: set[str] = set()
     dividend_keys: set[tuple[str, str]] = set()
+    processed_session_texts: set[str] = set()
     equity_sessions: set[str] = set()
     for index, record in enumerate(records):
         kind = record["type"]
@@ -226,7 +240,7 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
                 raise C1ForwardError("ledger violates cash or long-only constraints")
             state.pending_decision = None
         elif kind == "EQUITY":
-            if record["session"] in equity_sessions:
+            if record["session"] in processed_session_texts:
                 raise C1ForwardError("duplicate daily equity")
             if state.last_session is not None and session <= state.last_session:
                 raise C1ForwardError("equity sessions must be strictly increasing")
@@ -241,8 +255,39 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
             if gross_pct > MAX_GROSS_EXPOSURE + 1e-9:
                 raise C1ForwardError("daily gross exposure exceeds 100%")
             state.last_session = session
+            state.processed_sessions.append(session)
             state.equities.append(record)
+            processed_session_texts.add(record["session"])
             equity_sessions.add(record["session"])
+        elif kind == "BAR_GAP_ACKNOWLEDGED":
+            if record["session"] in processed_session_texts:
+                raise C1ForwardError("duplicate processed session")
+            if state.last_session is not None and session <= state.last_session:
+                raise C1ForwardError("acknowledged gap sessions must be strictly increasing")
+            gaps = record.get("gaps")
+            if not isinstance(gaps, list) or not gaps:
+                raise C1ForwardError("bar gap acknowledgement requires at least one gap")
+            seen_symbols: set[str] = set()
+            for gap in gaps:
+                symbol = gap.get("symbol") if isinstance(gap, dict) else None
+                reason = gap.get("reason") if isinstance(gap, dict) else None
+                if symbol not in state.positions or symbol in seen_symbols:
+                    raise C1ForwardError("bar gap acknowledgement has an invalid symbol")
+                if not isinstance(reason, str) or not reason.strip():
+                    raise C1ForwardError("bar gap acknowledgement requires a reason")
+                if gap.get("issue") != "MISSING_BAR":
+                    raise C1ForwardError("bar gap acknowledgement has an invalid issue")
+                seen_symbols.add(symbol)
+            if record.get("action") != "SKIP_SESSION_NO_FILL_NO_EQUITY":
+                raise C1ForwardError("bar gap acknowledgement has an invalid action")
+            expected_pending_action = (
+                "KEPT_PENDING" if state.pending_decision is not None else "NONE"
+            )
+            if record.get("pending_decision_action") != expected_pending_action:
+                raise C1ForwardError("bar gap acknowledgement misstates pending decision state")
+            state.last_session = session
+            state.processed_sessions.append(session)
+            processed_session_texts.add(record["session"])
     return state
 
 
@@ -272,12 +317,35 @@ def _normalise_frame(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
     return result.sort_index()
 
 
-def _validated_bars(frames: Mapping[str, pd.DataFrame], session: pd.Timestamp) -> dict:
+def _normalise_acknowledgements(
+    acknowledgements: Sequence[BarGapAcknowledgement],
+) -> dict[pd.Timestamp, dict[str, str]]:
+    result: dict[pd.Timestamp, dict[str, str]] = {}
+    for acknowledgement in acknowledgements:
+        session = pd.Timestamp(acknowledgement.session).normalize()
+        symbol = acknowledgement.symbol.strip().upper()
+        reason = acknowledgement.reason.strip()
+        if symbol not in C1_SYMBOLS:
+            raise C1ForwardError(f"bar gap acknowledgement symbol is outside C1: {symbol}")
+        if not reason:
+            raise C1ForwardError("bar gap acknowledgement requires a non-empty reason")
+        per_session = result.setdefault(session, {})
+        if symbol in per_session:
+            raise C1ForwardError(f"duplicate bar gap acknowledgement: {session.date()} {symbol}")
+        per_session[symbol] = reason
+    return result
+
+
+def _bars_and_missing(
+    frames: Mapping[str, pd.DataFrame], session: pd.Timestamp,
+) -> tuple[dict, list[str]]:
     bars: dict[str, dict[str, float]] = {}
+    missing: list[str] = []
     for symbol in C1_SYMBOLS:
         frame = frames[symbol]
         if session not in frame.index:
-            raise C1ForwardError(f"{session.date()} {symbol}: missing bar")
+            missing.append(symbol)
+            continue
         open_price = float(frame.loc[session, "Open"])
         close_price = float(frame.loc[session, "Close"])
         dividend = float(frame.loc[session, "Dividends"])
@@ -288,13 +356,15 @@ def _validated_bars(frames: Mapping[str, pd.DataFrame], session: pd.Timestamp) -
         if not math.isfinite(dividend) or dividend < 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Dividends")
         bars[symbol] = {"open": open_price, "close": close_price, "dividend": dividend}
-    return bars
+    return bars, missing
 
 
 def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
     """Credit ex-date cash to shares held before any opening rebalance."""
     records: list[dict] = []
     for symbol in C1_SYMBOLS:
+        if symbol not in bars:
+            continue
         per_share = bars[symbol]["dividend"]
         shares = state.positions[symbol]
         if per_share <= 0 or shares <= 0:
@@ -311,6 +381,25 @@ def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> 
             timing="EX_DATE_BEFORE_OPEN",
         ))
     return records
+
+
+def _gap_record(
+    session: pd.Timestamp,
+    missing: Sequence[str],
+    reasons: Mapping[str, str],
+    state: LedgerState,
+) -> dict:
+    return _record(
+        "BAR_GAP_ACKNOWLEDGED", session,
+        gaps=[
+            {"symbol": symbol, "issue": "MISSING_BAR", "reason": reasons[symbol]}
+            for symbol in C1_SYMBOLS if symbol in missing
+        ],
+        action="SKIP_SESSION_NO_FILL_NO_EQUITY",
+        pending_decision_action=(
+            "KEPT_PENDING" if state.pending_decision is not None else "NONE"
+        ),
+    )
 
 
 def _invested_value(equity: float, current_values: Sequence[float]) -> float:
@@ -438,6 +527,7 @@ def advance_ledger(
     program_start: str | pd.Timestamp,
     calendar: Iterable[pd.Timestamp],
     frames: Mapping[str, pd.DataFrame],
+    gap_acknowledgements: Sequence[BarGapAcknowledgement] = (),
 ) -> dict:
     """Append every newly completed session, then score all recorded equity."""
     path = Path(ledger_path)
@@ -456,16 +546,50 @@ def advance_ledger(
         raise C1ForwardError(f"frozen universe mismatch; missing={missing}, extra={extra}")
     normalised = {symbol: _normalise_frame(frames[symbol], symbol) for symbol in C1_SYMBOLS}
     forward_sessions = [session for session in sessions if session >= start]
-    bars_by_session = {
-        session: _validated_bars(normalised, session) for session in forward_sessions
-    }
-
     existing = read_records(path)
     state = _rebuild(existing, start)
-    recorded_sessions = [pd.Timestamp(record["session"]) for record in state.equities]
+    recorded_sessions = state.processed_sessions
     if recorded_sessions != forward_sessions[:len(recorded_sessions)]:
         raise C1ForwardError("SPY session calendar does not preserve the ledger prefix")
     new_sessions = forward_sessions[len(recorded_sessions):]
+
+    acknowledgements = _normalise_acknowledgements(gap_acknowledgements)
+    recorded_acknowledgements = {
+        pd.Timestamp(record["session"]): {
+            gap["symbol"]: gap["reason"] for gap in record["gaps"]
+        }
+        for record in existing if record["type"] == "BAR_GAP_ACKNOWLEDGED"
+    }
+    for session in list(acknowledgements):
+        if session not in recorded_acknowledgements:
+            continue
+        if acknowledgements[session] != recorded_acknowledgements[session]:
+            raise C1ForwardError(f"acknowledgement differs from ledger: {session.date()}")
+        acknowledgements.pop(session)
+
+    bars_by_session: dict[pd.Timestamp, dict] = {}
+    missing_by_session: dict[pd.Timestamp, list[str]] = {}
+    for session in new_sessions:
+        bars, missing = _bars_and_missing(normalised, session)
+        supplied = set(acknowledgements.get(session, {}))
+        required = set(missing)
+        if required and supplied != required:
+            raise C1ForwardError(
+                f"{session.date()} missing bars require explicit acknowledgement; "
+                f"missing={sorted(required)}, acknowledged={sorted(supplied)}"
+            )
+        if not required and supplied:
+            raise C1ForwardError(
+                f"{session.date()} acknowledgement supplied but no bar is missing"
+            )
+        bars_by_session[session] = bars
+        if missing:
+            missing_by_session[session] = missing
+    unused_acknowledgements = set(acknowledgements) - set(new_sessions)
+    if unused_acknowledgements:
+        dates = sorted(session.strftime("%Y-%m-%d") for session in unused_acknowledgements)
+        raise C1ForwardError(f"acknowledgement session is not pending: {dates}")
+
     new_records: list[dict] = []
     if not existing:
         new_records.append(_program_record(start))
@@ -474,18 +598,35 @@ def advance_ledger(
     for session in new_sessions:
         bars = bars_by_session[session]
         new_records.extend(_credit_dividends(session, bars, state))
+        index = positions[session]
+        previous = sessions[index - 1] if index else None
+        first_session = previous is None or (previous.year, previous.month) != (
+            session.year, session.month
+        )
+
+        if session in missing_by_session:
+            acknowledgement = _gap_record(
+                session,
+                missing_by_session[session],
+                acknowledgements[session],
+                state,
+            )
+            new_records.append(acknowledgement)
+            state.last_session = session
+            state.processed_sessions.append(session)
+            if first_session and state.pending_decision is None:
+                decision = _decision_record(session)
+                new_records.append(decision)
+                state.pending_decision = decision["decision_id"]
+            continue
+
         if state.pending_decision is not None:
             new_records.extend(_execute_rebalance(session, bars, state))
         equity = _equity_record(session, bars, state)
         new_records.append(equity)
         state.equities.append(equity)
         state.last_session = session
-
-        index = positions[session]
-        previous = sessions[index - 1] if index else None
-        first_session = previous is None or (previous.year, previous.month) != (
-            session.year, session.month
-        )
+        state.processed_sessions.append(session)
         if first_session:
             decision = _decision_record(session)
             new_records.append(decision)
@@ -496,12 +637,17 @@ def advance_ledger(
     final = _rebuild(records, start)
     decisions = [record for record in records if record["type"] == "DECISION"]
     fills = [record for record in records if record["type"] == "FILL"]
+    acknowledged_gaps = [
+        record for record in records if record["type"] == "BAR_GAP_ACKNOWLEDGED"
+    ]
     last_equity = float(final.equities[-1]["equity"]) if final.equities else INITIAL_CASH
     return {
         "strategy_id": STRATEGY_ID,
         "ledger": str(path.resolve()),
         "new_sessions": len(new_sessions),
-        "total_sessions": len(final.equities),
+        "total_sessions": len(final.processed_sessions),
+        "equity_sessions": len(final.equities),
+        "acknowledged_gap_sessions": len(acknowledged_gaps),
         "decisions": len(decisions),
         "fills": len(fills),
         "last_session": (
@@ -554,6 +700,25 @@ def download_completed_bars(
     return calendar, frames
 
 
+def _parse_gap_acknowledgement(value: str) -> BarGapAcknowledgement:
+    parts = value.split(":", 2)
+    if len(parts) != 3:
+        raise argparse.ArgumentTypeError(
+            "expected SESSION:SYMBOL:REASON, for example "
+            "2026-10-05:WMT:confirmed provider gap"
+        )
+    session_text, symbol, reason = parts
+    try:
+        session = pd.Timestamp(session_text).normalize()
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("bar gap session must be YYYY-MM-DD") from exc
+    if symbol.strip().upper() not in C1_SYMBOLS:
+        raise argparse.ArgumentTypeError("bar gap symbol must belong to frozen C1")
+    if not reason.strip():
+        raise argparse.ArgumentTypeError("bar gap reason cannot be empty")
+    return BarGapAcknowledgement(session, symbol, reason)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Advance the frozen C1 monthly equal-weight forward-paper ledger."
@@ -564,11 +729,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=date.today().isoformat(),
         help="Download boundary (default: today; only earlier sessions are used)",
     )
+    parser.add_argument(
+        "--ack-bar-gap",
+        action="append",
+        default=[],
+        type=_parse_gap_acknowledgement,
+        metavar="SESSION:SYMBOL:REASON",
+        help=(
+            "Explicitly skip one missing symbol bar; repeat for every missing symbol. "
+            "The override is persisted in the ledger."
+        ),
+    )
     args = parser.parse_args(argv)
     if pd.Timestamp(args.end_exclusive).date() > date.today():
         raise C1ForwardError("end_exclusive cannot be in the future")
     calendar, frames = download_completed_bars(PROGRAM_START, args.end_exclusive)
-    result = advance_ledger(args.ledger, PROGRAM_START, calendar, frames)
+    result = advance_ledger(
+        args.ledger,
+        PROGRAM_START,
+        calendar,
+        frames,
+        gap_acknowledgements=args.ack_bar_gap,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 
