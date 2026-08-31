@@ -3,7 +3,7 @@
 set -u
 umask 077
 
-readonly REPO_DIR="/Users/erenakpinar/AI_Hedge_Fund-c1-forward-minimum"
+readonly REPO_DIR="/Users/erenakpinar/AI_Hedge_Fund"
 readonly PYTHON="/Users/erenakpinar/AI_Hedge_Fund/.venv-backtest/bin/python"
 readonly FORWARD_SCRIPT="${REPO_DIR}/c1_forward.py"
 readonly STATE_DIR="/Users/erenakpinar/Library/Application Support/AI_Hedge_Fund/c1-forward"

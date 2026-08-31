@@ -7,11 +7,11 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/erenakpinar/AI_Hedge_Fund-c1-forward-minimum/ops/launchd/run_c1_forward_daily.zsh</string>
+        <string>/Users/erenakpinar/AI_Hedge_Fund/ops/launchd/run_c1_forward_daily.zsh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/erenakpinar/AI_Hedge_Fund-c1-forward-minimum</string>
+    <string>/Users/erenakpinar/AI_Hedge_Fund</string>
 
     <key>RunAtLoad</key>
     <false/>
