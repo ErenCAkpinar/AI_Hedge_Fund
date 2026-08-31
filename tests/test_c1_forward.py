@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from c1_forward import (
+    BarGapAcknowledgement,
     C1ForwardError,
     C1_SYMBOLS,
     INITIAL_CASH,
@@ -240,6 +241,127 @@ def test_pending_close_decision_survives_until_a_later_daily_run(tmp_path):
     fills = by_type(read_records(ledger), "FILL")
     assert second["new_sessions"] == len(sessions()) - 1
     assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
+
+
+def test_acknowledged_gap_is_recorded_and_pending_fill_waits_for_complete_open(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    market["WMT"] = market["WMT"].drop(index=sessions()[1])
+    acknowledgement = BarGapAcknowledgement(
+        "2026-01-05", "WMT", "Provider bar absent; operator confirmed gap"
+    )
+
+    result = advance_ledger(
+        ledger,
+        "2026-01-02",
+        sessions(),
+        market,
+        gap_acknowledgements=[acknowledgement],
+    )
+    records = read_records(ledger)
+    gaps = by_type(records, "BAR_GAP_ACKNOWLEDGED")
+    fills = by_type(records, "FILL")
+
+    assert len(gaps) == 1
+    assert gaps[0]["session"] == "2026-01-05"
+    assert gaps[0]["gaps"] == [{
+        "symbol": "WMT",
+        "issue": "MISSING_BAR",
+        "reason": "Provider bar absent; operator confirmed gap",
+    }]
+    assert gaps[0]["pending_decision_action"] == "KEPT_PENDING"
+    assert not [record for record in fills if record["session"] == "2026-01-05"]
+    assert len([record for record in fills if record["session"] == "2026-01-30"]) == 17
+    assert result["total_sessions"] == len(sessions())
+    assert result["equity_sessions"] == len(sessions()) - 1
+    assert result["acknowledged_gap_sessions"] == 1
+
+    before = ledger.read_bytes()
+    rerun = advance_ledger(ledger, "2026-01-02", sessions(), market)
+    assert rerun["new_sessions"] == 0
+    assert ledger.read_bytes() == before
+
+
+def test_first_session_gap_is_acknowledged_before_monthly_decision(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    market["WMT"] = market["WMT"].drop(index=sessions()[0])
+
+    advance_ledger(
+        ledger,
+        "2026-01-02",
+        sessions(),
+        market,
+        gap_acknowledgements=[
+            BarGapAcknowledgement("2026-01-02", "WMT", "Confirmed provider gap")
+        ],
+    )
+    records = read_records(ledger)
+    gap_index = next(i for i, record in enumerate(records) if record["type"] == "BAR_GAP_ACKNOWLEDGED")
+    decision_index = next(i for i, record in enumerate(records) if record["type"] == "DECISION")
+    fills = by_type(records, "FILL")
+
+    assert gap_index < decision_index
+    assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
+
+
+@pytest.mark.parametrize("ack_symbols", [("QQQ",), ("WMT", "QQQ")])
+def test_gap_acknowledgement_must_match_exact_missing_symbols(tmp_path, ack_symbols):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    market["WMT"] = market["WMT"].drop(index=sessions()[1])
+    acknowledgements = [
+        BarGapAcknowledgement("2026-01-05", symbol, "Operator reason")
+        for symbol in ack_symbols
+    ]
+
+    with pytest.raises(C1ForwardError, match="require explicit acknowledgement"):
+        advance_ledger(
+            ledger,
+            "2026-01-02",
+            sessions(),
+            market,
+            gap_acknowledgements=acknowledgements,
+        )
+    assert not ledger.exists()
+
+
+def test_gap_acknowledgement_is_rejected_when_bar_exists(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    with pytest.raises(C1ForwardError, match="no bar is missing"):
+        advance_ledger(
+            ledger,
+            "2026-01-02",
+            sessions(),
+            frames(),
+            gap_acknowledgements=[
+                BarGapAcknowledgement("2026-01-05", "WMT", "Operator reason")
+            ],
+        )
+    assert not ledger.exists()
+
+
+def test_known_dividend_on_gap_session_is_credited_before_acknowledgement(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    gap_session = sessions()[2]
+    market["WMT"] = market["WMT"].drop(index=gap_session)
+    market["NVDA"].loc[gap_session, "Dividends"] = 1.0
+
+    advance_ledger(
+        ledger,
+        "2026-01-02",
+        sessions(),
+        market,
+        gap_acknowledgements=[
+            BarGapAcknowledgement(gap_session, "WMT", "Confirmed provider gap")
+        ],
+    )
+    records = read_records(ledger)
+    dividend_index = next(i for i, record in enumerate(records) if record["type"] == "DIVIDEND")
+    gap_index = next(i for i, record in enumerate(records) if record["type"] == "BAR_GAP_ACKNOWLEDGED")
+
+    assert dividend_index < gap_index
 
 
 @pytest.mark.parametrize(
