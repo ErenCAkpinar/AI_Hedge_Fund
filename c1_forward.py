@@ -23,7 +23,7 @@ import pandas as pd
 from portfolio_simulator import equity_metrics
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 STRATEGY_ID = "C1_EW_MONTHLY_FORWARD_V1"
 PROGRAM_START = "2026-09-01"
 C1_SYMBOLS = (
@@ -40,21 +40,11 @@ MAX_GROSS_EXPOSURE = 1.0
 TARGET_WEIGHT_DENOMINATOR = len(C1_SYMBOLS)
 RECORD_TYPES = {
     "PROGRAM", "DECISION", "SPLIT", "DIVIDEND", "FILL", "EXECUTION", "EQUITY",
-    "BAR_GAP_ACKNOWLEDGED",
 }
 
 
 class C1ForwardError(RuntimeError):
     """Advancing would make the C1 paper ledger invalid."""
-
-
-@dataclass(frozen=True)
-class BarGapAcknowledgement:
-    """Explicit permission to skip one symbol's missing bar for one session."""
-
-    session: str | pd.Timestamp
-    symbol: str
-    reason: str
 
 
 @dataclass
@@ -96,9 +86,10 @@ def _program_record(program_start: pd.Timestamp) -> dict:
         decision_time="FIRST_SESSION_CLOSE",
         fill_time="NEXT_SESSION_OPEN",
         price_basis="SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED",
-        split_policy="MULTIPLY_SHARES_BY_REPORTED_RATIO",
-        split_timing="EX_DATE_BEFORE_OPEN",
+        split_policy="RUN_BOUNDARY_BASIS_TRANSITION",
+        split_timing="BEFORE_NEW_SESSIONS",
         dividend_timing="EX_DATE_BEFORE_OPEN",
+        bar_gap_policy="FAIL_CLOSED",
         metrics_function="portfolio_simulator.equity_metrics",
     )
 
@@ -198,23 +189,53 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
                 raise C1ForwardError("split must precede opening trades")
             if state.last_session is not None and session <= state.last_session:
                 raise C1ForwardError("split must precede that session's equity mark")
-            ratio = float(record.get("split_ratio", math.nan))
+            if record.get("timing") != "BEFORE_NEW_SESSIONS":
+                raise C1ForwardError("split has an invalid timing policy")
+            expected_last_recorded = (
+                state.last_session.strftime("%Y-%m-%d")
+                if state.last_session is not None else None
+            )
+            if record.get("last_recorded_session") != expected_last_recorded:
+                raise C1ForwardError("split misstates the last recorded session")
+            factor = float(record.get("split_factor", math.nan))
             shares_before = float(record.get("shares_before", math.nan))
             shares_after = float(record.get("shares_after", math.nan))
-            if not all(math.isfinite(value) for value in (ratio, shares_before, shares_after)):
+            if not all(math.isfinite(value) for value in (factor, shares_before, shares_after)):
                 raise C1ForwardError("split contains a non-finite value")
-            if ratio <= 0 or shares_before < 0 or shares_after < 0:
-                raise C1ForwardError("split ratio must be positive and shares non-negative")
-            if record.get("timing") != "EX_DATE_BEFORE_OPEN":
-                raise C1ForwardError("split has an invalid timing policy")
+            if factor <= 0 or shares_before < 0 or shares_after < 0:
+                raise C1ForwardError("split factor must be positive and shares non-negative")
+            events = record.get("events")
+            if not isinstance(events, list) or not events:
+                raise C1ForwardError("split requires at least one ex-date event")
+            product = 1.0
+            previous_ex_date: pd.Timestamp | None = None
+            for event in events:
+                ex_date = event.get("ex_date") if isinstance(event, dict) else None
+                ratio = float(event.get("ratio", math.nan)) if isinstance(event, dict) else math.nan
+                if not isinstance(ex_date, str):
+                    raise C1ForwardError("split event has an invalid ex_date")
+                try:
+                    ex_session = pd.Timestamp(ex_date)
+                except ValueError as exc:
+                    raise C1ForwardError("split event has an invalid ex_date") from exc
+                if ex_session < session:
+                    raise C1ForwardError("split event precedes its basis transition")
+                if previous_ex_date is not None and ex_session < previous_ex_date:
+                    raise C1ForwardError("split events must be in ex-date order")
+                if not math.isfinite(ratio) or ratio <= 0:
+                    raise C1ForwardError("split event ratio must be positive")
+                previous_ex_date = ex_session
+                product *= ratio
+            if not math.isclose(product, factor, rel_tol=1e-12, abs_tol=1e-12):
+                raise C1ForwardError("split factor does not match its ex-date events")
             if not math.isclose(
                 shares_before, state.positions[symbol], rel_tol=1e-12, abs_tol=1e-10
             ):
                 raise C1ForwardError("split shares_before does not match the ledger")
             if not math.isclose(
-                shares_after, shares_before * ratio, rel_tol=1e-12, abs_tol=1e-10
+                shares_after, shares_before * factor, rel_tol=1e-12, abs_tol=1e-10
             ):
-                raise C1ForwardError("split shares_after does not match the ratio")
+                raise C1ForwardError("split shares_after does not match the factor")
             state.positions[symbol] = shares_after
             split_keys.add(key)
         elif kind == "DIVIDEND":
@@ -299,35 +320,6 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
             state.equities.append(record)
             processed_session_texts.add(record["session"])
             equity_sessions.add(record["session"])
-        elif kind == "BAR_GAP_ACKNOWLEDGED":
-            if record["session"] in processed_session_texts:
-                raise C1ForwardError("duplicate processed session")
-            if state.last_session is not None and session <= state.last_session:
-                raise C1ForwardError("acknowledged gap sessions must be strictly increasing")
-            gaps = record.get("gaps")
-            if not isinstance(gaps, list) or not gaps:
-                raise C1ForwardError("bar gap acknowledgement requires at least one gap")
-            seen_symbols: set[str] = set()
-            for gap in gaps:
-                symbol = gap.get("symbol") if isinstance(gap, dict) else None
-                reason = gap.get("reason") if isinstance(gap, dict) else None
-                if symbol not in state.positions or symbol in seen_symbols:
-                    raise C1ForwardError("bar gap acknowledgement has an invalid symbol")
-                if not isinstance(reason, str) or not reason.strip():
-                    raise C1ForwardError("bar gap acknowledgement requires a reason")
-                if gap.get("issue") != "MISSING_BAR":
-                    raise C1ForwardError("bar gap acknowledgement has an invalid issue")
-                seen_symbols.add(symbol)
-            if record.get("action") != "SKIP_SESSION_NO_FILL_NO_EQUITY":
-                raise C1ForwardError("bar gap acknowledgement has an invalid action")
-            expected_pending_action = (
-                "KEPT_PENDING" if state.pending_decision is not None else "NONE"
-            )
-            if record.get("pending_decision_action") != expected_pending_action:
-                raise C1ForwardError("bar gap acknowledgement misstates pending decision state")
-            state.last_session = session
-            state.processed_sessions.append(session)
-            processed_session_texts.add(record["session"])
     return state
 
 
@@ -357,25 +349,6 @@ def _normalise_frame(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
     if not result.index.is_unique:
         raise C1ForwardError(f"{symbol}: duplicate sessions")
     return result.sort_index()
-
-
-def _normalise_acknowledgements(
-    acknowledgements: Sequence[BarGapAcknowledgement],
-) -> dict[pd.Timestamp, dict[str, str]]:
-    result: dict[pd.Timestamp, dict[str, str]] = {}
-    for acknowledgement in acknowledgements:
-        session = pd.Timestamp(acknowledgement.session).normalize()
-        symbol = acknowledgement.symbol.strip().upper()
-        reason = acknowledgement.reason.strip()
-        if symbol not in C1_SYMBOLS:
-            raise C1ForwardError(f"bar gap acknowledgement symbol is outside C1: {symbol}")
-        if not reason:
-            raise C1ForwardError("bar gap acknowledgement requires a non-empty reason")
-        per_session = result.setdefault(session, {})
-        if symbol in per_session:
-            raise C1ForwardError(f"duplicate bar gap acknowledgement: {session.date()} {symbol}")
-        per_session[symbol] = reason
-    return result
 
 
 def _bars_and_missing(
@@ -409,33 +382,67 @@ def _bars_and_missing(
     return bars, missing
 
 
-def _apply_splits(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
-    """Adjust held shares for declared splits before dividends or opening trades."""
+def _boundary_splits(
+    new_sessions: Sequence[pd.Timestamp],
+    bars_by_session: Mapping[pd.Timestamp, dict],
+    state: LedgerState,
+) -> list[dict]:
+    """Rebase the prior ledger's shares onto the snapshot's current split basis.
+
+    Provider bars are always presented on the snapshot's own split basis, so any
+    session priced in this run already reflects every pending ex-date.  Only the
+    shares carried over from earlier runs are stale: they are multiplied once, by
+    the product of the pending ratios, before the first new session is processed.
+    The new sessions then apply no split of their own.
+    """
+    if not new_sessions:
+        return []
+    boundary = new_sessions[0]
+    last_recorded = (
+        state.last_session.strftime("%Y-%m-%d") if state.last_session is not None else None
+    )
+    events: dict[str, list[dict]] = {}
+    for session in new_sessions:
+        bars = bars_by_session[session]
+        for symbol in C1_SYMBOLS:
+            if symbol not in bars or bars[symbol]["split_ratio"] <= 0:
+                continue
+            events.setdefault(symbol, []).append({
+                "ex_date": session.strftime("%Y-%m-%d"),
+                "ratio": bars[symbol]["split_ratio"],
+            })
     records: list[dict] = []
     for symbol in C1_SYMBOLS:
-        if symbol not in bars:
+        if symbol not in events:
             continue
-        ratio = bars[symbol]["split_ratio"]
-        if ratio <= 0:
-            continue
+        factor = 1.0
+        for event in events[symbol]:
+            factor *= event["ratio"]
         shares_before = state.positions[symbol]
-        shares_after = shares_before * ratio
-        if not math.isfinite(shares_after):
-            raise C1ForwardError(f"{session.date()} {symbol}: split share count overflow")
+        shares_after = shares_before * factor
+        if not math.isfinite(factor) or not math.isfinite(shares_after):
+            raise C1ForwardError(f"{symbol}: split basis transition overflow")
         state.positions[symbol] = shares_after
         records.append(_record(
-            "SPLIT", session,
+            "SPLIT", boundary,
             symbol=symbol,
-            split_ratio=ratio,
+            split_factor=factor,
+            events=events[symbol],
             shares_before=shares_before,
             shares_after=shares_after,
-            timing="EX_DATE_BEFORE_OPEN",
+            last_recorded_session=last_recorded,
+            timing="BEFORE_NEW_SESSIONS",
         ))
     return records
 
 
 def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
-    """Credit ex-date cash to shares held before any opening rebalance."""
+    """Credit ex-date cash to shares held before any opening rebalance.
+
+    Downloaded dividends share the snapshot's current split basis, so a
+    per-share amount is quoted against the same basis as the shares that
+    ``_boundary_splits`` has already rebased.
+    """
     records: list[dict] = []
     for symbol in C1_SYMBOLS:
         if symbol not in bars:
@@ -456,25 +463,6 @@ def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> 
             timing="EX_DATE_BEFORE_OPEN",
         ))
     return records
-
-
-def _gap_record(
-    session: pd.Timestamp,
-    missing: Sequence[str],
-    reasons: Mapping[str, str],
-    state: LedgerState,
-) -> dict:
-    return _record(
-        "BAR_GAP_ACKNOWLEDGED", session,
-        gaps=[
-            {"symbol": symbol, "issue": "MISSING_BAR", "reason": reasons[symbol]}
-            for symbol in C1_SYMBOLS if symbol in missing
-        ],
-        action="SKIP_SESSION_NO_FILL_NO_EQUITY",
-        pending_decision_action=(
-            "KEPT_PENDING" if state.pending_decision is not None else "NONE"
-        ),
-    )
 
 
 def _invested_value(equity: float, current_values: Sequence[float]) -> float:
@@ -602,9 +590,14 @@ def advance_ledger(
     program_start: str | pd.Timestamp,
     calendar: Iterable[pd.Timestamp],
     frames: Mapping[str, pd.DataFrame],
-    gap_acknowledgements: Sequence[BarGapAcknowledgement] = (),
 ) -> dict:
-    """Append every newly completed session, then score all recorded equity."""
+    """Append every newly completed session, then score all recorded equity.
+
+    A session is only recorded when every C1 symbol has a bar for it.  A single
+    missing bar aborts the whole run before anything is appended: the absent row
+    cannot be proven free of a corporate action, so recording the session would
+    bake an unverifiable basis into the equity path.
+    """
     path = Path(ledger_path)
     start = pd.Timestamp(program_start).normalize()
     sessions = _normalise_calendar(calendar)
@@ -628,73 +621,30 @@ def advance_ledger(
         raise C1ForwardError("SPY session calendar does not preserve the ledger prefix")
     new_sessions = forward_sessions[len(recorded_sessions):]
 
-    acknowledgements = _normalise_acknowledgements(gap_acknowledgements)
-    recorded_acknowledgements = {
-        pd.Timestamp(record["session"]): {
-            gap["symbol"]: gap["reason"] for gap in record["gaps"]
-        }
-        for record in existing if record["type"] == "BAR_GAP_ACKNOWLEDGED"
-    }
-    for session in list(acknowledgements):
-        if session not in recorded_acknowledgements:
-            continue
-        if acknowledgements[session] != recorded_acknowledgements[session]:
-            raise C1ForwardError(f"acknowledgement differs from ledger: {session.date()}")
-        acknowledgements.pop(session)
-
     bars_by_session: dict[pd.Timestamp, dict] = {}
-    missing_by_session: dict[pd.Timestamp, list[str]] = {}
     for session in new_sessions:
         bars, missing = _bars_and_missing(normalised, session)
-        supplied = set(acknowledgements.get(session, {}))
-        required = set(missing)
-        if required and supplied != required:
+        if missing:
             raise C1ForwardError(
-                f"{session.date()} missing bars require explicit acknowledgement; "
-                f"missing={sorted(required)}, acknowledged={sorted(supplied)}"
-            )
-        if not required and supplied:
-            raise C1ForwardError(
-                f"{session.date()} acknowledgement supplied but no bar is missing"
+                f"{session.date()} is missing bars for {sorted(missing)}; "
+                "C1 records only complete sessions and will not advance"
             )
         bars_by_session[session] = bars
-        if missing:
-            missing_by_session[session] = missing
-    unused_acknowledgements = set(acknowledgements) - set(new_sessions)
-    if unused_acknowledgements:
-        dates = sorted(session.strftime("%Y-%m-%d") for session in unused_acknowledgements)
-        raise C1ForwardError(f"acknowledgement session is not pending: {dates}")
 
     new_records: list[dict] = []
     if not existing:
         new_records.append(_program_record(start))
+    new_records.extend(_boundary_splits(new_sessions, bars_by_session, state))
 
     positions = {session: index for index, session in enumerate(sessions)}
     for session in new_sessions:
         bars = bars_by_session[session]
-        new_records.extend(_apply_splits(session, bars, state))
         new_records.extend(_credit_dividends(session, bars, state))
         index = positions[session]
         previous = sessions[index - 1] if index else None
         first_session = previous is None or (previous.year, previous.month) != (
             session.year, session.month
         )
-
-        if session in missing_by_session:
-            acknowledgement = _gap_record(
-                session,
-                missing_by_session[session],
-                acknowledgements[session],
-                state,
-            )
-            new_records.append(acknowledgement)
-            state.last_session = session
-            state.processed_sessions.append(session)
-            if first_session and state.pending_decision is None:
-                decision = _decision_record(session)
-                new_records.append(decision)
-                state.pending_decision = decision["decision_id"]
-            continue
 
         if state.pending_decision is not None:
             new_records.extend(_execute_rebalance(session, bars, state))
@@ -713,9 +663,6 @@ def advance_ledger(
     final = _rebuild(records, start)
     decisions = [record for record in records if record["type"] == "DECISION"]
     fills = [record for record in records if record["type"] == "FILL"]
-    acknowledged_gaps = [
-        record for record in records if record["type"] == "BAR_GAP_ACKNOWLEDGED"
-    ]
     last_equity = float(final.equities[-1]["equity"]) if final.equities else INITIAL_CASH
     return {
         "strategy_id": STRATEGY_ID,
@@ -723,7 +670,6 @@ def advance_ledger(
         "new_sessions": len(new_sessions),
         "total_sessions": len(final.processed_sessions),
         "equity_sessions": len(final.equities),
-        "acknowledged_gap_sessions": len(acknowledged_gaps),
         "decisions": len(decisions),
         "fills": len(fills),
         "last_session": (
@@ -776,25 +722,6 @@ def download_completed_bars(
     return calendar, frames
 
 
-def _parse_gap_acknowledgement(value: str) -> BarGapAcknowledgement:
-    parts = value.split(":", 2)
-    if len(parts) != 3:
-        raise argparse.ArgumentTypeError(
-            "expected SESSION:SYMBOL:REASON, for example "
-            "2026-10-05:WMT:confirmed provider gap"
-        )
-    session_text, symbol, reason = parts
-    try:
-        session = pd.Timestamp(session_text).normalize()
-    except (TypeError, ValueError) as exc:
-        raise argparse.ArgumentTypeError("bar gap session must be YYYY-MM-DD") from exc
-    if symbol.strip().upper() not in C1_SYMBOLS:
-        raise argparse.ArgumentTypeError("bar gap symbol must belong to frozen C1")
-    if not reason.strip():
-        raise argparse.ArgumentTypeError("bar gap reason cannot be empty")
-    return BarGapAcknowledgement(session, symbol, reason)
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Advance the frozen C1 monthly equal-weight forward-paper ledger."
@@ -805,28 +732,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=date.today().isoformat(),
         help="Download boundary (default: today; only earlier sessions are used)",
     )
-    parser.add_argument(
-        "--ack-bar-gap",
-        action="append",
-        default=[],
-        type=_parse_gap_acknowledgement,
-        metavar="SESSION:SYMBOL:REASON",
-        help=(
-            "Explicitly skip one missing symbol bar; repeat for every missing symbol. "
-            "The override is persisted in the ledger."
-        ),
-    )
     args = parser.parse_args(argv)
     if pd.Timestamp(args.end_exclusive).date() > date.today():
         raise C1ForwardError("end_exclusive cannot be in the future")
     calendar, frames = download_completed_bars(PROGRAM_START, args.end_exclusive)
-    result = advance_ledger(
-        args.ledger,
-        PROGRAM_START,
-        calendar,
-        frames,
-        gap_acknowledgements=args.ack_bar_gap,
-    )
+    result = advance_ledger(args.ledger, PROGRAM_START, calendar, frames)
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 

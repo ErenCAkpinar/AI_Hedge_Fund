@@ -7,7 +7,6 @@ import pandas as pd
 import pytest
 
 from c1_forward import (
-    BarGapAcknowledgement,
     C1ForwardError,
     C1_SYMBOLS,
     INITIAL_CASH,
@@ -41,6 +40,77 @@ def frames(calendar=None, open_price=100.0, close_price=100.0):
 
 def by_type(records, record_type):
     return [record for record in records if record["type"] == record_type]
+
+
+def split_snapshot(calendar, nvda_price, split_events=(), dividend=None):
+    market = frames(calendar)
+    market["NVDA"].loc[:, ["Open", "Close"]] = float(nvda_price)
+    for ex_date, ratio in split_events:
+        if ex_date in calendar:
+            market["NVDA"].loc[ex_date, "Stock Splits"] = float(ratio)
+    if dividend is not None:
+        ex_date, per_share = dividend
+        if ex_date in calendar:
+            market["NVDA"].loc[ex_date, "Dividends"] = float(per_share)
+    return market
+
+
+def mixed_sessions():
+    """Two January sessions then six February ones.
+
+    The prior run stops inside January, so the catch-up window opens on the
+    first February session and carries a real monthly decision plus its
+    next-open fill, both landing before either split ex-date.
+    """
+    return list(pd.to_datetime([
+        "2026-01-29", "2026-01-30",
+        "2026-02-02", "2026-02-03", "2026-02-04",
+        "2026-02-05", "2026-02-06", "2026-02-09",
+    ]))
+
+
+def drifting_snapshot(prefix, nvda_price, split_events=()):
+    """split_snapshot plus a distinct, split-free path for every other symbol.
+
+    Only NVDA splits here, so every other symbol carries the same price on a
+    session whichever run observes it.  Spreading them apart is what gives the
+    February rebalance real work: with one flat price the book is already on
+    target at the next open and no fill is produced at all.
+    """
+    market = split_snapshot(prefix, nvda_price, split_events)
+    calendar = mixed_sessions()
+    for symbol_index, symbol in enumerate(C1_SYMBOLS):
+        if symbol == "NVDA":
+            continue
+        for session in prefix:
+            price = 100.0 + symbol_index * 4.0 + calendar.index(session) * 2.0
+            market[symbol].loc[session, ["Open", "Close"]] = price
+    return market
+
+
+def final_positions(records):
+    positions = {symbol: 0.0 for symbol in C1_SYMBOLS}
+    for record in records:
+        if record["type"] == "SPLIT":
+            positions[record["symbol"]] = record["shares_after"]
+        elif record["type"] == "FILL":
+            direction = 1.0 if record["side"] == "BUY" else -1.0
+            positions[record["symbol"]] += direction * record["qty"]
+    return positions
+
+
+def assert_forward_paths_match(left_ledger, right_ledger):
+    left_records = read_records(left_ledger)
+    right_records = read_records(right_ledger)
+    left_equity = [record["equity"] for record in by_type(left_records, "EQUITY")]
+    right_equity = [record["equity"] for record in by_type(right_records, "EQUITY")]
+    assert left_equity == pytest.approx(right_equity, rel=0.0, abs=1e-9)
+    left_positions = final_positions(left_records)
+    right_positions = final_positions(right_records)
+    for symbol in C1_SYMBOLS:
+        assert left_positions[symbol] == pytest.approx(
+            right_positions[symbol], rel=0.0, abs=1e-9
+        )
 
 
 def test_first_session_close_decision_fills_only_at_next_open(tmp_path):
@@ -148,61 +218,215 @@ def test_ex_date_open_purchase_does_not_receive_that_dividend(tmp_path):
     assert not by_type(read_records(ledger), "DIVIDEND")
 
 
-def test_ten_for_one_split_multiplies_shares_and_preserves_equity(tmp_path):
-    ledger = tmp_path / "c1.jsonl"
-    market = frames()
+def test_fresh_catchup_matches_daily_path_across_ten_for_one_split(tmp_path):
+    daily = tmp_path / "daily.jsonl"
+    catchup = tmp_path / "catchup.jsonl"
     split_session = sessions()[4]
-    market["NVDA"].loc[sessions()[:4], ["Open", "Close"]] = 1_000.0
-    market["NVDA"].loc[split_session, "Stock Splits"] = 10.0
 
-    advance_ledger(ledger, "2026-01-02", sessions(), market)
-    records = read_records(ledger)
-    split = next(record for record in records if record["type"] == "SPLIT")
-    marks = {record["session"]: record for record in by_type(records, "EQUITY")}
-    split_index = records.index(split)
-    execution_index = next(
-        index for index, record in enumerate(records)
-        if record["type"] == "EXECUTION" and record["session"] == "2026-02-03"
+    advance_ledger(
+        daily,
+        sessions()[0],
+        sessions()[:4],
+        split_snapshot(sessions()[:4], 1_000.0),
     )
-    initial_fill = next(
-        record for record in by_type(records, "FILL")
-        if record["session"] == "2026-01-05" and record["symbol"] == "NVDA"
+    current_snapshot = split_snapshot(
+        sessions(), 100.0, [(split_session, 10.0)]
     )
-    program = by_type(records, "PROGRAM")[0]
+    advance_ledger(daily, sessions()[0], sessions(), current_snapshot)
+    advance_ledger(catchup, sessions()[0], sessions(), current_snapshot)
 
-    assert split["session"] == "2026-02-03"
-    assert split["symbol"] == "NVDA"
-    assert split["split_ratio"] == 10.0
-    assert split["shares_before"] == pytest.approx(initial_fill["qty"])
-    assert split["shares_after"] == pytest.approx(initial_fill["qty"] * 10.0)
-    assert split_index < execution_index
-    assert marks["2026-02-03"]["equity"] == pytest.approx(
-        marks["2026-02-02"]["equity"]
-    )
-    assert program["price_basis"] == "SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED"
-    assert program["split_policy"] == "MULTIPLY_SHARES_BY_REPORTED_RATIO"
-    assert program["split_timing"] == "EX_DATE_BEFORE_OPEN"
+    assert_forward_paths_match(daily, catchup)
+    daily_split = by_type(read_records(daily), "SPLIT")[0]
+    catchup_split = by_type(read_records(catchup), "SPLIT")[0]
+    assert daily_split["split_factor"] == 10.0
+    assert daily_split["events"] == [{
+        "ex_date": split_session.strftime("%Y-%m-%d"), "ratio": 10.0,
+    }]
+    assert daily_split["last_recorded_session"] == "2026-02-02"
+    assert catchup_split["last_recorded_session"] is None
+    assert catchup_split["shares_before"] == catchup_split["shares_after"] == 0.0
+    program = by_type(read_records(catchup), "PROGRAM")[0]
+    assert program["split_policy"] == "RUN_BOUNDARY_BASIS_TRANSITION"
+    assert program["split_timing"] == "BEFORE_NEW_SESSIONS"
 
 
-def test_reverse_split_uses_the_same_share_adjustment_path(tmp_path):
-    ledger = tmp_path / "c1.jsonl"
-    market = frames()
+def test_fresh_catchup_matches_daily_path_across_one_for_ten_reverse_split(tmp_path):
+    daily = tmp_path / "daily.jsonl"
+    catchup = tmp_path / "catchup.jsonl"
     split_session = sessions()[2]
-    market["MSTR"].loc[sessions()[:2], ["Open", "Close"]] = 10.0
-    market["MSTR"].loc[split_session, ["Open", "Close"]] = 100.0
-    market["MSTR"].loc[split_session, "Stock Splits"] = 0.1
 
-    advance_ledger(ledger, "2026-01-02", sessions(), market)
-    records = read_records(ledger)
-    split = next(record for record in records if record["type"] == "SPLIT")
-    marks = {record["session"]: record for record in by_type(records, "EQUITY")}
-
-    assert split["symbol"] == "MSTR"
-    assert split["split_ratio"] == 0.1
-    assert split["shares_after"] == pytest.approx(split["shares_before"] * 0.1)
-    assert marks["2026-01-30"]["equity"] == pytest.approx(
-        marks["2026-01-05"]["equity"]
+    advance_ledger(
+        daily,
+        sessions()[0],
+        sessions()[:2],
+        split_snapshot(sessions()[:2], 10.0),
     )
+    current_snapshot = split_snapshot(
+        sessions(), 100.0, [(split_session, 0.1)]
+    )
+    advance_ledger(daily, sessions()[0], sessions(), current_snapshot)
+    advance_ledger(catchup, sessions()[0], sessions(), current_snapshot)
+
+    assert_forward_paths_match(daily, catchup)
+
+
+def test_mixed_catchup_matches_daily_path_across_two_split_boundaries(tmp_path):
+    calendar = mixed_sessions()
+    first_split = calendar[4]
+    second_split = calendar[6]
+    rebalance_open = calendar[3]
+    daily = tmp_path / "daily.jsonl"
+    catchup = tmp_path / "catchup.jsonl"
+
+    for end in range(1, len(calendar) + 1):
+        prefix = calendar[:end]
+        if end <= 4:
+            snapshot = drifting_snapshot(prefix, 500.0)
+        elif end <= 6:
+            snapshot = drifting_snapshot(prefix, 50.0, [(first_split, 10.0)])
+        else:
+            snapshot = drifting_snapshot(
+                prefix,
+                100.0,
+                [(first_split, 10.0), (second_split, 0.5)],
+            )
+        advance_ledger(daily, calendar[0], prefix, snapshot)
+
+    advance_ledger(
+        catchup,
+        calendar[0],
+        calendar[:2],
+        drifting_snapshot(calendar[:2], 500.0),
+    )
+    before_catchup = len(read_records(catchup))
+    advance_ledger(
+        catchup,
+        calendar[0],
+        calendar,
+        drifting_snapshot(
+            calendar,
+            100.0,
+            [(first_split, 10.0), (second_split, 0.5)],
+        ),
+    )
+
+    assert_forward_paths_match(daily, catchup)
+    catchup_split = by_type(read_records(catchup), "SPLIT")[0]
+    assert catchup_split["session"] == calendar[2].strftime("%Y-%m-%d")
+    assert catchup_split["last_recorded_session"] == calendar[1].strftime("%Y-%m-%d")
+    assert catchup_split["split_factor"] == 5.0
+    assert catchup_split["events"] == [
+        {"ex_date": first_split.strftime("%Y-%m-%d"), "ratio": 10.0},
+        {"ex_date": second_split.strftime("%Y-%m-%d"), "ratio": 0.5},
+    ]
+
+    # The catch-up leg must actually trade inside the window, at a session
+    # strictly after the basis transition and strictly before either ex-date.
+    # Without this the two paths would only ever be compared while holding.
+    catchup_leg = read_records(catchup)[before_catchup:]
+    fill_session = rebalance_open.strftime("%Y-%m-%d")
+    catchup_fills = [
+        record for record in by_type(catchup_leg, "FILL")
+        if record["session"] == fill_session
+    ]
+    daily_fills = [
+        record for record in by_type(read_records(daily), "FILL")
+        if record["session"] == fill_session
+    ]
+
+    assert calendar[2] < rebalance_open < first_split < second_split
+    assert [record["session"] for record in by_type(catchup_leg, "DECISION")] == [
+        calendar[2].strftime("%Y-%m-%d")
+    ]
+    assert len(catchup_fills) == len(C1_SYMBOLS)
+    assert {record["side"] for record in catchup_fills} == {"BUY", "SELL"}
+    assert len(daily_fills) == len(catchup_fills)
+
+
+def test_catchup_split_and_same_day_dividend_match_daily_path(tmp_path):
+    daily = tmp_path / "daily.jsonl"
+    catchup = tmp_path / "catchup.jsonl"
+    ex_date = sessions()[4]
+
+    advance_ledger(
+        daily,
+        sessions()[0],
+        sessions()[:4],
+        split_snapshot(sessions()[:4], 1_000.0),
+    )
+    current_snapshot = split_snapshot(
+        sessions(),
+        100.0,
+        [(ex_date, 10.0)],
+        dividend=(ex_date, 2.0),
+    )
+    advance_ledger(daily, sessions()[0], sessions(), current_snapshot)
+    advance_ledger(catchup, sessions()[0], sessions(), current_snapshot)
+
+    assert_forward_paths_match(daily, catchup)
+    daily_dividend = by_type(read_records(daily), "DIVIDEND")[0]
+    catchup_records = read_records(catchup)
+    catchup_split = by_type(catchup_records, "SPLIT")[0]
+    catchup_dividend = by_type(catchup_records, "DIVIDEND")[0]
+    assert catchup_records.index(catchup_split) < catchup_records.index(catchup_dividend)
+    assert daily_dividend["cash_amount"] == pytest.approx(
+        catchup_dividend["cash_amount"], rel=0.0, abs=1e-9
+    )
+
+
+def test_catchup_dividend_before_a_later_split_matches_daily_path(tmp_path):
+    """Dividend ex-date strictly before a split ex-date, both in one window.
+
+    The daily run credits the dividend on the pre-split basis, before the split
+    is even declared.  The catch-up run rebases shares at the boundary and then
+    sees the same historical dividend restated on the current basis.  Both must
+    credit identical cash from different per-share amounts; equating those
+    amounts instead would multiply the catch-up credit by the split factor.
+    """
+    daily = tmp_path / "daily.jsonl"
+    catchup = tmp_path / "catchup.jsonl"
+    dividend_session = sessions()[4]
+    split_session = sessions()[5]
+    assert dividend_session < split_session
+
+    opening = split_snapshot(sessions()[:4], 1_000.0)
+    advance_ledger(daily, sessions()[0], sessions()[:4], opening)
+    advance_ledger(catchup, sessions()[0], sessions()[:4], opening)
+
+    advance_ledger(
+        daily,
+        sessions()[0],
+        sessions()[:5],
+        split_snapshot(sessions()[:5], 1_000.0, dividend=(dividend_session, 20.0)),
+    )
+    current_snapshot = split_snapshot(
+        sessions(),
+        100.0,
+        [(split_session, 10.0)],
+        dividend=(dividend_session, 2.0),
+    )
+    advance_ledger(daily, sessions()[0], sessions(), current_snapshot)
+    advance_ledger(catchup, sessions()[0], sessions(), current_snapshot)
+
+    assert_forward_paths_match(daily, catchup)
+    daily_dividend = by_type(read_records(daily), "DIVIDEND")[0]
+    catchup_records = read_records(catchup)
+    catchup_dividend = by_type(catchup_records, "DIVIDEND")[0]
+    catchup_split = by_type(catchup_records, "SPLIT")[0]
+
+    assert daily_dividend["dividend_per_share"] == pytest.approx(20.0)
+    assert catchup_dividend["dividend_per_share"] == pytest.approx(2.0)
+    assert catchup_dividend["shares_eligible"] == pytest.approx(
+        daily_dividend["shares_eligible"] * 10.0, rel=0.0, abs=1e-9
+    )
+    assert daily_dividend["cash_amount"] == pytest.approx(
+        catchup_dividend["cash_amount"], rel=0.0, abs=1e-9
+    )
+    assert catchup_split["session"] == dividend_session.strftime("%Y-%m-%d")
+    assert catchup_split["events"] == [
+        {"ex_date": split_session.strftime("%Y-%m-%d"), "ratio": 10.0},
+    ]
+    assert catchup_records.index(catchup_split) < catchup_records.index(catchup_dividend)
 
 
 def test_downloader_requests_split_adjusted_prices_and_corporate_actions(monkeypatch):
@@ -302,125 +526,104 @@ def test_pending_close_decision_survives_until_a_later_daily_run(tmp_path):
     assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
 
 
-def test_acknowledged_gap_is_recorded_and_pending_fill_waits_for_complete_open(tmp_path):
+def test_missing_bar_after_a_pending_decision_appends_nothing_and_retries_cleanly(tmp_path):
     ledger = tmp_path / "c1.jsonl"
-    market = frames()
-    market["WMT"] = market["WMT"].drop(index=sessions()[1])
-    acknowledgement = BarGapAcknowledgement(
-        "2026-01-05", "WMT", "Provider bar absent; operator confirmed gap"
-    )
-
-    result = advance_ledger(
-        ledger,
-        "2026-01-02",
-        sessions(),
-        market,
-        gap_acknowledgements=[acknowledgement],
-    )
-    records = read_records(ledger)
-    gaps = by_type(records, "BAR_GAP_ACKNOWLEDGED")
-    fills = by_type(records, "FILL")
-
-    assert len(gaps) == 1
-    assert gaps[0]["session"] == "2026-01-05"
-    assert gaps[0]["gaps"] == [{
-        "symbol": "WMT",
-        "issue": "MISSING_BAR",
-        "reason": "Provider bar absent; operator confirmed gap",
-    }]
-    assert gaps[0]["pending_decision_action"] == "KEPT_PENDING"
-    assert not [record for record in fills if record["session"] == "2026-01-05"]
-    assert len([record for record in fills if record["session"] == "2026-01-30"]) == 17
-    assert result["total_sessions"] == len(sessions())
-    assert result["equity_sessions"] == len(sessions()) - 1
-    assert result["acknowledged_gap_sessions"] == 1
-
+    first_day = sessions()[:1]
+    opening = advance_ledger(ledger, "2026-01-02", first_day, frames(first_day))
     before = ledger.read_bytes()
-    rerun = advance_ledger(ledger, "2026-01-02", sessions(), market)
-    assert rerun["new_sessions"] == 0
+    assert opening["pending_rebalance"] is True
+
+    incomplete = frames()
+    incomplete["WMT"] = incomplete["WMT"].drop(index=sessions()[1])
+    with pytest.raises(C1ForwardError, match="missing bars"):
+        advance_ledger(ledger, "2026-01-02", sessions(), incomplete)
     assert ledger.read_bytes() == before
 
+    result = advance_ledger(ledger, "2026-01-02", sessions(), frames())
+    fills = by_type(read_records(ledger), "FILL")
 
-def test_first_session_gap_is_acknowledged_before_monthly_decision(tmp_path):
+    assert result["new_sessions"] == len(sessions()) - 1
+    assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
+    assert result["equity_sessions"] == result["total_sessions"] == len(sessions())
+
+
+def test_first_session_gap_creates_no_ledger(tmp_path):
     ledger = tmp_path / "c1.jsonl"
     market = frames()
     market["WMT"] = market["WMT"].drop(index=sessions()[0])
 
-    advance_ledger(
-        ledger,
-        "2026-01-02",
-        sessions(),
-        market,
-        gap_acknowledgements=[
-            BarGapAcknowledgement("2026-01-02", "WMT", "Confirmed provider gap")
-        ],
-    )
-    records = read_records(ledger)
-    gap_index = next(i for i, record in enumerate(records) if record["type"] == "BAR_GAP_ACKNOWLEDGED")
-    decision_index = next(i for i, record in enumerate(records) if record["type"] == "DECISION")
-    fills = by_type(records, "FILL")
-
-    assert gap_index < decision_index
-    assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
+    with pytest.raises(C1ForwardError, match="2026-01-02 is missing bars"):
+        advance_ledger(ledger, "2026-01-02", sessions(), market)
+    assert not ledger.exists()
 
 
-@pytest.mark.parametrize("ack_symbols", [("QQQ",), ("WMT", "QQQ")])
-def test_gap_acknowledgement_must_match_exact_missing_symbols(tmp_path, ack_symbols):
+def test_missing_bars_name_the_session_and_every_missing_symbol(tmp_path):
     ledger = tmp_path / "c1.jsonl"
     market = frames()
-    market["WMT"] = market["WMT"].drop(index=sessions()[1])
-    acknowledgements = [
-        BarGapAcknowledgement("2026-01-05", symbol, "Operator reason")
-        for symbol in ack_symbols
-    ]
+    for symbol in ("WMT", "QQQ"):
+        market[symbol] = market[symbol].drop(index=sessions()[1])
 
-    with pytest.raises(C1ForwardError, match="require explicit acknowledgement"):
-        advance_ledger(
-            ledger,
-            "2026-01-02",
-            sessions(),
-            market,
-            gap_acknowledgements=acknowledgements,
-        )
+    with pytest.raises(C1ForwardError) as excinfo:
+        advance_ledger(ledger, "2026-01-02", sessions(), market)
+    message = str(excinfo.value)
+
+    assert "2026-01-05" in message
+    assert "QQQ" in message and "WMT" in message
+    assert "NVDA" not in message
     assert not ledger.exists()
 
 
-def test_gap_acknowledgement_is_rejected_when_bar_exists(tmp_path):
+def test_known_dividend_on_a_failed_session_is_not_partially_credited(tmp_path):
     ledger = tmp_path / "c1.jsonl"
-    with pytest.raises(C1ForwardError, match="no bar is missing"):
-        advance_ledger(
-            ledger,
-            "2026-01-02",
-            sessions(),
-            frames(),
-            gap_acknowledgements=[
-                BarGapAcknowledgement("2026-01-05", "WMT", "Operator reason")
-            ],
-        )
-    assert not ledger.exists()
+    advance_ledger(ledger, "2026-01-02", sessions()[:2], frames(sessions()[:2]))
+    before = ledger.read_bytes()
 
-
-def test_known_dividend_on_gap_session_is_credited_before_acknowledgement(tmp_path):
-    ledger = tmp_path / "c1.jsonl"
     market = frames()
     gap_session = sessions()[2]
     market["WMT"] = market["WMT"].drop(index=gap_session)
     market["NVDA"].loc[gap_session, "Dividends"] = 1.0
 
+    with pytest.raises(C1ForwardError, match="missing bars"):
+        advance_ledger(ledger, "2026-01-02", sessions(), market)
+
+    assert ledger.read_bytes() == before
+    assert not by_type(read_records(ledger), "DIVIDEND")
+
+
+def test_missing_bar_on_a_split_ex_date_fails_closed_before_any_append(tmp_path):
+    """A missing quote row on an ex-date halts instead of advancing.
+
+    Snapshot prices carry the current split basis, so the ratio for that session
+    is unreadable from the absent row; the provider may also attach it to the
+    preceding session's row, which an earlier run may already have recorded.
+    Whether the boundary product sees the ratio would then depend on where the
+    run boundary happens to fall, so the run must append nothing at all.
+    """
+    ledger = tmp_path / "c1.jsonl"
+    split_session = sessions()[4]
+
     advance_ledger(
         ledger,
-        "2026-01-02",
-        sessions(),
-        market,
-        gap_acknowledgements=[
-            BarGapAcknowledgement(gap_session, "WMT", "Confirmed provider gap")
-        ],
+        sessions()[0],
+        sessions()[:4],
+        split_snapshot(sessions()[:4], 1_000.0),
     )
-    records = read_records(ledger)
-    dividend_index = next(i for i, record in enumerate(records) if record["type"] == "DIVIDEND")
-    gap_index = next(i for i, record in enumerate(records) if record["type"] == "BAR_GAP_ACKNOWLEDGED")
+    before = ledger.read_bytes()
+    equity_before = [record["equity"] for record in by_type(read_records(ledger), "EQUITY")]
 
-    assert dividend_index < gap_index
+    current_snapshot = split_snapshot(sessions(), 100.0, [(split_session, 10.0)])
+    current_snapshot["NVDA"] = current_snapshot["NVDA"].drop(index=split_session)
+
+    with pytest.raises(C1ForwardError, match="2026-02-03 is missing bars"):
+        advance_ledger(ledger, sessions()[0], sessions(), current_snapshot)
+
+    records = read_records(ledger)
+    assert ledger.read_bytes() == before
+    assert [record["equity"] for record in by_type(records, "EQUITY")] == equity_before
+    assert not any(
+        record["session"] == split_session.strftime("%Y-%m-%d") for record in records
+    )
+    assert not [record for record in by_type(records, "SPLIT")]
 
 
 @pytest.mark.parametrize(
