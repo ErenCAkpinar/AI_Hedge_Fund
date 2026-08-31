@@ -23,7 +23,7 @@ import pandas as pd
 from portfolio_simulator import equity_metrics
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 STRATEGY_ID = "C1_EW_MONTHLY_FORWARD_V1"
 PROGRAM_START = "2026-09-01"
 C1_SYMBOLS = (
@@ -38,7 +38,7 @@ INITIAL_CASH = 1_500.0
 SIDE_COST_BPS = 10.0
 MAX_GROSS_EXPOSURE = 1.0
 TARGET_WEIGHT_DENOMINATOR = len(C1_SYMBOLS)
-RECORD_TYPES = {"PROGRAM", "DECISION", "FILL", "EXECUTION", "EQUITY"}
+RECORD_TYPES = {"PROGRAM", "DECISION", "DIVIDEND", "FILL", "EXECUTION", "EQUITY"}
 
 
 class C1ForwardError(RuntimeError):
@@ -82,6 +82,8 @@ def _program_record(program_start: pd.Timestamp) -> dict:
         target_weight={"numerator": 1, "denominator": TARGET_WEIGHT_DENOMINATOR},
         decision_time="FIRST_SESSION_CLOSE",
         fill_time="NEXT_SESSION_OPEN",
+        price_basis="RAW_UNADJUSTED",
+        dividend_timing="EX_DATE_BEFORE_OPEN",
         metrics_function="portfolio_simulator.equity_metrics",
     )
 
@@ -146,6 +148,7 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
 
     program_count = 0
     decision_ids: set[str] = set()
+    dividend_keys: set[tuple[str, str]] = set()
     equity_sessions: set[str] = set()
     for index, record in enumerate(records):
         kind = record["type"]
@@ -164,6 +167,32 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
                 raise C1ForwardError("decision must follow that session's equity mark")
             decision_ids.add(decision_id)
             state.pending_decision = decision_id
+        elif kind == "DIVIDEND":
+            symbol = record.get("symbol")
+            if symbol not in state.positions:
+                raise C1ForwardError("dividend contains a symbol outside C1")
+            key = (record["session"], symbol)
+            if key in dividend_keys:
+                raise C1ForwardError("duplicate dividend record")
+            if state.last_session is not None and session <= state.last_session:
+                raise C1ForwardError("dividend must precede that session's equity mark")
+            shares = float(record.get("shares_eligible", math.nan))
+            per_share = float(record.get("dividend_per_share", math.nan))
+            amount = float(record.get("cash_amount", math.nan))
+            cash_after = float(record.get("cash_after", math.nan))
+            if not all(math.isfinite(value) for value in (shares, per_share, amount, cash_after)):
+                raise C1ForwardError("dividend contains a non-finite value")
+            if shares <= 0 or per_share <= 0:
+                raise C1ForwardError("dividend shares and per-share amount must be positive")
+            if abs(shares - state.positions[symbol]) > 1e-10:
+                raise C1ForwardError("dividend eligible shares do not match the ledger")
+            if abs(amount - shares * per_share) > 1e-7:
+                raise C1ForwardError("dividend cash does not match shares times per-share amount")
+            state.cash += amount
+            if abs(state.cash - cash_after) > 1e-7:
+                raise C1ForwardError("dividend cash_after does not reconcile")
+            state.cash = cash_after
+            dividend_keys.add(key)
         elif kind == "FILL":
             if record.get("decision_id") != state.pending_decision:
                 raise C1ForwardError("fill does not match the pending decision")
@@ -230,9 +259,10 @@ def _normalise_calendar(calendar: Iterable[pd.Timestamp]) -> list[pd.Timestamp]:
 
 
 def _normalise_frame(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
-    if not {"Open", "Close"}.issubset(frame.columns):
-        raise C1ForwardError(f"{symbol}: Open/Close columns are required")
-    result = frame.loc[:, ["Open", "Close"]].copy()
+    required = {"Open", "Close", "Dividends"}
+    if not required.issubset(frame.columns):
+        raise C1ForwardError(f"{symbol}: Open/Close/Dividends columns are required")
+    result = frame.loc[:, ["Open", "Close", "Dividends"]].copy()
     index = pd.DatetimeIndex(pd.to_datetime(result.index))
     if index.tz is not None:
         index = index.tz_localize(None)
@@ -250,12 +280,37 @@ def _validated_bars(frames: Mapping[str, pd.DataFrame], session: pd.Timestamp) -
             raise C1ForwardError(f"{session.date()} {symbol}: missing bar")
         open_price = float(frame.loc[session, "Open"])
         close_price = float(frame.loc[session, "Close"])
+        dividend = float(frame.loc[session, "Dividends"])
         if not math.isfinite(open_price) or open_price <= 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Open")
         if not math.isfinite(close_price) or close_price <= 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Close")
-        bars[symbol] = {"open": open_price, "close": close_price}
+        if not math.isfinite(dividend) or dividend < 0:
+            raise C1ForwardError(f"{session.date()} {symbol}: invalid Dividends")
+        bars[symbol] = {"open": open_price, "close": close_price, "dividend": dividend}
     return bars
+
+
+def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
+    """Credit ex-date cash to shares held before any opening rebalance."""
+    records: list[dict] = []
+    for symbol in C1_SYMBOLS:
+        per_share = bars[symbol]["dividend"]
+        shares = state.positions[symbol]
+        if per_share <= 0 or shares <= 0:
+            continue
+        amount = shares * per_share
+        state.cash += amount
+        records.append(_record(
+            "DIVIDEND", session,
+            symbol=symbol,
+            shares_eligible=shares,
+            dividend_per_share=per_share,
+            cash_amount=amount,
+            cash_after=state.cash,
+            timing="EX_DATE_BEFORE_OPEN",
+        ))
+    return records
 
 
 def _invested_value(equity: float, current_values: Sequence[float]) -> float:
@@ -418,6 +473,7 @@ def advance_ledger(
     positions = {session: index for index, session in enumerate(sessions)}
     for session in new_sessions:
         bars = bars_by_session[session]
+        new_records.extend(_credit_dividends(session, bars, state))
         if state.pending_decision is not None:
             new_records.extend(_execute_rebalance(session, bars, state))
         equity = _equity_record(session, bars, state)
@@ -461,7 +517,7 @@ def download_completed_bars(
     program_start: str | pd.Timestamp,
     end_exclusive: str | pd.Timestamp,
 ) -> tuple[list[pd.Timestamp], dict[str, pd.DataFrame]]:
-    """Download adjusted Open/Close bars; ``end_exclusive`` is never processed."""
+    """Download raw Open/Close plus dividends; ``end_exclusive`` is not processed."""
     try:
         import yfinance as yf
     except ImportError as exc:
@@ -477,8 +533,8 @@ def download_completed_bars(
             start=context_start.strftime("%Y-%m-%d"),
             end=end.strftime("%Y-%m-%d"),
             interval="1d",
-            auto_adjust=True,
-            actions=False,
+            auto_adjust=False,
+            actions=True,
         )
         if frame.empty:
             raise C1ForwardError(f"{symbol}: no completed bars downloaded")
