@@ -23,7 +23,7 @@ import pandas as pd
 from portfolio_simulator import equity_metrics
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 STRATEGY_ID = "C1_EW_MONTHLY_FORWARD_V1"
 PROGRAM_START = "2026-09-01"
 C1_SYMBOLS = (
@@ -39,7 +39,7 @@ SIDE_COST_BPS = 10.0
 MAX_GROSS_EXPOSURE = 1.0
 TARGET_WEIGHT_DENOMINATOR = len(C1_SYMBOLS)
 RECORD_TYPES = {
-    "PROGRAM", "DECISION", "DIVIDEND", "FILL", "EXECUTION", "EQUITY",
+    "PROGRAM", "DECISION", "SPLIT", "DIVIDEND", "FILL", "EXECUTION", "EQUITY",
     "BAR_GAP_ACKNOWLEDGED",
 }
 
@@ -95,7 +95,9 @@ def _program_record(program_start: pd.Timestamp) -> dict:
         target_weight={"numerator": 1, "denominator": TARGET_WEIGHT_DENOMINATOR},
         decision_time="FIRST_SESSION_CLOSE",
         fill_time="NEXT_SESSION_OPEN",
-        price_basis="RAW_UNADJUSTED",
+        price_basis="SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED",
+        split_policy="MULTIPLY_SHARES_BY_REPORTED_RATIO",
+        split_timing="EX_DATE_BEFORE_OPEN",
         dividend_timing="EX_DATE_BEFORE_OPEN",
         metrics_function="portfolio_simulator.equity_metrics",
     )
@@ -161,7 +163,9 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
 
     program_count = 0
     decision_ids: set[str] = set()
+    split_keys: set[tuple[str, str]] = set()
     dividend_keys: set[tuple[str, str]] = set()
+    opening_trade_sessions: set[str] = set()
     processed_session_texts: set[str] = set()
     equity_sessions: set[str] = set()
     for index, record in enumerate(records):
@@ -181,6 +185,38 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
                 raise C1ForwardError("decision must follow that session's equity mark")
             decision_ids.add(decision_id)
             state.pending_decision = decision_id
+        elif kind == "SPLIT":
+            symbol = record.get("symbol")
+            if symbol not in state.positions:
+                raise C1ForwardError("split contains a symbol outside C1")
+            key = (record["session"], symbol)
+            if key in split_keys:
+                raise C1ForwardError("duplicate split record")
+            if key in dividend_keys:
+                raise C1ForwardError("split must precede the same-session dividend")
+            if record["session"] in opening_trade_sessions:
+                raise C1ForwardError("split must precede opening trades")
+            if state.last_session is not None and session <= state.last_session:
+                raise C1ForwardError("split must precede that session's equity mark")
+            ratio = float(record.get("split_ratio", math.nan))
+            shares_before = float(record.get("shares_before", math.nan))
+            shares_after = float(record.get("shares_after", math.nan))
+            if not all(math.isfinite(value) for value in (ratio, shares_before, shares_after)):
+                raise C1ForwardError("split contains a non-finite value")
+            if ratio <= 0 or shares_before < 0 or shares_after < 0:
+                raise C1ForwardError("split ratio must be positive and shares non-negative")
+            if record.get("timing") != "EX_DATE_BEFORE_OPEN":
+                raise C1ForwardError("split has an invalid timing policy")
+            if not math.isclose(
+                shares_before, state.positions[symbol], rel_tol=1e-12, abs_tol=1e-10
+            ):
+                raise C1ForwardError("split shares_before does not match the ledger")
+            if not math.isclose(
+                shares_after, shares_before * ratio, rel_tol=1e-12, abs_tol=1e-10
+            ):
+                raise C1ForwardError("split shares_after does not match the ratio")
+            state.positions[symbol] = shares_after
+            split_keys.add(key)
         elif kind == "DIVIDEND":
             symbol = record.get("symbol")
             if symbol not in state.positions:
@@ -188,6 +224,8 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
             key = (record["session"], symbol)
             if key in dividend_keys:
                 raise C1ForwardError("duplicate dividend record")
+            if record["session"] in opening_trade_sessions:
+                raise C1ForwardError("dividend must precede opening trades")
             if state.last_session is not None and session <= state.last_session:
                 raise C1ForwardError("dividend must precede that session's equity mark")
             shares = float(record.get("shares_eligible", math.nan))
@@ -229,6 +267,7 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
                 state.cash -= qty * fill_price
             else:
                 raise C1ForwardError("fill side must be BUY or SELL")
+            opening_trade_sessions.add(record["session"])
         elif kind == "EXECUTION":
             if record.get("decision_id") != state.pending_decision:
                 raise C1ForwardError("execution does not match the pending decision")
@@ -239,6 +278,7 @@ def _rebuild(records: Sequence[dict], program_start: pd.Timestamp) -> LedgerStat
             if state.cash < -1e-9 or any(qty < -1e-10 for qty in state.positions.values()):
                 raise C1ForwardError("ledger violates cash or long-only constraints")
             state.pending_decision = None
+            opening_trade_sessions.add(record["session"])
         elif kind == "EQUITY":
             if record["session"] in processed_session_texts:
                 raise C1ForwardError("duplicate daily equity")
@@ -304,10 +344,12 @@ def _normalise_calendar(calendar: Iterable[pd.Timestamp]) -> list[pd.Timestamp]:
 
 
 def _normalise_frame(frame: pd.DataFrame, symbol: str) -> pd.DataFrame:
-    required = {"Open", "Close", "Dividends"}
+    required = {"Open", "Close", "Dividends", "Stock Splits"}
     if not required.issubset(frame.columns):
-        raise C1ForwardError(f"{symbol}: Open/Close/Dividends columns are required")
-    result = frame.loc[:, ["Open", "Close", "Dividends"]].copy()
+        raise C1ForwardError(
+            f"{symbol}: Open/Close/Dividends/Stock Splits columns are required"
+        )
+    result = frame.loc[:, ["Open", "Close", "Dividends", "Stock Splits"]].copy()
     index = pd.DatetimeIndex(pd.to_datetime(result.index))
     if index.tz is not None:
         index = index.tz_localize(None)
@@ -349,14 +391,47 @@ def _bars_and_missing(
         open_price = float(frame.loc[session, "Open"])
         close_price = float(frame.loc[session, "Close"])
         dividend = float(frame.loc[session, "Dividends"])
+        split_ratio = float(frame.loc[session, "Stock Splits"])
         if not math.isfinite(open_price) or open_price <= 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Open")
         if not math.isfinite(close_price) or close_price <= 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Close")
         if not math.isfinite(dividend) or dividend < 0:
             raise C1ForwardError(f"{session.date()} {symbol}: invalid Dividends")
-        bars[symbol] = {"open": open_price, "close": close_price, "dividend": dividend}
+        if not math.isfinite(split_ratio) or split_ratio < 0:
+            raise C1ForwardError(f"{session.date()} {symbol}: invalid Stock Splits")
+        bars[symbol] = {
+            "open": open_price,
+            "close": close_price,
+            "dividend": dividend,
+            "split_ratio": split_ratio,
+        }
     return bars, missing
+
+
+def _apply_splits(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
+    """Adjust held shares for declared splits before dividends or opening trades."""
+    records: list[dict] = []
+    for symbol in C1_SYMBOLS:
+        if symbol not in bars:
+            continue
+        ratio = bars[symbol]["split_ratio"]
+        if ratio <= 0:
+            continue
+        shares_before = state.positions[symbol]
+        shares_after = shares_before * ratio
+        if not math.isfinite(shares_after):
+            raise C1ForwardError(f"{session.date()} {symbol}: split share count overflow")
+        state.positions[symbol] = shares_after
+        records.append(_record(
+            "SPLIT", session,
+            symbol=symbol,
+            split_ratio=ratio,
+            shares_before=shares_before,
+            shares_after=shares_after,
+            timing="EX_DATE_BEFORE_OPEN",
+        ))
+    return records
 
 
 def _credit_dividends(session: pd.Timestamp, bars: dict, state: LedgerState) -> list[dict]:
@@ -597,6 +672,7 @@ def advance_ledger(
     positions = {session: index for index, session in enumerate(sessions)}
     for session in new_sessions:
         bars = bars_by_session[session]
+        new_records.extend(_apply_splits(session, bars, state))
         new_records.extend(_credit_dividends(session, bars, state))
         index = positions[session]
         previous = sessions[index - 1] if index else None
@@ -663,7 +739,7 @@ def download_completed_bars(
     program_start: str | pd.Timestamp,
     end_exclusive: str | pd.Timestamp,
 ) -> tuple[list[pd.Timestamp], dict[str, pd.DataFrame]]:
-    """Download raw Open/Close plus dividends; ``end_exclusive`` is not processed."""
+    """Download split-adjusted Open/Close plus actions; do not process the end date."""
     try:
         import yfinance as yf
     except ImportError as exc:

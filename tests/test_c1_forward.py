@@ -31,7 +31,8 @@ def frames(calendar=None, open_price=100.0, close_price=100.0):
         symbol: pd.DataFrame(
             {"Open": [float(open_price)] * len(calendar),
              "Close": [float(close_price)] * len(calendar),
-             "Dividends": [0.0] * len(calendar)},
+             "Dividends": [0.0] * len(calendar),
+             "Stock Splits": [0.0] * len(calendar)},
             index=pd.DatetimeIndex(calendar),
         )
         for symbol in C1_SYMBOLS
@@ -147,7 +148,64 @@ def test_ex_date_open_purchase_does_not_receive_that_dividend(tmp_path):
     assert not by_type(read_records(ledger), "DIVIDEND")
 
 
-def test_downloader_requests_raw_prices_and_corporate_actions(monkeypatch):
+def test_ten_for_one_split_multiplies_shares_and_preserves_equity(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    split_session = sessions()[4]
+    market["NVDA"].loc[sessions()[:4], ["Open", "Close"]] = 1_000.0
+    market["NVDA"].loc[split_session, "Stock Splits"] = 10.0
+
+    advance_ledger(ledger, "2026-01-02", sessions(), market)
+    records = read_records(ledger)
+    split = next(record for record in records if record["type"] == "SPLIT")
+    marks = {record["session"]: record for record in by_type(records, "EQUITY")}
+    split_index = records.index(split)
+    execution_index = next(
+        index for index, record in enumerate(records)
+        if record["type"] == "EXECUTION" and record["session"] == "2026-02-03"
+    )
+    initial_fill = next(
+        record for record in by_type(records, "FILL")
+        if record["session"] == "2026-01-05" and record["symbol"] == "NVDA"
+    )
+    program = by_type(records, "PROGRAM")[0]
+
+    assert split["session"] == "2026-02-03"
+    assert split["symbol"] == "NVDA"
+    assert split["split_ratio"] == 10.0
+    assert split["shares_before"] == pytest.approx(initial_fill["qty"])
+    assert split["shares_after"] == pytest.approx(initial_fill["qty"] * 10.0)
+    assert split_index < execution_index
+    assert marks["2026-02-03"]["equity"] == pytest.approx(
+        marks["2026-02-02"]["equity"]
+    )
+    assert program["price_basis"] == "SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED"
+    assert program["split_policy"] == "MULTIPLY_SHARES_BY_REPORTED_RATIO"
+    assert program["split_timing"] == "EX_DATE_BEFORE_OPEN"
+
+
+def test_reverse_split_uses_the_same_share_adjustment_path(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    split_session = sessions()[2]
+    market["MSTR"].loc[sessions()[:2], ["Open", "Close"]] = 10.0
+    market["MSTR"].loc[split_session, ["Open", "Close"]] = 100.0
+    market["MSTR"].loc[split_session, "Stock Splits"] = 0.1
+
+    advance_ledger(ledger, "2026-01-02", sessions(), market)
+    records = read_records(ledger)
+    split = next(record for record in records if record["type"] == "SPLIT")
+    marks = {record["session"]: record for record in by_type(records, "EQUITY")}
+
+    assert split["symbol"] == "MSTR"
+    assert split["split_ratio"] == 0.1
+    assert split["shares_after"] == pytest.approx(split["shares_before"] * 0.1)
+    assert marks["2026-01-30"]["equity"] == pytest.approx(
+        marks["2026-01-05"]["equity"]
+    )
+
+
+def test_downloader_requests_split_adjusted_prices_and_corporate_actions(monkeypatch):
     calls = []
     calendar = pd.to_datetime(["2026-01-02", "2026-01-05"])
 
@@ -159,7 +217,7 @@ def test_downloader_requests_raw_prices_and_corporate_actions(monkeypatch):
             calls.append((self.symbol, kwargs))
             return pd.DataFrame(
                 {"Open": [100.0, 100.0], "Close": [100.0, 100.0],
-                 "Dividends": [0.0, 0.0]},
+                 "Dividends": [0.0, 0.0], "Stock Splits": [0.0, 0.0]},
                 index=calendar,
             )
 
@@ -173,6 +231,7 @@ def test_downloader_requests_raw_prices_and_corporate_actions(monkeypatch):
     assert len(calls) == len(C1_SYMBOLS) + 1
     assert all(call[1]["auto_adjust"] is False for call in calls)
     assert all(call[1]["actions"] is True for call in calls)
+    assert all("Stock Splits" in frame.columns for frame in downloaded_frames.values())
 
 
 def test_monthly_rebalance_can_sell_and_buy_without_short_or_margin(tmp_path):
@@ -365,7 +424,8 @@ def test_known_dividend_on_gap_session_is_credited_before_acknowledgement(tmp_pa
 
 
 @pytest.mark.parametrize(
-    "defect", ["missing_symbol", "missing_bar", "missing_dividends", "nan", "zero"]
+    "defect",
+    ["missing_symbol", "missing_bar", "missing_dividends", "missing_splits", "nan", "zero"],
 )
 def test_bad_market_input_fails_before_creating_ledger(tmp_path, defect):
     ledger = tmp_path / "c1.jsonl"
@@ -376,6 +436,8 @@ def test_bad_market_input_fails_before_creating_ledger(tmp_path, defect):
         market[C1_SYMBOLS[-1]] = market[C1_SYMBOLS[-1]].drop(index=sessions()[2])
     elif defect == "missing_dividends":
         market[C1_SYMBOLS[-1]] = market[C1_SYMBOLS[-1]].drop(columns="Dividends")
+    elif defect == "missing_splits":
+        market[C1_SYMBOLS[-1]] = market[C1_SYMBOLS[-1]].drop(columns="Stock Splits")
     elif defect == "nan":
         market[C1_SYMBOLS[-1]].loc[sessions()[2], "Close"] = float("nan")
     else:
