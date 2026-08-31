@@ -1,5 +1,8 @@
 """Network-free tests for the frozen C1 forward-paper path."""
 
+import sys
+from types import SimpleNamespace
+
 import pandas as pd
 import pytest
 
@@ -8,6 +11,7 @@ from c1_forward import (
     C1_SYMBOLS,
     INITIAL_CASH,
     advance_ledger,
+    download_completed_bars,
     read_records,
 )
 from portfolio_simulator import equity_metrics
@@ -25,7 +29,8 @@ def frames(calendar=None, open_price=100.0, close_price=100.0):
     return {
         symbol: pd.DataFrame(
             {"Open": [float(open_price)] * len(calendar),
-             "Close": [float(close_price)] * len(calendar)},
+             "Close": [float(close_price)] * len(calendar),
+             "Dividends": [0.0] * len(calendar)},
             index=pd.DatetimeIndex(calendar),
         )
         for symbol in C1_SYMBOLS
@@ -85,6 +90,88 @@ def test_flat_prices_lose_only_the_declared_initial_execution_cost(tmp_path):
     assert first_cost == pytest.approx(INITIAL_CASH - result["last_equity"], abs=1e-8)
     assert later_cost == pytest.approx(0.0, abs=1e-8)
     assert result["last_equity"] < INITIAL_CASH
+
+
+def test_ex_date_dividend_is_credited_to_cash_and_daily_equity(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    ex_date = sessions()[2]
+    market["WMT"].loc[ex_date, "Dividends"] = 1.25
+
+    advance_ledger(ledger, "2026-01-02", sessions(), market)
+    records = read_records(ledger)
+    dividends = by_type(records, "DIVIDEND")
+    marks = {record["session"]: record for record in by_type(records, "EQUITY")}
+    wmt_entry = next(
+        record for record in by_type(records, "FILL")
+        if record["session"] == "2026-01-05" and record["symbol"] == "WMT"
+    )
+
+    assert len(dividends) == 1
+    dividend = dividends[0]
+    assert dividend["session"] == "2026-01-30"
+    assert dividend["symbol"] == "WMT"
+    assert dividend["shares_eligible"] == pytest.approx(wmt_entry["qty"])
+    assert dividend["cash_amount"] == pytest.approx(wmt_entry["qty"] * 1.25)
+    assert marks["2026-01-30"]["equity"] - marks["2026-01-05"]["equity"] \
+        == pytest.approx(dividend["cash_amount"])
+
+
+def test_dividend_is_credited_before_same_open_rebalance(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    ex_date = sessions()[4]
+    market["WMT"].loc[ex_date, "Dividends"] = 2.0
+
+    advance_ledger(ledger, "2026-01-02", sessions(), market)
+    records = read_records(ledger)
+    dividend_index = next(
+        index for index, record in enumerate(records)
+        if record["type"] == "DIVIDEND" and record["session"] == "2026-02-03"
+    )
+    first_fill_index = next(
+        index for index, record in enumerate(records)
+        if record["type"] == "FILL" and record["session"] == "2026-02-03"
+    )
+
+    assert dividend_index < first_fill_index
+
+
+def test_ex_date_open_purchase_does_not_receive_that_dividend(tmp_path):
+    ledger = tmp_path / "c1.jsonl"
+    market = frames()
+    market["WMT"].loc[sessions()[1], "Dividends"] = 1.0
+
+    advance_ledger(ledger, "2026-01-02", sessions(), market)
+    assert not by_type(read_records(ledger), "DIVIDEND")
+
+
+def test_downloader_requests_raw_prices_and_corporate_actions(monkeypatch):
+    calls = []
+    calendar = pd.to_datetime(["2026-01-02", "2026-01-05"])
+
+    class FakeTicker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        def history(self, **kwargs):
+            calls.append((self.symbol, kwargs))
+            return pd.DataFrame(
+                {"Open": [100.0, 100.0], "Close": [100.0, 100.0],
+                 "Dividends": [0.0, 0.0]},
+                index=calendar,
+            )
+
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(Ticker=FakeTicker))
+    downloaded_calendar, downloaded_frames = download_completed_bars(
+        "2026-01-02", "2026-01-06"
+    )
+
+    assert downloaded_calendar == list(calendar)
+    assert set(downloaded_frames) == set(C1_SYMBOLS)
+    assert len(calls) == len(C1_SYMBOLS) + 1
+    assert all(call[1]["auto_adjust"] is False for call in calls)
+    assert all(call[1]["actions"] is True for call in calls)
 
 
 def test_monthly_rebalance_can_sell_and_buy_without_short_or_margin(tmp_path):
@@ -155,7 +242,9 @@ def test_pending_close_decision_survives_until_a_later_daily_run(tmp_path):
     assert len([record for record in fills if record["session"] == "2026-01-05"]) == 17
 
 
-@pytest.mark.parametrize("defect", ["missing_symbol", "missing_bar", "nan", "zero"])
+@pytest.mark.parametrize(
+    "defect", ["missing_symbol", "missing_bar", "missing_dividends", "nan", "zero"]
+)
 def test_bad_market_input_fails_before_creating_ledger(tmp_path, defect):
     ledger = tmp_path / "c1.jsonl"
     market = frames()
@@ -163,6 +252,8 @@ def test_bad_market_input_fails_before_creating_ledger(tmp_path, defect):
         market.pop(C1_SYMBOLS[-1])
     elif defect == "missing_bar":
         market[C1_SYMBOLS[-1]] = market[C1_SYMBOLS[-1]].drop(index=sessions()[2])
+    elif defect == "missing_dividends":
+        market[C1_SYMBOLS[-1]] = market[C1_SYMBOLS[-1]].drop(columns="Dividends")
     elif defect == "nan":
         market[C1_SYMBOLS[-1]].loc[sessions()[2], "Close"] = float("nan")
     else:
