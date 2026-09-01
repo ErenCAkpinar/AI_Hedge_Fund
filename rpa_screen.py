@@ -59,6 +59,9 @@ BASE_COST_BPS = 10.0
 COST_GRID_BPS: tuple[float, ...] = (0.0, 5.0, 10.0, 20.0)
 
 BAR_CACHE = Path(__file__).parent / "data" / "rpa_bars.csv"
+# c1_forward's basis, kept alongside for the divergence check in
+# docs/designs/c1-forward-basis-divergence.md.
+BASIS_B_BARS = Path(__file__).parent / "data" / "c1_basis_b_bars.csv"
 
 _EPS = 1e-9
 

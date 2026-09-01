@@ -202,18 +202,38 @@ youngest, IBIT, has 219 pre-anchor sessions against the 127 required, so no
 candidate ever ran on a truncated lookback and the scored window was never
 shortened.
 
-**The backtest C1 and the live `c1_forward` C1 sit on different price bases.**
+**The backtest C1 and the live `c1_forward` C1 sit on different price bases, and
+it turns out not to matter. (Corrected 2026-09-01 — see below.)**
 `true_backtest.veri_cek` takes yfinance's default `auto_adjust=True`, so its
 closes are split *and* dividend adjusted. `c1_forward.py` deliberately uses
 `auto_adjust=False` plus an explicit dividend cash credit held idle until the next
-monthly rebalance. Over this window the two bases differ by **1.04 pp** of basket
-total return — twice the gate's tolerance. The operator chose the auto-adjusted
-basis, because the gate is defined against `true_backtest.buy_hold_curve` and that
-is what `true_backtest` feeds it. This is a real divergence from the live ledger
-and is recorded here rather than quietly reconciled: the two implementations
-share the monthly-rebalance and cost-solver semantics (the engine's solver reduces
-term for term to `c1_forward._invested_value` at full investment, asserted in the
-tests) but not the dividend accounting.
+monthly rebalance. The operator chose the auto-adjusted basis, because the gate is
+defined against `true_backtest.buy_hold_curve` and that is what `true_backtest`
+feeds it.
+
+> **Correction.** This section first stated that "the two bases differ by 1.04 pp
+> of basket total return — twice the gate's tolerance", and treated that as a
+> divergence between the two C1 implementations. That was the wrong comparison.
+> The 1.04 pp figure is the gap between dividend-adjusted prices and *raw price
+> return with no dividend credit at all* — which is not what `c1_forward` does.
+> `c1_forward` credits the dividend to cash, and that credit recovers the gap
+> almost exactly.
+>
+> Measured by running the live `c1_forward` code itself over 436 sessions of this
+> window on both bases: dropping the dividend credit costs **−1.09 pp**, and
+> crediting it returns **+0.00 pp** against the auto-adjusted basis. Residual
+> across six sub-period start dates: **0.000 to +0.020 pp/yr**, and marginally in
+> the live ledger's favour rather than against it. So the earlier claim that the
+> backtest basis is the optimistic one is **not supported**. See
+> [`c1-forward-basis-divergence.md`](c1-forward-basis-divergence.md), declared
+> before the forward ledger's first row, and `tests/test_c1_basis_equivalence.py`.
+
+The two implementations share the monthly-rebalance and cost-solver semantics —
+the engine's solver reduces term for term to `c1_forward._invested_value` at full
+investment, and a control test runs the live code on the backtest basis and lands
+within 1e-9 of the RP-A engine — and their dividend accounting, though written
+differently, is economically equivalent at this basket's yield. No candidate
+number in this report is affected: the whole screen ran on one basis.
 
 **Cash earns nothing while Sharpe is measured against a 5% risk-free rate.** C4
 holds 34% cash on average and C2/C5 hold 100% cash for 55 sessions, all at 0%,
