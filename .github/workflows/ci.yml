@@ -33,8 +33,24 @@ jobs:
         run: |
           python -m py_compile mock_agent.py analyst_agent.py legends_agent.py \
             sentiment_agent.py state_manager.py alpaca_trader.py scheduler.py \
-            sheets_pusher.py telegram_bot.py scanner.py true_backtest.py
+            sheets_pusher.py telegram_bot.py scanner.py true_backtest.py \
+            rpa_screen.py rpa_stats.py
           echo "✅ Syntax OK"
+
+      - name: Import check (py_compile cannot catch a missing dependency)
+        run: |
+          python - << 'PYEOF'
+          import rpa_screen, rpa_stats
+
+          # A missing statsmodels would degrade condition 3 to a single
+          # implementation silently, so fail here rather than in a report.
+          probe = [0.01, -0.02, 0.03, 0.00, -0.01] * 40
+          library = rpa_stats.statsmodels_hac_se(probe)
+          assert library is not None, "statsmodels missing: HAC cross-check would degrade"
+          hand = rpa_stats.bartlett_hac_se(probe)
+          assert abs(hand - library) / library < 1e-10, "HAC paths disagree"
+          print("✅ Imports OK, HAC cross-check live")
+          PYEOF
 
       - name: Secret scan
         run: |

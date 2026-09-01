@@ -333,3 +333,113 @@ def test_higher_costs_never_help_a_candidate(bars, window):
     for name in rpa.CANDIDATE_NAMES:
         assert equity_metrics(dear[name].equity)["total_return_pct"] <= \
             equity_metrics(cheap[name].equity)["total_return_pct"] + 1e-9, name
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The four PASS conditions
+# ─────────────────────────────────────────────────────────────────────────────
+def synthetic_result(equity: pd.Series) -> rpa.EngineResult:
+    """evaluate_conditions reads only the equity curve; the rest is scaffolding."""
+    empty = pd.Series(0.0, index=equity.index)
+    return rpa.EngineResult(
+        equity=equity, cash=empty, gross_pct=empty,
+        weights=pd.DataFrame(0.0, index=equity.index, columns=list(rpa.SYMBOLS)),
+        cost_paid=empty, traded_notional=empty,
+    )
+
+
+def curve_from(returns, index):
+    return pd.Series((1.0 + pd.Series(returns, index=index[1:])).cumprod().tolist(),
+                     index=index[1:]).reindex(index).fillna(1.0).sort_index() * rpa.INITIAL_CASH
+
+
+@pytest.fixture
+def synthetic_family():
+    import numpy as np
+    index = pd.bdate_range("2024-11-22", periods=441)
+    rng = np.random.default_rng(4)
+    base = rng.normal(0.0004, 0.011, len(index) - 1)
+
+    def family(**overrides):
+        results = {"C1_EW_MONTHLY": synthetic_result(curve_from(base, index))}
+        for name in rpa.CANDIDATE_NAMES[1:]:
+            results[name] = synthetic_result(curve_from(overrides.get(name, base), index))
+        return results
+
+    return family, base, index
+
+
+def test_a_candidate_identical_to_c1_fails_conditions_one_and_two(synthetic_family):
+    family, _, _ = synthetic_family
+    out = rpa.evaluate_conditions(family())
+    for name, row in out["candidates"].items():
+        conditions = row["conditions"]
+        assert not conditions["1_sharpe_beats_c1"]["passed"], name
+        assert not conditions["2_positive_active_return"]["passed"], name
+        assert conditions["2_positive_active_return"]["value"] == pytest.approx(0.0, abs=1e-9)
+        # An identical curve has an identical drawdown, so condition 4 must pass.
+        assert conditions["4_drawdown_within_1_25x"]["passed"], name
+        assert not row["passed"], name
+
+
+def test_a_genuinely_better_candidate_clears_all_four(synthetic_family):
+    family, base, _ = synthetic_family
+    out = rpa.evaluate_conditions(family(C2_TREND_SPY200=base + 0.0015))
+    row = out["candidates"]["C2_TREND_SPY200"]
+    assert row["conditions"]["1_sharpe_beats_c1"]["passed"]
+    assert row["conditions"]["2_positive_active_return"]["passed"]
+    assert row["conditions"]["3_holm_adjusted_hac_test"]["passed"]
+    assert row["conditions"]["4_drawdown_within_1_25x"]["passed"]
+    assert row["passed"]
+    # Holm still charges it for the family it was tested in.
+    assert row["holm"]["family_size"] == 4
+    assert row["holm"]["p_holm"] >= row["holm"]["p_raw"]
+
+
+def test_the_active_return_condition_follows_its_sign(synthetic_family):
+    family, base, _ = synthetic_family
+    worse = rpa.evaluate_conditions(family(C3_XMOM_TOP5=base - 0.0015))
+    row = worse["candidates"]["C3_XMOM_TOP5"]["conditions"]["2_positive_active_return"]
+    assert row["value"] < 0 and not row["passed"]
+
+
+def test_drawdown_condition_is_a_magnitude_comparison_at_the_boundary():
+    """A sign slip here would silently invert condition 4, so pin both sides."""
+    index = pd.bdate_range("2024-11-22", periods=40)
+    def curve(trough):
+        values = [1500.0, 1500.0, trough] + [trough] * (len(index) - 3)
+        return pd.Series(values, index=index)
+    c1 = curve(1200.0)        # -20%
+    inside = curve(1125.0)    # -25%, exactly 1.25x C1
+    outside = curve(1100.0)   # -26.67%, outside the bound
+    results = {"C1_EW_MONTHLY": synthetic_result(c1)}
+    for name, curve in zip(rpa.CANDIDATE_NAMES[1:], [inside, outside, inside, outside]):
+        results[name] = synthetic_result(curve)
+    out = rpa.evaluate_conditions(results)["candidates"]
+    assert out["C2_TREND_SPY200"]["conditions"]["4_drawdown_within_1_25x"]["passed"]
+    assert not out["C3_XMOM_TOP5"]["conditions"]["4_drawdown_within_1_25x"]["passed"]
+    assert out["C2_TREND_SPY200"]["conditions"]["4_drawdown_within_1_25x"]["reference"] == \
+        pytest.approx(25.0)
+
+
+def test_every_reported_metric_recomputes_from_the_committed_equity_artifact():
+    """No number in the report may exist only inside the process that made it."""
+    import json
+    report = json.loads((rpa.RESULTS_ARTIFACT).read_text())
+    curves = pd.read_csv(rpa.EQUITY_ARTIFACT)
+    curves["date"] = pd.to_datetime(curves["date"])
+    for bps in rpa.COST_GRID_BPS:
+        for name in rpa.CANDIDATE_NAMES:
+            series = curves[(curves.cost_bps == bps) & (curves.candidate == name)] \
+                .set_index("date")["equity"].sort_index()
+            assert len(series) == 441
+            assert equity_metrics(series) == report["cost_grid"][f"{bps:.0f}"]["metrics"][name]
+
+
+def test_the_gate_result_in_the_report_is_a_pass_or_nothing_is_reportable():
+    import json
+    report = json.loads((rpa.RESULTS_ARTIFACT).read_text())
+    gate = report["gate"]
+    assert gate["passed"] is True
+    assert gate["total_return_gap_pp"] <= gate["tolerance_total_return_pp"]
+    assert gate["sharpe_gap"] <= gate["tolerance_sharpe"]
