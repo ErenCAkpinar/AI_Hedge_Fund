@@ -409,6 +409,229 @@ def buy_and_hold_rule(symbols: Sequence[str] = SYMBOLS) -> TargetRule:
     return rule
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Signals
+#
+# Every quantity below is read at or before the decision close, so no candidate
+# can see a price it would not have had. The lookbacks are the spec's, unchanged:
+# C2's 200-session SPY SMA, C3's 126-session total return, C4's 60-session
+# realised volatility. Warm-up for all three comes from pre-window bars, which
+# are never traded and never scored.
+# ─────────────────────────────────────────────────────────────────────────────
+CANDIDATE_NAMES = ("C1_EW_MONTHLY", "C2_TREND_SPY200", "C3_XMOM_TOP5",
+                   "C4_VOLTGT_EW", "C5_TREND_XMOM")
+
+XMOM_LOOKBACK = 126
+XMOM_TOP_N = 5
+TREND_SMA = 200
+VOL_LOOKBACK = 60
+VOL_TARGET = 0.15
+TRADING_DAYS = 252
+
+
+def close_matrix(frames: Mapping[str, pd.DataFrame],
+                 calendar: Sequence[pd.Timestamp]) -> pd.DataFrame:
+    """Closes for the 17 symbols over the full fetched calendar, warm-up included."""
+    index = pd.DatetimeIndex(calendar)
+    return pd.DataFrame(
+        {s: frames[s]["Close"].reindex(index) for s in SYMBOLS}, index=index
+    )
+
+
+def month_first_flags(sessions: Sequence[pd.Timestamp],
+                      calendar: Sequence[pd.Timestamp]) -> list[bool]:
+    """True where a traded session is the first market session of its month.
+
+    The predecessor is taken from the full market calendar, not from the traded
+    slice, so the anchor is judged against the session that really preceded it.
+    """
+    order = {d: i for i, d in enumerate(calendar)}
+    flags = []
+    for session in sessions:
+        i = order[session]
+        prev = calendar[i - 1] if i else None
+        flags.append(prev is None or (prev.year, prev.month) != (session.year, session.month))
+    return flags
+
+
+def trend_exposure(frames: Mapping[str, pd.DataFrame],
+                   calendar: Sequence[pd.Timestamp]) -> pd.Series:
+    """C2's filter: 1.0 while SPY's previous close is above its trailing 200-SMA.
+
+    Both the close and the average are read as of the previous session, which is
+    the literal reading of "SPY's previous close is above its trailing 200-session
+    simple moving average", and is one session more conservative than the frozen
+    close-decision rule already requires.
+    """
+    spy = frames[BENCHMARK]["Close"].reindex(pd.DatetimeIndex(calendar))
+    above = spy > spy.rolling(TREND_SMA).mean()
+    return above.shift(1).map({True: 1.0, False: 0.0}).astype(float)
+
+
+def momentum_scores(closes: pd.DataFrame) -> pd.DataFrame:
+    """C3's rank key: trailing 126-session total return through the previous close."""
+    prev = closes.shift(1)
+    return prev / prev.shift(XMOM_LOOKBACK) - 1.0
+
+
+def basket_returns(closes: pd.DataFrame) -> pd.Series:
+    """Daily return of the equal-weight basket, i.e. the C1 basket itself.
+
+    Taken from prices rather than from C1's traded equity because vol60 must be
+    defined at the anchor, where C1 has no trading history yet, and because a
+    price-level basket does not make C4's exposure depend on C1's cost level.
+    """
+    return closes.pct_change(fill_method=None).mean(axis=1)
+
+
+def volatility_scale(closes: pd.DataFrame) -> pd.Series:
+    """C4's multiplier: min(1, 0.15 / vol60) on the trailing 60-session basket vol."""
+    vol = basket_returns(closes).rolling(VOL_LOOKBACK).std(ddof=1) * math.sqrt(TRADING_DAYS)
+    return (VOL_TARGET / vol).clip(upper=1.0)
+
+
+def top_momentum_names(scores: pd.Series) -> list[str]:
+    """The C3 basket on one session: highest 126-session return, five names."""
+    ranked = scores.dropna()
+    if len(ranked) < len(SYMBOLS):
+        raise RpaScreenError(
+            f"only {len(ranked)}/{len(SYMBOLS)} symbols have a "
+            f"{XMOM_LOOKBACK}-session lookback; the ranking would be truncated"
+        )
+    order = sorted(ranked.index, key=lambda s: (-float(ranked[s]), s))
+    chosen, cut = order[:XMOM_TOP_N], order[XMOM_TOP_N - 1:XMOM_TOP_N + 1]
+    if len(cut) == 2 and float(ranked[cut[0]]) == float(ranked[cut[1]]):
+        raise RpaScreenError(f"tie at the top-{XMOM_TOP_N} boundary: {cut}")
+    return chosen
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The five candidates, parameterised exactly as the spec froze them
+# ─────────────────────────────────────────────────────────────────────────────
+def _rebalance_days(sessions, calendar) -> list[bool]:
+    """Decision days: each month's first session, plus the anchor.
+
+    The anchor entry is forced because the scored window opens there and every
+    candidate must be live from its first scored session; leaving C3/C4/C5 in
+    cash until December would be an artefact of the anchor, not a property of the
+    rule. The gate requires the same thing of the engine.
+    """
+    flags = month_first_flags(sessions, calendar)
+    flags[0] = True
+    return flags
+
+
+def c1_ew_monthly(sessions, calendar) -> TargetRule:
+    rebalance = _rebalance_days(sessions, calendar)
+    weight = 1.0 / len(SYMBOLS)
+
+    def rule(index, session, state):
+        return {s: weight for s in SYMBOLS} if rebalance[index] else None
+
+    return rule
+
+
+def c3_xmom_top5(sessions, calendar, scores: pd.DataFrame) -> TargetRule:
+    rebalance = _rebalance_days(sessions, calendar)
+    weight = 1.0 / XMOM_TOP_N
+
+    def rule(index, session, state):
+        if not rebalance[index]:
+            return None
+        return {s: weight for s in top_momentum_names(scores.loc[session])}
+
+    return rule
+
+
+def c4_voltgt_ew(sessions, calendar, scale: pd.Series) -> TargetRule:
+    rebalance = _rebalance_days(sessions, calendar)
+
+    def rule(index, session, state):
+        if not rebalance[index]:
+            return None
+        k = float(scale.loc[session])
+        if not math.isfinite(k):
+            raise RpaScreenError(f"{session.date()}: vol60 is undefined")
+        return {s: k / len(SYMBOLS) for s in SYMBOLS}
+
+    return rule
+
+
+def _overlay_rule(sessions, calendar, exposure: pd.Series,
+                  base_rule: TargetRule, base_sleeve: pd.DataFrame) -> TargetRule:
+    """A trend switch laid over a base candidate: base weights on, cash off.
+
+    Trades only when the base rebalances or the switch flips. Holding the base's
+    own drifted proportions in between keeps the overlay's book proportional to
+    the base's at all times, so "C1 weights" and "C3 holdings" mean what they say
+    rather than a fresh equal weighting every session.
+    """
+    rebalance = _rebalance_days(sessions, calendar)
+    on = [float(exposure.loc[d]) for d in sessions]
+
+    def rule(index, session, state):
+        flipped = index == 0 or on[index] != on[index - 1]
+        if not (rebalance[index] or flipped):
+            return None
+        if rebalance[index]:
+            base = base_rule(index, session, state) or {}
+        else:
+            base = base_sleeve.loc[session].to_dict()
+        return {s: base.get(s, 0.0) * on[index] for s in SYMBOLS}
+
+    return rule
+
+
+def build_candidates(frames, window: Window, config: EngineConfig) -> dict[str, EngineResult]:
+    """Run all five candidates at one cost level.
+
+    C2 and C5 are overlays on C1 and C3, so their bases are run first and their
+    realised weights are fed forward; nothing is recomputed a second way.
+    """
+    sessions, calendar = window.traded, window.full
+    closes = close_matrix(frames, calendar)
+    scores = momentum_scores(closes)
+    scale = volatility_scale(closes)
+    exposure = trend_exposure(frames, calendar)
+
+    for name, series in (("trend filter", exposure.loc[sessions]),
+                         ("vol60 scale", scale.loc[sessions])):
+        if series.isna().any():
+            raise RpaScreenError(f"{name} is undefined on {int(series.isna().sum())} traded sessions")
+
+    c1_rule = c1_ew_monthly(sessions, calendar)
+    c3_rule = c3_xmom_top5(sessions, calendar, scores)
+
+    results: dict[str, EngineResult] = {}
+    results["C1_EW_MONTHLY"] = run_engine(sessions, frames, c1_rule, config)
+    results["C3_XMOM_TOP5"] = run_engine(sessions, frames, c3_rule, config)
+    results["C2_TREND_SPY200"] = run_engine(
+        sessions, frames,
+        _overlay_rule(sessions, calendar, exposure, c1_rule,
+                      results["C1_EW_MONTHLY"].sleeve_weights),
+        config)
+    results["C4_VOLTGT_EW"] = run_engine(sessions, frames,
+                                         c4_voltgt_ew(sessions, calendar, scale), config)
+    results["C5_TREND_XMOM"] = run_engine(
+        sessions, frames,
+        _overlay_rule(sessions, calendar, exposure, c3_rule,
+                      results["C3_XMOM_TOP5"].sleeve_weights),
+        config)
+    return {name: results[name] for name in CANDIDATE_NAMES}
+
+
+def spy_curve(frames, window: Window) -> pd.Series:
+    """Frictionless SPY buy-and-hold, rebased at the anchor close.
+
+    Built the same way true_backtest builds its SPY benchmark, and scored by the
+    same equity_metrics, as go-no-go.md requires. It pays no execution cost,
+    which is an asymmetry in SPY's favour and is stated in the report.
+    """
+    spy = frames[BENCHMARK]["Close"].reindex(pd.DatetimeIndex(window.traded))
+    return spy / float(spy.iloc[0]) * INITIAL_CASH
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="RP-A screen engine utilities.")
     parser.add_argument("--build-bars", action="store_true",
