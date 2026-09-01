@@ -632,10 +632,206 @@ def spy_curve(frames, window: Window) -> pd.Series:
     return spy / float(spy.iloc[0]) * INITIAL_CASH
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The screen: gate, cost grid, PASS conditions
+# ─────────────────────────────────────────────────────────────────────────────
+EQUITY_ARTIFACT = Path(__file__).parent / "data" / "rpa_equity.csv"
+BENCHMARK_ARTIFACT = Path(__file__).parent / "data" / "rpa_benchmarks.csv"
+RESULTS_ARTIFACT = Path(__file__).parent / "data" / "rpa_results.json"
+
+GATE_RETURN_TOLERANCE_PP = 0.5
+GATE_SHARPE_TOLERANCE = 0.01
+DRAWDOWN_MULTIPLE = 1.25
+# Condition 3 is only trustworthy if the second, independent standard error was
+# actually computed. Without statsmodels the HAC path degrades silently to one
+# implementation, which is the shape of bug this repo has been caught by before.
+HAC_AGREEMENT_TOLERANCE = 1e-10
+
+
+def daily_returns(equity: pd.Series) -> pd.Series:
+    """The return series every statistic is formed from, defined once."""
+    return equity.pct_change(fill_method=None).dropna()
+
+
+def run_gate(frames, window: Window) -> dict:
+    """Reproduce true_backtest.buy_hold_curve; the run is VOID unless this passes."""
+    from true_backtest import buy_hold_curve
+    from portfolio_simulator import equity_metrics
+
+    engine = run_engine(window.traded, frames, buy_and_hold_rule(),
+                        EngineConfig(side_cost_bps=0.0, fill_at=DECISION_CLOSE))
+    reference = buy_hold_curve(frames, window.in_window, list(SYMBOLS),
+                               INITIAL_CASH, anchor=window.anchor)
+    got, want = equity_metrics(engine.equity), equity_metrics(reference)
+    return_gap = abs(got["total_return_pct"] - want["total_return_pct"])
+    sharpe_gap = abs(got["sharpe"] - want["sharpe"])
+    return {
+        "engine": got,
+        "buy_hold_curve": want,
+        "total_return_gap_pp": return_gap,
+        "sharpe_gap": sharpe_gap,
+        "max_abs_equity_difference": float((engine.equity - reference).abs().max()),
+        "tolerance_total_return_pp": GATE_RETURN_TOLERANCE_PP,
+        "tolerance_sharpe": GATE_SHARPE_TOLERANCE,
+        "passed": bool(return_gap <= GATE_RETURN_TOLERANCE_PP
+                       and sharpe_gap <= GATE_SHARPE_TOLERANCE),
+        "engine_series": engine.equity,
+    }
+
+
+def evaluate_conditions(results: Mapping[str, EngineResult]) -> dict:
+    """The four PASS conditions, candidate by candidate, against C1."""
+    from portfolio_simulator import equity_metrics
+    from rpa_stats import FAMILY_ALPHA, hac_mean_test, holm
+
+    base = results["C1_EW_MONTHLY"]
+    base_metrics = equity_metrics(base.equity)
+    base_returns = daily_returns(base.equity)
+
+    tests, rows = {}, {}
+    for name in CANDIDATE_NAMES[1:]:
+        diff = (daily_returns(results[name].equity) - base_returns).dropna()
+        tests[name] = hac_mean_test(diff)
+        rows[name] = {"metrics": equity_metrics(results[name].equity),
+                      "active": tests[name]}
+
+    adjusted = holm({n: t["p_one_sided"] for n, t in tests.items()}, alpha=FAMILY_ALPHA)
+
+    for name, row in rows.items():
+        stat, metrics = row["active"], row["metrics"]
+        c1_sharpe, ci_sharpe = base_metrics["sharpe"], metrics["sharpe"]
+        c1_dd, ci_dd = abs(base_metrics["max_drawdown_pct"]), abs(metrics["max_drawdown_pct"])
+        row["holm"] = adjusted[name]
+        row["annualised_active_return_pct"] = 252.0 * stat["mean"] * 100.0
+        row["conditions"] = {
+            "1_sharpe_beats_c1": {
+                "value": ci_sharpe, "reference": c1_sharpe,
+                "passed": bool(ci_sharpe > c1_sharpe)},
+            "2_positive_active_return": {
+                "value": 252.0 * stat["mean"] * 100.0, "reference": 0.0,
+                "passed": bool(252.0 * stat["mean"] > 0)},
+            "3_holm_adjusted_hac_test": {
+                "value": adjusted[name]["p_holm"], "reference": FAMILY_ALPHA,
+                "p_raw": stat["p_one_sided"], "t_stat": stat["t_stat"],
+                "passed": bool(adjusted[name]["reject_null"])},
+            # A drawdown "no worse than 1.25x" C1's, compared as magnitudes so the
+            # sign convention of max_drawdown_pct cannot invert the test.
+            "4_drawdown_within_1_25x": {
+                "value": ci_dd, "reference": DRAWDOWN_MULTIPLE * c1_dd,
+                "passed": bool(ci_dd <= DRAWDOWN_MULTIPLE * c1_dd)},
+        }
+        row["passed"] = all(c["passed"] for c in row["conditions"].values())
+
+    return {"c1": base_metrics, "candidates": rows}
+
+
+def run_screen(frames=None, path: Path = RESULTS_ARTIFACT) -> dict:
+    """Run the gate, then the full cost grid, and write the committed artifacts."""
+    import json
+    from datetime import datetime, timezone
+
+    from portfolio_simulator import equity_metrics
+
+    frames = load_bars() if frames is None else frames
+    window = build_window(frames)
+    require_complete_bars(frames, window.traded)
+
+    gate = run_gate(frames, window)
+    gate_series = gate.pop("engine_series")
+    if not gate["passed"]:
+        raise RpaScreenError(
+            "engine validation FAILED; per the spec the run is VOID and no "
+            "candidate number may be quoted"
+        )
+
+    spy = spy_curve(frames, window)
+    grid, equity_rows = {}, []
+    for bps in COST_GRID_BPS:
+        results = build_candidates(frames, window, EngineConfig(side_cost_bps=bps))
+        for name, result in results.items():
+            for session, value in result.equity.items():
+                equity_rows.append({"cost_bps": bps, "candidate": name,
+                                    "date": session.strftime("%Y-%m-%d"),
+                                    "equity": float(value)})
+        grid[f"{bps:.0f}"] = {
+            "metrics": {n: equity_metrics(r.equity) for n, r in results.items()},
+            "cost_paid": {n: float(r.cost_paid.sum()) for n, r in results.items()},
+            "traded_notional": {n: float(r.traded_notional.sum()) for n, r in results.items()},
+            "sessions_in_cash": {n: int((r.gross_pct <= 1e-9).sum()) for n, r in results.items()},
+            "evaluation": evaluate_conditions(results),
+        }
+
+    pd.DataFrame(equity_rows).to_csv(EQUITY_ARTIFACT, index=False)
+    pd.DataFrame(
+        [{"series": "SPY", "date": d.strftime("%Y-%m-%d"), "equity": float(v)}
+         for d, v in spy.items()]
+        + [{"series": "GATE_BUYHOLD", "date": d.strftime("%Y-%m-%d"), "equity": float(v)}
+           for d, v in gate_series.items()]
+    ).to_csv(BENCHMARK_ARTIFACT, index=False)
+
+    for bps, level in grid.items():
+        for name, row in level["evaluation"]["candidates"].items():
+            stat = row["active"]
+            if stat["se_statsmodels"] is None:
+                raise RpaScreenError(
+                    f"{name} at {bps} bps: statsmodels is unavailable, so condition 3's "
+                    "standard error was computed only once; install statsmodels rather "
+                    "than reporting a number this repo cannot cross-check"
+                )
+            if stat["se_agreement_rel"] > HAC_AGREEMENT_TOLERANCE:
+                raise RpaScreenError(
+                    f"{name} at {bps} bps: the two HAC standard errors disagree by "
+                    f"{stat['se_agreement_rel']:.3e}; refusing to report condition 3"
+                )
+
+    base = grid[f"{BASE_COST_BPS:.0f}"]
+    passed = [n for n, row in base["evaluation"]["candidates"].items() if row["passed"]]
+    report = {
+        "spec": "docs/designs/candidate-screen-rp-a.md",
+        "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "window": {
+            "fetch_start": WARMUP_FETCH_START,
+            "frozen_start": str(window.in_window[0].date()),
+            "frozen_end": str(window.in_window[-1].date()),
+            "in_window_sessions": len(window.in_window),
+            "anchor": str(window.anchor.date()),
+            "scored_sessions": len(window.traded),
+        },
+        "config": {
+            "capital": INITIAL_CASH, "symbols": list(SYMBOLS),
+            "max_gross_exposure": MAX_GROSS_EXPOSURE,
+            "base_cost_bps": BASE_COST_BPS, "cost_grid_bps": list(COST_GRID_BPS),
+            "fill": "signal on session close, fill at next open",
+            "price_basis": "yfinance auto_adjust=True (split and dividend adjusted)",
+        },
+        "gate": gate,
+        "hac_cross_check": {
+            "tolerance_rel": HAC_AGREEMENT_TOLERANCE,
+            "worst_disagreement_rel": max(
+                row["active"]["se_agreement_rel"]
+                for level in grid.values()
+                for row in level["evaluation"]["candidates"].values()),
+            "paths": sorted({row["active"]["se_path"]
+                             for level in grid.values()
+                             for row in level["evaluation"]["candidates"].values()}),
+        },
+        "benchmarks": {"SPY": equity_metrics(spy)},
+        "cost_grid": grid,
+        "base_case_bps": BASE_COST_BPS,
+        "passing_candidates": passed,
+        "verdict": "PASS" if passed else "FAIL",
+    }
+    path.write_text(json.dumps(report, indent=2, default=str))
+    return report
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="RP-A screen engine utilities.")
     parser.add_argument("--build-bars", action="store_true",
                         help="download and write the committed bar artifact")
+    parser.add_argument("--run", action="store_true",
+                        help="run the gate, then the candidates, and write the artifacts")
     args = parser.parse_args(argv)
     if args.build_bars:
         path = build_bar_cache()
@@ -647,6 +843,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"  frozen window    : {len(window.in_window)} sessions "
               f"{window.in_window[0].date()} → {window.in_window[-1].date()}")
         print(f"  traded / scored  : {len(window.traded)} sessions from {window.anchor.date()}")
+        return 0
+    if args.run:
+        report = run_screen()
+        gate = report["gate"]
+        print(f"gate: {'PASS' if gate['passed'] else 'VOID'}  "
+              f"return gap {gate['total_return_gap_pp']:.4f}pp  "
+              f"sharpe gap {gate['sharpe_gap']:.4f}  "
+              f"max|equity diff| {gate['max_abs_equity_difference']:.2e}")
+        print(f"wrote {RESULTS_ARTIFACT.name}, {EQUITY_ARTIFACT.name}, "
+              f"{BENCHMARK_ARTIFACT.name}")
+        print(f"verdict at {BASE_COST_BPS:.0f} bps: {report['verdict']}  "
+              f"{report['passing_candidates']}")
         return 0
     parser.print_help()
     return 0

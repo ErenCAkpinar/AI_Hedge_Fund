@@ -121,3 +121,17 @@ def test_holm_correction_can_overturn_a_raw_pass():
 def test_holm_family_size_is_reported_for_audit():
     out = holm({"a": 0.01, "b": 0.02, "c": 0.03, "d": 0.04})
     assert {row["family_size"] for row in out.values()} == {4}
+
+
+def test_a_zero_difference_series_fails_rather_than_crashing():
+    """A candidate that exactly reproduces C1 supplies no evidence, so p = 1."""
+    result = hac_mean_test([0.0] * 200)
+    assert result["se_path"] == "degenerate"
+    assert result["p_one_sided"] == 1.0
+    assert result["t_stat"] == 0.0
+    assert not holm({"only": result["p_one_sided"]}, alpha=0.10)["only"]["reject_null"]
+
+
+def test_a_constant_positive_difference_refuses_to_report_significance():
+    with pytest.raises(RpaStatsError, match="fabricate|infinite significance"):
+        hac_mean_test([0.002] * 200)

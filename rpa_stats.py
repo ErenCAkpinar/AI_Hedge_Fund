@@ -50,8 +50,8 @@ def bartlett_hac_se(diff: Sequence[float], maxlags: int = HAC_MAXLAGS) -> float:
     for lag in range(1, maxlags + 1):
         weight = 1.0 - lag / (maxlags + 1.0)
         total += 2.0 * weight * float(resid[lag:] @ resid[:-lag]) / n
-    if total <= 0:
-        raise RpaStatsError("non-positive HAC variance; the series is degenerate")
+    if total < 0:
+        raise RpaStatsError("negative HAC variance; the series is degenerate")
     return math.sqrt(total / n)
 
 
@@ -73,9 +73,30 @@ def hac_mean_test(diff: Sequence[float], maxlags: int = HAC_MAXLAGS) -> dict:
     values = np.asarray(diff, dtype=float)
     if not np.isfinite(values).all():
         raise RpaStatsError("difference series contains non-finite values")
+    mean_value = float(values.mean())
+    # Degeneracy is read off the data, not off a standard error that may land on a
+    # denormal: a constant series has no dispersion however it is summed.
+    if values.size and values.max() == values.min():
+        # A candidate that exactly reproduces C1 is a relabelled C1, and supplies
+        # no evidence against the null, so condition 3 fails rather than the run
+        # crashing. A constant *positive* difference is pathological rather than
+        # degenerate, and reporting p=0 for it would fabricate significance.
+        if mean_value > 0:
+            raise RpaStatsError(
+                "difference series is constant and positive; refusing to "
+                "fabricate infinite significance from zero dispersion"
+            )
+        return {
+            "n": int(values.size), "mean": mean_value,
+            "se_hand_rolled": 0.0, "se_statsmodels": 0.0, "se_used": 0.0,
+            "se_path": "degenerate", "se_agreement_rel": 0.0,
+            "t_stat": 0.0, "p_one_sided": 1.0, "maxlags": maxlags,
+        }
     hand = bartlett_hac_se(values, maxlags)
     library = statsmodels_hac_se(values, maxlags)
     used, path = (library, "statsmodels") if library is not None else (hand, "hand-rolled")
+    if used <= 0:
+        raise RpaStatsError("HAC standard error collapsed to zero; refusing to divide by it")
     mean = float(values.mean())
     t_stat = mean / used
     return {

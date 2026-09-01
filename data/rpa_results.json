@@ -1,0 +1,1251 @@
+{
+  "spec": "docs/designs/candidate-screen-rp-a.md",
+  "generated_utc": "2026-09-01T10:17:39Z",
+  "window": {
+    "fetch_start": "2023-08-01",
+    "frozen_start": "2024-08-29",
+    "frozen_end": "2026-08-28",
+    "in_window_sessions": 501,
+    "anchor": "2024-11-22",
+    "scored_sessions": 441
+  },
+  "config": {
+    "capital": 1500.0,
+    "symbols": [
+      "NVDA",
+      "AVGO",
+      "SOXX",
+      "PLTR",
+      "MSTR",
+      "IBIT",
+      "ASTS",
+      "VST",
+      "LMT",
+      "LLY",
+      "TSLA",
+      "GLD",
+      "FXY",
+      "META",
+      "USO",
+      "WMT",
+      "QQQ"
+    ],
+    "max_gross_exposure": 1.0,
+    "base_cost_bps": 10.0,
+    "cost_grid_bps": [
+      0.0,
+      5.0,
+      10.0,
+      20.0
+    ],
+    "fill": "signal on session close, fill at next open",
+    "price_basis": "yfinance auto_adjust=True (split and dividend adjusted)"
+  },
+  "gate": {
+    "engine": {
+      "sharpe": 0.74,
+      "sortino": 1.084,
+      "max_drawdown_pct": -23.99,
+      "total_return_pct": 47.48,
+      "days": 441
+    },
+    "buy_hold_curve": {
+      "sharpe": 0.74,
+      "sortino": 1.084,
+      "max_drawdown_pct": -23.99,
+      "total_return_pct": 47.48,
+      "days": 441
+    },
+    "total_return_gap_pp": 0.0,
+    "sharpe_gap": 0.0,
+    "max_abs_equity_difference": 9.094947017729282e-13,
+    "tolerance_total_return_pp": 0.5,
+    "tolerance_sharpe": 0.01,
+    "passed": true
+  },
+  "hac_cross_check": {
+    "tolerance_rel": 1e-10,
+    "worst_disagreement_rel": 8.771021585636872e-16,
+    "paths": [
+      "statsmodels"
+    ]
+  },
+  "benchmarks": {
+    "SPY": {
+      "sharpe": 0.717,
+      "sortino": 0.946,
+      "max_drawdown_pct": -18.76,
+      "total_return_pct": 31.85,
+      "days": 441
+    }
+  },
+  "cost_grid": {
+    "0": {
+      "metrics": {
+        "C1_EW_MONTHLY": {
+          "sharpe": 0.824,
+          "sortino": 1.183,
+          "max_drawdown_pct": -23.05,
+          "total_return_pct": 49.8,
+          "days": 441
+        },
+        "C2_TREND_SPY200": {
+          "sharpe": 0.38,
+          "sortino": 0.495,
+          "max_drawdown_pct": -17.72,
+          "total_return_pct": 20.84,
+          "days": 441
+        },
+        "C3_XMOM_TOP5": {
+          "sharpe": 0.295,
+          "sortino": 0.43,
+          "max_drawdown_pct": -31.87,
+          "total_return_pct": 16.61,
+          "days": 441
+        },
+        "C4_VOLTGT_EW": {
+          "sharpe": 0.498,
+          "sortino": 0.691,
+          "max_drawdown_pct": -12.59,
+          "total_return_pct": 23.08,
+          "days": 441
+        },
+        "C5_TREND_XMOM": {
+          "sharpe": -0.225,
+          "sortino": -0.297,
+          "max_drawdown_pct": -31.77,
+          "total_return_pct": -15.17,
+          "days": 441
+        }
+      },
+      "cost_paid": {
+        "C1_EW_MONTHLY": 0.0,
+        "C2_TREND_SPY200": 0.0,
+        "C3_XMOM_TOP5": 0.0,
+        "C4_VOLTGT_EW": 0.0,
+        "C5_TREND_XMOM": 0.0
+      },
+      "traded_notional": {
+        "C1_EW_MONTHLY": 4771.221626834177,
+        "C2_TREND_SPY200": 13075.73369235975,
+        "C3_XMOM_TOP5": 21427.766190039507,
+        "C4_VOLTGT_EW": 4946.019367172727,
+        "C5_TREND_XMOM": 22355.49107766394
+      },
+      "sessions_in_cash": {
+        "C1_EW_MONTHLY": 1,
+        "C2_TREND_SPY200": 55,
+        "C3_XMOM_TOP5": 1,
+        "C4_VOLTGT_EW": 1,
+        "C5_TREND_XMOM": 55
+      },
+      "evaluation": {
+        "c1": {
+          "sharpe": 0.824,
+          "sortino": 1.183,
+          "max_drawdown_pct": -23.05,
+          "total_return_pct": 49.8,
+          "days": 441
+        },
+        "candidates": {
+          "C2_TREND_SPY200": {
+            "metrics": {
+              "sharpe": 0.38,
+              "sortino": 0.495,
+              "max_drawdown_pct": -17.72,
+              "total_return_pct": 20.84,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005318046346932476,
+              "se_hand_rolled": 0.00036800806694653313,
+              "se_statsmodels": 0.0003680080669465334,
+              "se_used": 0.0003680080669465334,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.365342433125415e-16,
+              "t_stat": -1.4450896120451393,
+              "p_one_sided": 0.9257836417828234,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9257836417828234,
+              "p_holm": 1.0,
+              "rank": 2,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.40147679426984,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.38,
+                "reference": 0.824,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.40147679426984,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9257836417828234,
+                "t_stat": -1.4450896120451393,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 17.72,
+                "reference": 28.8125,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C3_XMOM_TOP5": {
+            "metrics": {
+              "sharpe": 0.295,
+              "sortino": 0.43,
+              "max_drawdown_pct": -31.87,
+              "total_return_pct": 16.61,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0003871147372538025,
+              "se_hand_rolled": 0.0006190992262359261,
+              "se_statsmodels": 0.0006190992262359265,
+              "se_used": 0.0006190992262359265,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.005030060059137e-16,
+              "t_stat": -0.6252870636059892,
+              "p_one_sided": 0.7341086655707778,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.7341086655707778,
+              "p_holm": 1.0,
+              "rank": 1,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -9.755291378795821,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.295,
+                "reference": 0.824,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -9.755291378795821,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.7341086655707778,
+                "t_stat": -0.6252870636059892,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.87,
+                "reference": 28.8125,
+                "passed": false
+              }
+            },
+            "passed": false
+          },
+          "C4_VOLTGT_EW": {
+            "metrics": {
+              "sharpe": 0.498,
+              "sortino": 0.691,
+              "max_drawdown_pct": -12.59,
+              "total_return_pct": 23.08,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005271421244951754,
+              "se_hand_rolled": 0.000285871257557933,
+              "se_statsmodels": 0.0002858712575579332,
+              "se_used": 0.0002858712575579332,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.585247861203994e-16,
+              "t_stat": -1.8439843480534153,
+              "p_one_sided": 0.9674072893687159,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9674072893687159,
+              "p_holm": 1.0,
+              "rank": 4,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.283981537278422,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.498,
+                "reference": 0.824,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.283981537278422,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9674072893687159,
+                "t_stat": -1.8439843480534153,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 12.59,
+                "reference": 28.8125,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C5_TREND_XMOM": {
+            "metrics": {
+              "sharpe": -0.225,
+              "sortino": -0.297,
+              "max_drawdown_pct": -31.77,
+              "total_return_pct": -15.17,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0011740834199035228,
+              "se_hand_rolled": 0.0006696058819259216,
+              "se_statsmodels": 0.000669605881925922,
+              "se_used": 0.000669605881925922,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 6.476658594259176e-16,
+              "t_stat": -1.7533947230669797,
+              "p_one_sided": 0.9602328619124902,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9602328619124902,
+              "p_holm": 1.0,
+              "rank": 3,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -29.586902181568774,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": -0.225,
+                "reference": 0.824,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -29.586902181568774,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9602328619124902,
+                "t_stat": -1.7533947230669797,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.77,
+                "reference": 28.8125,
+                "passed": false
+              }
+            },
+            "passed": false
+          }
+        }
+      }
+    },
+    "5": {
+      "metrics": {
+        "C1_EW_MONTHLY": {
+          "sharpe": 0.821,
+          "sortino": 1.178,
+          "max_drawdown_pct": -23.06,
+          "total_return_pct": 49.6,
+          "days": 441
+        },
+        "C2_TREND_SPY200": {
+          "sharpe": 0.368,
+          "sortino": 0.48,
+          "max_drawdown_pct": -17.89,
+          "total_return_pct": 20.33,
+          "days": 441
+        },
+        "C3_XMOM_TOP5": {
+          "sharpe": 0.286,
+          "sortino": 0.417,
+          "max_drawdown_pct": -31.9,
+          "total_return_pct": 15.89,
+          "days": 441
+        },
+        "C4_VOLTGT_EW": {
+          "sharpe": 0.493,
+          "sortino": 0.683,
+          "max_drawdown_pct": -12.59,
+          "total_return_pct": 22.9,
+          "days": 441
+        },
+        "C5_TREND_XMOM": {
+          "sharpe": -0.239,
+          "sortino": -0.314,
+          "max_drawdown_pct": -31.77,
+          "total_return_pct": -15.87,
+          "days": 441
+        }
+      },
+      "cost_paid": {
+        "C1_EW_MONTHLY": 2.383600463743711,
+        "C2_TREND_SPY200": 6.523296722883147,
+        "C3_XMOM_TOP5": 10.678599868820523,
+        "C4_VOLTGT_EW": 2.4709683893312246,
+        "C5_TREND_XMOM": 11.130231420912196
+      },
+      "traded_notional": {
+        "C1_EW_MONTHLY": 4767.200927487422,
+        "C2_TREND_SPY200": 13046.593445766293,
+        "C3_XMOM_TOP5": 21357.199737641044,
+        "C4_VOLTGT_EW": 4941.93677866245,
+        "C5_TREND_XMOM": 22260.462841824396
+      },
+      "sessions_in_cash": {
+        "C1_EW_MONTHLY": 1,
+        "C2_TREND_SPY200": 55,
+        "C3_XMOM_TOP5": 1,
+        "C4_VOLTGT_EW": 1,
+        "C5_TREND_XMOM": 55
+      },
+      "evaluation": {
+        "c1": {
+          "sharpe": 0.821,
+          "sortino": 1.178,
+          "max_drawdown_pct": -23.06,
+          "total_return_pct": 49.6,
+          "days": 441
+        },
+        "candidates": {
+          "C2_TREND_SPY200": {
+            "metrics": {
+              "sharpe": 0.368,
+              "sortino": 0.48,
+              "max_drawdown_pct": -17.89,
+              "total_return_pct": 20.33,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005383454418945655,
+              "se_hand_rolled": 0.00036813008477222574,
+              "se_statsmodels": 0.000368130084772226,
+              "se_used": 0.000368130084772226,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.362901168185801e-16,
+              "t_stat": -1.4623782846426616,
+              "p_one_sided": 0.9281812116277371,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9281812116277371,
+              "p_holm": 1.0,
+              "rank": 2,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.56630513574305,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.368,
+                "reference": 0.821,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.56630513574305,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9281812116277371,
+                "t_stat": -1.4623782846426616,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 17.89,
+                "reference": 28.825,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C3_XMOM_TOP5": {
+            "metrics": {
+              "sharpe": 0.286,
+              "sortino": 0.417,
+              "max_drawdown_pct": -31.9,
+              "total_return_pct": 15.89,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0003981712755167346,
+              "se_hand_rolled": 0.0006185732308111415,
+              "se_statsmodels": 0.000618573230811142,
+              "se_used": 0.000618573230811142,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.010986693127848e-16,
+              "t_stat": -0.6436930272501579,
+              "p_one_sided": 0.7401127438289588,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.7401127438289588,
+              "p_holm": 1.0,
+              "rank": 1,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -10.033916143021711,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.286,
+                "reference": 0.821,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -10.033916143021711,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.7401127438289588,
+                "t_stat": -0.6436930272501579,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.9,
+                "reference": 28.825,
+                "passed": false
+              }
+            },
+            "passed": false
+          },
+          "C4_VOLTGT_EW": {
+            "metrics": {
+              "sharpe": 0.493,
+              "sortino": 0.683,
+              "max_drawdown_pct": -12.59,
+              "total_return_pct": 22.9,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005274942015217648,
+              "se_hand_rolled": 0.0002858559751364477,
+              "se_statsmodels": 0.00028585597513644794,
+              "se_used": 0.00028585597513644794,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.585653383442351e-16,
+              "t_stat": -1.8453145898733632,
+              "p_one_sided": 0.9675041053267555,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9675041053267555,
+              "p_holm": 1.0,
+              "rank": 4,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.29285387834847,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.493,
+                "reference": 0.821,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.29285387834847,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9675041053267555,
+                "t_stat": -1.8453145898733632,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 12.59,
+                "reference": 28.825,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C5_TREND_XMOM": {
+            "metrics": {
+              "sharpe": -0.239,
+              "sortino": -0.314,
+              "max_drawdown_pct": -31.77,
+              "total_return_pct": -15.87,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0011900242451793365,
+              "se_hand_rolled": 0.0006691982965698427,
+              "se_statsmodels": 0.0006691982965698431,
+              "se_used": 0.0006691982965698431,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 6.480603301250921e-16,
+              "t_stat": -1.778283434490386,
+              "p_one_sided": 0.9623213421728917,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9623213421728917,
+              "p_holm": 1.0,
+              "rank": 3,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -29.988610978519283,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": -0.239,
+                "reference": 0.821,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -29.988610978519283,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9623213421728917,
+                "t_stat": -1.778283434490386,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.77,
+                "reference": 28.825,
+                "passed": false
+              }
+            },
+            "passed": false
+          }
+        }
+      }
+    },
+    "10": {
+      "metrics": {
+        "C1_EW_MONTHLY": {
+          "sharpe": 0.818,
+          "sortino": 1.174,
+          "max_drawdown_pct": -23.07,
+          "total_return_pct": 49.4,
+          "days": 441
+        },
+        "C2_TREND_SPY200": {
+          "sharpe": 0.357,
+          "sortino": 0.465,
+          "max_drawdown_pct": -18.06,
+          "total_return_pct": 19.82,
+          "days": 441
+        },
+        "C3_XMOM_TOP5": {
+          "sharpe": 0.277,
+          "sortino": 0.404,
+          "max_drawdown_pct": -31.93,
+          "total_return_pct": 15.18,
+          "days": 441
+        },
+        "C4_VOLTGT_EW": {
+          "sharpe": 0.488,
+          "sortino": 0.676,
+          "max_drawdown_pct": -12.6,
+          "total_return_pct": 22.71,
+          "days": 441
+        },
+        "C5_TREND_XMOM": {
+          "sharpe": -0.252,
+          "sortino": -0.332,
+          "max_drawdown_pct": -31.77,
+          "total_return_pct": -16.57,
+          "days": 441
+        }
+      },
+      "cost_paid": {
+        "C1_EW_MONTHLY": 4.763191850787042,
+        "C2_TREND_SPY200": 13.017548413313806,
+        "C3_XMOM_TOP5": 21.286933452713633,
+        "C4_VOLTGT_EW": 4.937859546249788,
+        "C5_TREND_XMOM": 22.165967668946067
+      },
+      "traded_notional": {
+        "C1_EW_MONTHLY": 4763.191850787042,
+        "C2_TREND_SPY200": 13017.548413313807,
+        "C3_XMOM_TOP5": 21286.93345271363,
+        "C4_VOLTGT_EW": 4937.859546249788,
+        "C5_TREND_XMOM": 22165.96766894607
+      },
+      "sessions_in_cash": {
+        "C1_EW_MONTHLY": 1,
+        "C2_TREND_SPY200": 55,
+        "C3_XMOM_TOP5": 1,
+        "C4_VOLTGT_EW": 1,
+        "C5_TREND_XMOM": 55
+      },
+      "evaluation": {
+        "c1": {
+          "sharpe": 0.818,
+          "sortino": 1.174,
+          "max_drawdown_pct": -23.07,
+          "total_return_pct": 49.4,
+          "days": 441
+        },
+        "candidates": {
+          "C2_TREND_SPY200": {
+            "metrics": {
+              "sharpe": 0.357,
+              "sortino": 0.465,
+              "max_drawdown_pct": -18.06,
+              "total_return_pct": 19.82,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005448829368631389,
+              "se_hand_rolled": 0.0003682751403634602,
+              "se_statsmodels": 0.0003682751403634605,
+              "se_used": 0.0003682751403634605,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.360001081090327e-16,
+              "t_stat": -1.479553945252399,
+              "p_one_sided": 0.9305038375672833,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9305038375672833,
+              "p_holm": 1.0,
+              "rank": 2,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.731050008951101,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.357,
+                "reference": 0.818,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.731050008951101,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9305038375672833,
+                "t_stat": -1.479553945252399,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 18.06,
+                "reference": 28.8375,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C3_XMOM_TOP5": {
+            "metrics": {
+              "sharpe": 0.277,
+              "sortino": 0.404,
+              "max_drawdown_pct": -31.93,
+              "total_return_pct": 15.18,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0004092230705795558,
+              "se_hand_rolled": 0.0006180592316982529,
+              "se_statsmodels": 0.0006180592316982535,
+              "se_used": 0.0006180592316982535,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 8.771021585636872e-16,
+              "t_stat": -0.6621097940000435,
+              "p_one_sided": 0.7460495702548787,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.7460495702548787,
+              "p_holm": 1.0,
+              "rank": 1,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -10.312421378604807,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.277,
+                "reference": 0.818,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -10.312421378604807,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.7460495702548787,
+                "t_stat": -0.6621097940000435,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.93,
+                "reference": 28.8375,
+                "passed": false
+              }
+            },
+            "passed": false
+          },
+          "C4_VOLTGT_EW": {
+            "metrics": {
+              "sharpe": 0.488,
+              "sortino": 0.676,
+              "max_drawdown_pct": -12.6,
+              "total_return_pct": 22.71,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005278467818882259,
+              "se_hand_rolled": 0.0002858425286967884,
+              "se_statsmodels": 0.00028584252869678857,
+              "se_used": 0.00028584252869678857,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 5.689507667535996e-16,
+              "t_stat": -1.8466348737354852,
+              "p_one_sided": 0.9675999618310184,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9675999618310184,
+              "p_holm": 1.0,
+              "rank": 4,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.301738903583294,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.488,
+                "reference": 0.818,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.301738903583294,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9675999618310184,
+                "t_stat": -1.8466348737354852,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 12.6,
+                "reference": 28.8375,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C5_TREND_XMOM": {
+            "metrics": {
+              "sharpe": -0.252,
+              "sortino": -0.332,
+              "max_drawdown_pct": -31.77,
+              "total_return_pct": -16.57,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0012059584566307753,
+              "se_hand_rolled": 0.0006688112007404324,
+              "se_statsmodels": 0.0006688112007404328,
+              "se_used": 0.0006688112007404328,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 6.484354157258116e-16,
+              "t_stat": -1.803137350713734,
+              "p_one_sided": 0.9643166767390343,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9643166767390343,
+              "p_holm": 1.0,
+              "rank": 3,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -30.390153107095536,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": -0.252,
+                "reference": 0.818,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -30.390153107095536,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9643166767390343,
+                "t_stat": -1.803137350713734,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.77,
+                "reference": 28.8375,
+                "passed": false
+              }
+            },
+            "passed": false
+          }
+        }
+      }
+    },
+    "20": {
+      "metrics": {
+        "C1_EW_MONTHLY": {
+          "sharpe": 0.812,
+          "sortino": 1.165,
+          "max_drawdown_pct": -23.08,
+          "total_return_pct": 48.99,
+          "days": 441
+        },
+        "C2_TREND_SPY200": {
+          "sharpe": 0.334,
+          "sortino": 0.436,
+          "max_drawdown_pct": -18.39,
+          "total_return_pct": 18.81,
+          "days": 441
+        },
+        "C3_XMOM_TOP5": {
+          "sharpe": 0.259,
+          "sortino": 0.378,
+          "max_drawdown_pct": -31.99,
+          "total_return_pct": 13.77,
+          "days": 441
+        },
+        "C4_VOLTGT_EW": {
+          "sharpe": 0.477,
+          "sortino": 0.661,
+          "max_drawdown_pct": -12.61,
+          "total_return_pct": 22.34,
+          "days": 441
+        },
+        "C5_TREND_XMOM": {
+          "sharpe": -0.279,
+          "sortino": -0.367,
+          "max_drawdown_pct": -31.78,
+          "total_return_pct": -17.94,
+          "days": 441
+        }
+      },
+      "cost_paid": {
+        "C1_EW_MONTHLY": 9.510378625346892,
+        "C2_TREND_SPY200": 25.919447002799146,
+        "C3_XMOM_TOP5": 42.2945913078905,
+        "C4_VOLTGT_EW": 9.859442222115915,
+        "C5_TREND_XMOM": 43.95712629490555
+      },
+      "traded_notional": {
+        "C1_EW_MONTHLY": 4755.189312673445,
+        "C2_TREND_SPY200": 12959.72350139957,
+        "C3_XMOM_TOP5": 21147.29565394525,
+        "C4_VOLTGT_EW": 4929.7211110579565,
+        "C5_TREND_XMOM": 21978.563147452776
+      },
+      "sessions_in_cash": {
+        "C1_EW_MONTHLY": 1,
+        "C2_TREND_SPY200": 55,
+        "C3_XMOM_TOP5": 1,
+        "C4_VOLTGT_EW": 1,
+        "C5_TREND_XMOM": 55
+      },
+      "evaluation": {
+        "c1": {
+          "sharpe": 0.812,
+          "sortino": 1.165,
+          "max_drawdown_pct": -23.08,
+          "total_return_pct": 48.99,
+          "days": 441
+        },
+        "candidates": {
+          "C2_TREND_SPY200": {
+            "metrics": {
+              "sharpe": 0.334,
+              "sortino": 0.436,
+              "max_drawdown_pct": -18.39,
+              "total_return_pct": 18.81,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0005579480102197463,
+              "se_hand_rolled": 0.0003686341150806798,
+              "se_statsmodels": 0.00036863411508068,
+              "se_used": 0.00036863411508068,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 5.8822671485422e-16,
+              "t_stat": -1.5135550058833613,
+              "p_one_sided": 0.9349306299114457,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9349306299114457,
+              "p_holm": 1.0,
+              "rank": 2,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -14.060289857537608,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.334,
+                "reference": 0.812,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -14.060289857537608,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9349306299114457,
+                "t_stat": -1.5135550058833613,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 18.39,
+                "reference": 28.849999999999998,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C3_XMOM_TOP5": {
+            "metrics": {
+              "sharpe": 0.259,
+              "sortino": 0.378,
+              "max_drawdown_pct": -31.99,
+              "total_return_pct": 13.77,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.00043131244791325607,
+              "se_hand_rolled": 0.0006170672652262241,
+              "se_statsmodels": 0.0006170672652262246,
+              "se_used": 0.0006170672652262246,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 7.028097152993668e-16,
+              "t_stat": -0.6989715258273044,
+              "p_one_sided": 0.7577150870987298,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.7577150870987298,
+              "p_holm": 1.0,
+              "rank": 1,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -10.869073687414053,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.259,
+                "reference": 0.812,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -10.869073687414053,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.7577150870987298,
+                "t_stat": -0.6989715258273044,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.99,
+                "reference": 28.849999999999998,
+                "passed": false
+              }
+            },
+            "passed": false
+          },
+          "C4_VOLTGT_EW": {
+            "metrics": {
+              "sharpe": 0.477,
+              "sortino": 0.661,
+              "max_drawdown_pct": -12.61,
+              "total_return_pct": 22.34,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.000528553453847281,
+              "se_hand_rolled": 0.0002858211206506311,
+              "se_statsmodels": 0.00028582112065063126,
+              "se_used": 0.00028582112065063126,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 5.689933812540542e-16,
+              "t_stat": -1.8492456143342522,
+              "p_one_sided": 0.967788822547631,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.967788822547631,
+              "p_holm": 1.0,
+              "rank": 3,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -13.319547036951482,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": 0.477,
+                "reference": 0.812,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -13.319547036951482,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.967788822547631,
+                "t_stat": -1.8492456143342522,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 12.61,
+                "reference": 28.849999999999998,
+                "passed": true
+              }
+            },
+            "passed": false
+          },
+          "C5_TREND_XMOM": {
+            "metrics": {
+              "sharpe": -0.279,
+              "sortino": -0.367,
+              "max_drawdown_pct": -31.78,
+              "total_return_pct": -17.94,
+              "days": 441
+            },
+            "active": {
+              "n": 440,
+              "mean": -0.0012378070692381279,
+              "se_hand_rolled": 0.0006680985011791083,
+              "se_statsmodels": 0.0006680985011791088,
+              "se_used": 0.0006680985011791088,
+              "se_path": "statsmodels",
+              "se_agreement_rel": 8.114089244116141e-16,
+              "t_stat": -1.852731396723022,
+              "p_one_sided": 0.9680395662399087,
+              "maxlags": 5
+            },
+            "holm": {
+              "p_raw": 0.9680395662399087,
+              "p_holm": 1.0,
+              "rank": 4,
+              "family_size": 4,
+              "alpha": 0.1,
+              "reject_null": false
+            },
+            "annualised_active_return_pct": -31.192738144800824,
+            "conditions": {
+              "1_sharpe_beats_c1": {
+                "value": -0.279,
+                "reference": 0.812,
+                "passed": false
+              },
+              "2_positive_active_return": {
+                "value": -31.192738144800824,
+                "reference": 0.0,
+                "passed": false
+              },
+              "3_holm_adjusted_hac_test": {
+                "value": 1.0,
+                "reference": 0.1,
+                "p_raw": 0.9680395662399087,
+                "t_stat": -1.852731396723022,
+                "passed": false
+              },
+              "4_drawdown_within_1_25x": {
+                "value": 31.78,
+                "reference": 28.849999999999998,
+                "passed": false
+              }
+            },
+            "passed": false
+          }
+        }
+      }
+    }
+  },
+  "base_case_bps": 10.0,
+  "passing_candidates": [],
+  "verdict": "FAIL"
+}
