@@ -75,3 +75,18 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ── Next.js ───────────────────────────────────────────────────────────
+quant-war-room/.next/
+quant-war-room/node_modules/
+
+# ── Backtest venv (requirements.txt bu makinede kurulamıyor, CLAUDE.md'ye bak) ─
+.venv-backtest/
+
+# ── Ajan üretimi tek seferlik raporlar / kopya talimat dosyaları ──────
+# Kalıcı dokümanlar docs/ altında ve TAKİP EDİLİR: docs/designs/*.md
+# önceden ilan edilmiş kriterlerdir, git zaman damgaları kanıtın kendisidir.
+AGENTS.md
+reporttocodex.md
+*_rapor.md
+handover*.md
