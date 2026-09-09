@@ -1,0 +1,115 @@
+{
+  "declared_in": "docs/designs/c1-forward-decision-gate.md",
+  "evaluated_at": "2026-09-09T19:45:22Z",
+  "gate": "C1 forward decision gate",
+  "gate_date": "2026-12-01",
+  "ledger": "/Users/erenakpinar/Library/Application Support/AI_Hedge_Fund/c1-forward/c1-forward.jsonl",
+  "legs": {
+    "M1_session_completeness": {
+      "at_gate_length": false,
+      "duplicates": [],
+      "expected_sessions_in_span": 5,
+      "first_session": "2026-09-01",
+      "gate_expected_sessions": 64,
+      "last_session": "2026-09-08",
+      "missing_sessions": [],
+      "out_of_order": false,
+      "sessions": 5,
+      "sessions_not_in_market_calendar": [],
+      "verdict": "PASS"
+    },
+    "M2_basis_bound": {
+      "bound_pp_per_year": 0.1,
+      "downloaded_at": "2026-09-09T19:45:21Z",
+      "drift_pp": 0.01,
+      "drift_pp_per_year": 0.63,
+      "first_session": "2026-09-01",
+      "gate_min_sessions": 64,
+      "interpretation": "Fewer than 64 sessions. The numbers are reported for monitoring; annualising this few sessions would manufacture a breach out of an immaterial absolute drift. No verdict is claimed.",
+      "last_session": "2026-09-08",
+      "ledger": "/Users/erenakpinar/Library/Application Support/AI_Hedge_Fund/c1-forward/c1-forward.jsonl",
+      "live": {
+        "basis": "SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED",
+        "final_equity": 1545.836584,
+        "sharpe": 8.432,
+        "total_return_pct": 3.06
+      },
+      "max_abs_equity_gap": 0.0536154534,
+      "program_start": "2026-09-01",
+      "replica": {
+        "basis": "AUTO_ADJUSTED",
+        "final_equity": 1545.782969,
+        "sharpe": 8.419,
+        "total_return_pct": 3.05
+      },
+      "sessions": 5,
+      "verdict": "INSUFFICIENT_SESSIONS",
+      "years": 0.015873
+    },
+    "M3_corporate_actions": {
+      "correctly_uncredited": [
+        {
+          "session": "2026-09-01",
+          "shares_held_entering_session": 0.0,
+          "symbol": "LMT",
+          "why": "no position on the ex-date, so no dividend was due"
+        }
+      ],
+      "in_ledger_not_in_provider": [],
+      "in_provider_not_in_ledger": [],
+      "ledger_dividends": [],
+      "ledger_splits": [],
+      "note": "No corporate action was credited in the window. The dividend and split paths are UNTESTED by this gate, not validated by it — the RP-A window contained no split in any of these 17 names either, so the split path has still never been compared against an independent basis. 1 ex-date(s) fell on a session where the position was zero and were correctly not credited; that branch was exercised, the crediting branch was not.",
+      "provider_actions_in_span": [
+        {
+          "kind": "DIVIDEND",
+          "session": "2026-09-01",
+          "symbol": "LMT",
+          "value": 3.45
+        }
+      ],
+      "split_path_exercised": false,
+      "verdict": "UNTESTED"
+    },
+    "M4_rebalance_path": {
+      "decisions": 1,
+      "executions_checked": 1,
+      "month_first_sessions": [
+        "2026-09-01"
+      ],
+      "pending_decision": null,
+      "problems": [],
+      "rebalances": [
+        {
+          "decision_id": "C1-2026-09-01",
+          "decision_session": "2026-09-01",
+          "execution_session": "2026-09-02",
+          "fill_count": 17,
+          "symbols_priced_by_a_fill": 17,
+          "verdict": "PASS",
+          "worst_weight_error": 0.0
+        }
+      ],
+      "verdict": "PASS",
+      "weight_tolerance": 1e-06
+    },
+    "M5_operational_recovery": {
+      "failure_detail": [
+        {
+          "error": "raise C1ForwardError(f\"{session.date()} {symbol}: invalid Close\")",
+          "run_date": "2026-09-04"
+        }
+      ],
+      "failures": 1,
+      "longest_consecutive_failure_streak": 1,
+      "note": "Every failed run was picked up by a later scheduled run with no manual intervention, which is the fail-closed policy behaving as designed.",
+      "runs": 8,
+      "skips": 2,
+      "successes": 5,
+      "unrecovered_failures": [],
+      "verdict": "PASS"
+    }
+  },
+  "sessions": 5,
+  "verdict": "INCOMPLETE"
+}

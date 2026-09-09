@@ -96,6 +96,41 @@ is a materially better position than choosing a hypothesis class now.
 The gate is **not** extended to absorb a failure, and a failed leg is not dropped
 because the other four passed.
 
+## Resolution of an ambiguity in this file, declared 2026-09-09
+
+The rules above say PASS requires all five legs and that FAIL means fix and
+re-declare, but M3 has a third outcome — UNTESTED, when no corporate action
+occurred — and this file did not say what that yields. Recording the answer now,
+at session 5, while the evidence is still in the future and the answer cannot be
+chosen to suit a result:
+
+**An UNTESTED or human-pending leg, with every other leg passing, leaves the gate
+INCOMPLETE — not passed.** INCOMPLETE is a decision for a person: either accept
+in writing that the corporate-action path remains unexercised and proceed anyway,
+or keep the ledger running until an action occurs. It is not a verdict the code
+may award itself, and it is not a FAIL either, because nothing is broken.
+
+`c1_gate.py` implements exactly this and `tests/test_c1_gate.py` holds it.
+
+## What the first live run already found
+
+Run at session 5 on 2026-09-09, the gate returned INCOMPLETE — M1, M4 and M5
+PASS, M2 INSUFFICIENT_SESSIONS, M3 UNTESTED — which is the expected shape this
+early. Two things are worth recording because they were not expected:
+
+- **M2 would have reported a breach without its session floor.** An absolute
+  drift of 0.01 pp and a maximum equity gap of 5.4 cents annualise to 0.63 pp/yr
+  across four days, six times the declared 0.10 bound. Under
+  `c1-forward-basis-divergence.md` a breach means "the basis is not the
+  explanation, go find a defect" — so without the floor the gate's first act
+  would have been to send someone hunting a bug worth five cents.
+- **M3's first run was wrong, and the ledger was right.** It flagged an LMT
+  ex-date on 2026-09-01 as a missed dividend. The book was 100% cash that
+  session — the program decides at the first close and fills at the next open —
+  so no dividend was due, and the fill landed already ex-dividend. The check now
+  exempts a dividend whose ex-date falls on a zero position, and lists it rather
+  than dropping it silently.
+
 ## Freeze until 2026-12-01
 
 No new candidate screens, no parameter search, no revival of the V6 live path —
