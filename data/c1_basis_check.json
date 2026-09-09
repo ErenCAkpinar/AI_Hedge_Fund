@@ -1,0 +1,28 @@
+{
+  "bound_pp_per_year": 0.1,
+  "downloaded_at": "2026-09-09T19:37:29Z",
+  "drift_pp": 0.01,
+  "drift_pp_per_year": 0.63,
+  "first_session": "2026-09-01",
+  "gate_min_sessions": 64,
+  "interpretation": "Fewer than 64 sessions. The numbers are reported for monitoring; annualising this few sessions would manufacture a breach out of an immaterial absolute drift. No verdict is claimed.",
+  "last_session": "2026-09-08",
+  "ledger": "/Users/erenakpinar/Library/Application Support/AI_Hedge_Fund/c1-forward/c1-forward.jsonl",
+  "live": {
+    "basis": "SPLIT_ADJUSTED_NOT_DIVIDEND_ADJUSTED",
+    "final_equity": 1545.836584,
+    "sharpe": 8.432,
+    "total_return_pct": 3.06
+  },
+  "max_abs_equity_gap": 0.0536154534,
+  "program_start": "2026-09-01",
+  "replica": {
+    "basis": "AUTO_ADJUSTED",
+    "final_equity": 1545.782969,
+    "sharpe": 8.419,
+    "total_return_pct": 3.05
+  },
+  "sessions": 5,
+  "verdict": "INSUFFICIENT_SESSIONS",
+  "years": 0.015873
+}
