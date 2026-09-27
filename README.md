@@ -159,7 +159,7 @@ AI_Hedge_Fund/
 └── docs/                  # Design notes and backtest output
 ```
 
-Runtime reports, logs, `.env` and `gcp_key.json` are git-ignored; never commit credentials.
+Runtime reports, logs, `.env` and `gcp_key.json` are git-ignored; never commit credentials. Two cache files from an early run, `hmm_rejim.json` and `bl_agirliklar.json`, were committed before they were added to `.gitignore` and are still tracked; `mock_agent.py` overwrites them on each run.
 
 ## Roadmap
 
